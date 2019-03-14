@@ -53,6 +53,9 @@ onMount(() => {
         scene.add(mesh);
 
 		internalUpdate = function (time) {
+            let width = canvas.width;
+            let height = canvas.height;
+        
             material.uniforms.time.value = time/1000;
             material.uniforms.resolution.value = new THREE.Vector2(width,height);
             update && update(material.uniforms);
