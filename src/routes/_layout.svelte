@@ -1,6 +1,4 @@
 <script>
-	import Nav from '../components/Nav.html';
-
 	export let segment;
 </script>
 
