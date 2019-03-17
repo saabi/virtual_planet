@@ -228,7 +228,7 @@ vec3 plot(vec2 fragCoord, vec3 bg, vec3 color) {
     // setup coordinate system
     vec2 uv = fragCoord/resolution.xy;
     uv.x *= resolution.x/resolution.y;
-    float lw = 1./resolution.y;
+    float lw = 1./resolution.y+0.00000001;
     if (uv.y < .5 && uv.y+lw > .5 ) bg += vec3(1,1,1);
     if (uv.y < color.r/2.0 && uv.y+lw*2.0 > color.r/2.0 ) bg *= vec3(1.0,0.0,0.0);
     if (uv.y < color.g/2.0 && uv.y+lw*2.0 > color.g/2.0 ) bg *= vec3(0.0,1.0,0.0);
