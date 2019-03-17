@@ -3,15 +3,18 @@
 	import WorkSpace from '../components/WorkSpace.svelte'
 	import ColorSpace from '../components/ColorSpace.svelte';
 	import Spectrum from '../components/Spectrum.svelte';
+	import Sandbox from '../components/SandboxShader.svelte';
 
 	const panels = {
 		colorspace: ColorSpace,
-		spectrum: Spectrum
+		spectrum: Spectrum,
+		"glsl-sandbox": Sandbox
 	}
+	const defaultComponentProps = {panels, active: 'colorspace'};
 
 	let layout = {
 		root: {
-			id: 0,
+			id: '0',
 			type: 'group',
 			row: false,
 			pos: 0,
@@ -21,7 +24,7 @@
 			children: [
 				{
 					type: 'pane',
-					id: 1,
+					id: '1',
 					pos: 0,
 					size: 0.5,
 					prev: null,
@@ -30,7 +33,7 @@
 				},
 				{
 					type: 'pane',
-					id: 2,
+					id: '2',
 					pos: 0.5,
 					size: 0.5,
 					prev: null,
@@ -47,16 +50,11 @@
 	<title>ColorLab ALPHA</title>
 </svelte:head>
 
-<Subdivide component={WorkSpace}
+<Subdivide component={WorkSpace} 
+	componentProps={defaultComponentProps}
 	thickness='3px' 
 	{layout} />
 
 
 <style>
-.two {
-	position: absolute;
-	width: 400px;
-	height: 300px;
-	top: 0;
-}
 </style>
