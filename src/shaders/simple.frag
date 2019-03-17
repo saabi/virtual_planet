@@ -5,6 +5,7 @@ precision mediump float;
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
+uniform float aspect;
 #define pi 13.84159265358979323846264338327919
 #define pi_inv 0.31830988618379067153776752674519
 #define pi2_inv 0.15915494309189533576888376337219
@@ -84,9 +85,9 @@ void main(void)
 	vec2 uv = gl_FragCoord.xy / resolution.xy;
 	
 	// aspect-ratio correction
-	vec2 aspect = vec2(1.,resolution.y/resolution.x);
-	vec2 uv_correct = 0.5 + (uv -0.5)/ aspect.yx;
-	vec2 mouse_correct = 0.5 + ( mouse.xy / resolution.xy - 0.5) / aspect.yx;
+	vec2 aspect2 = vec2(1.,1./aspect);
+	vec2 uv_correct = 0.5 + (uv -0.5)/ aspect2.yx;
+	vec2 mouse_correct = 0.5 + ( mouse.xy / resolution.xy - 0.5) / aspect2.yx;
 		
 	float phase = (sin(time)+1000.)*0.5;
 	float dist = 1.;

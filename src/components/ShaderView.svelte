@@ -44,7 +44,8 @@ onMount(() => {
             fragmentShader: shader,
            	uniforms: {
                 time: { value: 0.0 },
-                resolution: { value: new THREE.Vector2() }
+                resolution: { value: new THREE.Vector2() },
+                aspect: {value: width/height}
         	}
         });
         material.extensions.derivatives = true;
@@ -58,6 +59,7 @@ onMount(() => {
         
             material.uniforms.time.value = time/1000;
             material.uniforms.resolution.value = new THREE.Vector2(width,height);
+            material.uniforms.aspect.value = canvas.clientWidth / canvas.clientHeight;
             update && update(material.uniforms);
 		}
 	});
