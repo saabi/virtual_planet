@@ -23,6 +23,7 @@ uniform float texture_noise_scale;
 uniform float texture_noise_amplitude;
 uniform float polar_scale;
 uniform float polar_amplitude;
+uniform float illumination;
 
 const vec3 ROCK = vec3(0.50, 0.35, 0.15);
 const vec3 TREE = vec3(0.05, 1.15, 0.10);
@@ -192,10 +193,12 @@ void main() {
       col *= vec3(spots);
 	}
 
-  vec3 n = normalize( cross( dFdx( op ), dFdy( op ) ) );
-  vec3 lightDir = normalize(SUN_POS - op);
-  float diff = max(dot(n, lightDir), 0.0);
-  col *= diff;
+  if (illumination > 0.0) {
+    vec3 n = normalize( cross( dFdx( op ), dFdy( op ) ) );
+    vec3 lightDir = normalize(SUN_POS - op);
+    float diff = max(dot(n, lightDir), 0.0);
+    col *= diff;
+  }
 
 	gl_FragColor = vec4( col, 1.0 );
 	//gl_FragColor = vec4(0.0, h/total_amplitude+.5, 0.0, 1.0);

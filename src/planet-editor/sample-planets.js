@@ -22,6 +22,7 @@ const planet_configs = {
         texture_noise_amplitude: 0,
         polar_scale: 0,
         polar_amplitude: 0,
+        illumination: 1.0,
     },
     twirly: {
         radius: 100,
@@ -46,6 +47,7 @@ const planet_configs = {
         texture_noise_amplitude: 1.73,
         polar_scale: 0,
         polar_amplitude: 0,
+        illumination: 1.0,
     },
     desert: {
         radius: 100,
@@ -70,6 +72,7 @@ const planet_configs = {
         texture_noise_amplitude: 4.02,
         polar_scale: 0.15,
         polar_amplitude: 2.3,
+        illumination: 1.0,
     },
     archipelago: {
         radius: 100,
@@ -94,6 +97,7 @@ const planet_configs = {
         texture_noise_amplitude: 3.77,
         polar_scale: 0.28,
         polar_amplitude: 0.6,
+        illumination: 1.0,
     },
     frozen: {
         radius: 100,
@@ -118,6 +122,7 @@ const planet_configs = {
         texture_noise_amplitude: 3.77,
         polar_scale: 0,
         polar_amplitude: 18.6,
+        illumination: 1.0,
     },
     craters: {
         radius: 100,
@@ -142,6 +147,7 @@ const planet_configs = {
         texture_noise_amplitude: 1.73,
         polar_scale: 0,
         polar_amplitude: 0,
+        illumination: 1.0,
     },
     normie: {
         radius: 100,
@@ -166,6 +172,7 @@ const planet_configs = {
         texture_noise_amplitude: 2.5,
         polar_scale: 0.15,
         polar_amplitude: 12.1,
+        illumination: 1.0,
     }
 
 }

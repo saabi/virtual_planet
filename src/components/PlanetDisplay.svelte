@@ -30,6 +30,7 @@
     }
 
     let wireframe = false;
+    let illumination = true;
     let render_water = true;
     let config = {
         radius: 100,
@@ -45,7 +46,6 @@
         detail_amplitude: 8.2,
         detail_albedo: 0.55,
         water_level: 0.5,
-        render_water: 1.0,
         erosion: 1.61,
         sand_cutoff: 0.17,
         vegetation_level: 0.27,
@@ -54,6 +54,8 @@
         texture_noise_amplitude: 2.5,
         polar_scale: 0.15,
         polar_amplitude: 12.1,
+        render_water: 1.0,
+        illumination: 1.0,
     }
 
 	onMount(() => {
@@ -104,6 +106,7 @@
             texture_noise_amplitude: {value: 3.0},
             polar_scale: {value: 0.3},
             polar_amplitude: {value: 8.5},
+            illumination: {value: 1.0},
         };
         material.extensions.derivatives = true;
         const mesh = new THREE.Mesh(geometry, material);
@@ -129,8 +132,10 @@
             for (let k in config) {
                 material.uniforms[k].value = config[k];
             }
+
             material.wireframe = wireframe;
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
+            material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
             //camera.position.z = config.radius * proportion;
             
         }
@@ -240,7 +245,11 @@ ul > li > header {
             <input type="checkbox" bind:checked={wireframe} />
         </li>
         <li>
-            <label>Render</label>
+            <label>Illumination</label>
+            <input type="checkbox" bind:checked={illumination} />
+        </li>
+        <li>
+            <label>Render Water</label>
             <input type="checkbox" bind:checked={render_water} />
         </li>
 
