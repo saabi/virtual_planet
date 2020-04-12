@@ -235,12 +235,14 @@ ul > li > header {
             <input type="range" min="0" max="1" step="0.01" bind:value={config.detail_albedo} /> 
             <data>{config.detail_albedo}</data>
         </li>
+        <!--
         <li><header>Elevation in Texture</header></li>
         <li>
             <label>Level</label>
             <input type="range" min="0" max="1" step="0.01" bind:value={config.elevation_mix} /> 
             <data>{config.elevation_mix}</data>
         </li>
+        -->
         <li><header>Water</header></li>
         <li>
             <label>Level</label>
