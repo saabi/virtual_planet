@@ -1,22 +1,24 @@
 <script>
 	import Subdivide from '@sveltejs/svelte-subdivide';
-	import WorkSpace from '../components/WorkSpace.svelte'
+	import WorkSpace from '../components/WorkSpace.svelte';
 	import ColorSpace from '../components/ColorSpace.svelte';
+	import PlanetDisplay from '../components/PlanetDisplay.svelte';
 	import Spectrum from '../components/Spectrum.svelte';
 	import Sandbox from '../components/SandboxShader.svelte';
 
 	const panels = {
 		colorspace: ColorSpace,
+		planetDisplay: PlanetDisplay,
 		spectrum: Spectrum,
 		"glsl-sandbox": Sandbox
 	}
-	const defaultComponentProps = {panels, active: 'colorspace'};
+	const defaultComponentProps = {panels, active: 'planetDisplay'};
 
 	let layout = {
 		root: {
 			id: '0',
 			type: 'group',
-			row: false,
+			row: true,
 			pos: 0,
 			size: 1,
 			prev: null,
@@ -29,7 +31,7 @@
 					size: 0.5,
 					prev: null,
 					next: null,
-					childProps: {panels, active: 'colorspace'}
+					childProps: {panels, active: 'planetDisplay'}
 				},
 				{
 					type: 'pane',
@@ -38,7 +40,7 @@
 					size: 0.5,
 					prev: null,
 					next: null,
-					childProps: {panels, active: 'spectrum'}
+					childProps: {panels, active: 'planetDisplay'}
 				}
 			]
 		}
