@@ -1,9 +1,10 @@
 <script>
-	import { onMount } from 'svelte';
-
+    import { onMount } from 'svelte';
+    
     import * as THREE from 'three';
     import { OrbitControls }  from 'three/examples/jsm/controls/OrbitControls';
 
+    import Range from './Range.svelte';
     import ThreeView from './ThreeView.svelte';
 
     import planetVertexShader from '../shaders/planet.vert';
@@ -189,69 +190,24 @@ ul > li > header {
             </select>
             <data>{selection}</data>
         </li>
-        <li>
-            <label>Radius</label>
-            <input type="range" min="0" max="3000" step="1" bind:value={config.radius} />
-            <data>{config.radius}</data>
-        </li>
+        <li><Range label='Radius' min="0" max="3000" step="1" bind:value={config.radius} /></li>
+
         <li><header>Tectonics</header></li>
-        <li>
-            <label>Scale</label>
-            <input type="range" min="0" max="10" step="0.1" bind:value={config.voronoi_scale} /> 
-            <data>{config.voronoi_scale}</data>
-        </li>
-        <li>
-            <label>Amplitude</label>
-            <input type="range" min="0" max="50" step="0.1" bind:value={config.voronoi_amplitude} /> 
-            <data>{config.voronoi_amplitude}</data>
-        </li>
-        <li>
-            <label>Albedo</label>
-            <input type="range" min="0" max="1" step="0.01"  bind:value={config.voronoi_albedo} /> 
-            <data>{config.voronoi_albedo}</data>
-        </li>
-        <li>
-            <label>Albedo Y</label>
-            <input type="range" min="0" max="1" step="0.01"  bind:value={config.voronoi_albedo_y} /> 
-            <data>{config.voronoi_albedo_y}</data>
-        </li>
-        <li>
-            <label>Albedo Z</label>
-            <input type="range" min="0" max="1" step="0.01"  bind:value={config.voronoi_albedo_z} /> 
-            <data>{config.voronoi_albedo_z}</data>
-        </li>
+        <li><Range label='Scale'     min="0" max="10" step="0.1" bind:value={config.voronoi_scale} /></li>
+        <li><Range label="Amplitude" min="0" max="50" step="0.1" bind:value={config.voronoi_amplitude} /></li>
+        <li><Range label="Albedo"    min="0" max="1" step="0.01" bind:value={config.voronoi_albedo} /></li>
+        <li><Range label="Albedo Y"  min="0" max="1" step="0.01" bind:value={config.voronoi_albedo_y} /></li>
+        <li><Range label="Albedo Z"  min="0" max="1" step="0.01" bind:value={config.voronoi_albedo_z} /></li>
+
         <li><header>Plate Distortion</header></li>
-        <li>
-            <label>Scale</label>
-            <input type="range" min="0" max="10" step="0.1" bind:value={config.voronoi_distortion_scale} /> 
-            <data>{config.voronoi_distortion_scale}</data>
-        </li>
-        <li>
-            <label>Amplitude</label>
-            <input type="range" min="0" max="50" step="0.1" bind:value={config.voronoi_distortion_amplitude} /> 
-            <data>{config.voronoi_distortion_amplitude}</data>
-        </li>
-        <li>
-            <label>Albedo</label>
-            <input type="range" min="0" max="1" step="0.01"  bind:value={config.voronoi_distortion_albedo} /> 
-            <data>{config.voronoi_distortion_albedo}</data>
-        </li>
+        <li><Range label="Scale"     min="0" max="10" step="0.1" bind:value={config.voronoi_distortion_scale} /></li>
+        <li><Range label="Amplitude" min="0" max="50" step="0.1" bind:value={config.voronoi_distortion_amplitude} /></li>
+        <li><Range label="Albedo"    min="0" max="1" step="0.01" bind:value={config.voronoi_distortion_albedo} /></li>
+
         <li><header>Terrain Detail</header></li>
-        <li>
-            <label>Scale</label>
-            <input type="range" min="0" max="100" step="0.1" bind:value={config.detail_scale} /> 
-            <data>{config.detail_scale}</data>
-        </li>
-        <li>
-            <label>Amplitude</label>
-            <input type="range" min="0" max="50" step="0.1" bind:value={config.detail_amplitude} /> 
-            <data>{config.detail_amplitude}</data>
-        </li>
-        <li>
-            <label>Albedo</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.detail_albedo} /> 
-            <data>{config.detail_albedo}</data>
-        </li>
+        <li><Range label="Scale"     min="0" max="100" step="0.1" bind:value={config.detail_scale} /> </li>
+        <li><Range label="Amplitude" min="0" max="50"  step="0.1" bind:value={config.detail_amplitude} /></li>
+        <li><Range label="Albedo"    min="0" max="1"  step="0.01" bind:value={config.detail_albedo} /></li>
         <!--
         <li><header>Elevation in Texture</header></li>
         <li>
@@ -260,64 +216,34 @@ ul > li > header {
             <data>{config.elevation_mix}</data>
         </li>
         -->
+
         <li><header>Water</header></li>
-        <li>
-            <label>Level</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.water_level} /> 
-            <data>{config.water_level}</data>
-        </li>
-        <li>
-            <label>Render</label>
-            <input type="checkbox" bind:checked={render_water} />
-        </li>
+        <li><Range label="Level" min="0" max="1" step="0.01" bind:value={config.water_level} /></li>
+
         <li><header>Erosion</header></li>
-        <li>
-            <label>Erosion Level</label>
-            <input type="range" min="0" max="3" step="0.01" bind:value={config.erosion} /> 
-            <data>{config.erosion}</data>
-        </li>
-        <li>
-            <label>Sand</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.sand_cutoff} /> 
-            <data>{config.sand_cutoff}</data>
-        </li>
-        <li>
-            <label>Vegetation</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.vegetation_level} /> 
-            <data>{config.vegetation_level}</data>
-        </li>
-        <li>
-            <label>Snow</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.snow_cover} /> 
-            <data>{config.snow_cover}</data>
-        </li>
+        <li><Range label="Erosion Level" min="0" max="3" step="0.01" bind:value={config.erosion} /> </li>
+        <li><Range label="Sand"          min="0" max="1" step="0.01" bind:value={config.sand_cutoff} /></li>
+        <li><Range label="Vegetation"    min="0" max="1" step="0.01" bind:value={config.vegetation_level} /></li>
+        <li><Range label="Snow"          min="0" max="1" step="0.01" bind:value={config.snow_cover} /></li>
+
         <li><header>Texture Noise</header></li>
-        <li>
-            <label>Scale</label>
-            <input type="range" min="0" max="10" step="0.01" bind:value={config.texture_noise_scale} /> 
-            <data>{config.texture_noise_scale}</data>
-        </li>
-        <li>
-            <label>Amplitude</label>
-            <input type="range" min="0" max="10" step="0.01" bind:value={config.texture_noise_amplitude} /> 
-            <data>{config.texture_noise_amplitude}</data>
-        </li>
+        <li><Range label="Scale"     min="0" max="10" step="0.01" bind:value={config.texture_noise_scale} /></li>
+        <li><Range label="Amplitude" min="0" max="10" step="0.01" bind:value={config.texture_noise_amplitude} /></li>
+
         <li><header>Polarity</header></li>
-        <li>
-            <label>Level</label>
-            <input type="range" min="0" max="1" step="0.01" bind:value={config.polar_scale} /> 
-            <data>{config.polar_scale}</data>
-        </li>
-        <li>
-            <label>Amplitude</label>
-            <input type="range" min="0" max="20" step="0.1" bind:value={config.polar_amplitude} /> 
-            <data>{config.polar_amplitude}</data>
-        </li>
+        <li><Range label="Level"     min="0" max="1" step="0.01" bind:value={config.polar_scale} /></li>
+        <li><Range label="Amplitude" min="0" max="20" step="0.1" bind:value={config.polar_amplitude} /></li>
+
         <li><header>Rendering</header></li>
         <li>
             <label>WireFrame</label>
             <input type="checkbox" bind:checked={wireframe} />
         </li>
+        <li>
+            <label>Render</label>
+            <input type="checkbox" bind:checked={render_water} />
+        </li>
+
     </ul>
 </div>
 <!--<button on:click={() => run=!run}>Run</button>-->
