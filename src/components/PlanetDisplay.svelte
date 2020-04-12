@@ -26,7 +26,7 @@
     $: setConfig(selection);
 
     function setConfig(s) {
-        config = planet_configs[s];
+        config = {...planet_configs[s]};
     }
 
     let wireframe = false;
