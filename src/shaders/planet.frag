@@ -31,6 +31,8 @@ const vec3 ICE  = vec3(0.85, 1.00, 1.20);
 const vec3 SHALLOW_WATER = vec3(0.4, 1.0, 1.9);
 const vec3 DEEP_WATER = vec3(0, 0.1, 0.7);
 
+const vec3 SUN_POS = vec3(10000.0, 0.0, 0.0);
+
 vec3 hash( vec3 x )
 {
 	x = vec3( dot(x,vec3(127.1,311.7, 74.7)),
@@ -190,21 +192,10 @@ void main() {
       col *= vec3(spots);
 	}
 
-
-	/*
-	float sl = height-radius;
-	float nsl = sl + (fbm_4(op/1.5)-0.5)*3.0;
-	if (sl > 0.0*variation) {
-		col = SAND*(1.0-sl/5.0);
-		col = mix(ROCK, SAND, 1.0-sl/2.0);
-	}
-	if (nsl > 0.14*variation) {
-		col = ROCK*(1.0-nsl/6.);
-	}
-	if (nsl > 0.36*variation) {
-		col = ICE*nsl/5.;
-	}
-  */
+  vec3 n = normalize( cross( dFdx( op ), dFdy( op ) ) );
+  vec3 lightDir = normalize(SUN_POS - op);
+  float diff = max(dot(n, lightDir), 0.0);
+  col *= diff;
 
 	gl_FragColor = vec4( col, 1.0 );
 	//gl_FragColor = vec4(0.0, h/total_amplitude+.5, 0.0, 1.0);
