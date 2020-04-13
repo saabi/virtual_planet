@@ -213,9 +213,10 @@ void main() {
 
   float count = 1.0;
   if (multisampling > 0.0 && SAMPLES > 0) {
+    float s = SAMPLES==0?0.000001:float(SAMPLES);
     vec3 samples[SAMPLES==0?1:SAMPLES];
     for (int i = 0; i < SAMPLES; i++) {
-      float a = 3.1415*2.0/(SAMPLES==0?0.000001:float(SAMPLES))*float(i);
+      float a = 3.1415*2.0/s*float(i)+3.1415/s;
 
       Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*0.66, wl, total_amplitude, lookAt);
       acc.vor += r.vor;
