@@ -1,9 +1,9 @@
-//varying vec3 vor;
-//varying float detail;
-//varying float distortion;
-//varying float height;
-//varying vec3 op;
-//varying float erosion_value;
+varying vec3 vor;
+varying float detail;
+varying float distortion;
+varying float height;
+varying vec3 op;
+varying float erosion_value;
 varying vec3 norm;
 varying vec4 viewPosition;
 varying vec3 samplePos;
@@ -29,6 +29,7 @@ uniform float polar_amplitude;
 uniform float illumination;
 uniform float normals;
 uniform float multisampling;
+uniform float fragSampling;
 uniform float smoothShading;
 
 uniform float voronoi_scale;
@@ -215,7 +216,18 @@ void main() {
   float total_amplitude = voronoi_amplitude+detail_amplitude;
   float wl = total_amplitude*(water_level - 0.5);
 
-  Result r = sample(samplePos, wl, total_amplitude);
+  Result r;
+  if (fragSampling > 0.0) {
+    r = sample(samplePos, wl, total_amplitude);
+  }
+  else {
+    r.vor = vor;
+    r.detail = detail;
+    r.distortion = distortion;
+    r.height = height;
+    r.op = op;
+    r.erosion_value = erosion_value;
+  }
 
 
   float spots = r.vor.x*(1.0-voronoi_albedo) + voronoi_albedo;

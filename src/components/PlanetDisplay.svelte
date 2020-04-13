@@ -28,6 +28,7 @@
     let angle = Math.PI / 2;
     let wireframe = false;
     let multisampling = true;
+    let fragSampling = true;
     let illumination = true;
     let render_water = true;
     let normals = false;
@@ -118,6 +119,7 @@
             polar_amplitude: {value: 8.5},
             illumination: {value: 1.0},
             multisampling: {value: 1.0},
+            fragSampling: {value: 1.0},
             normals: {value: 0.0},
             smoothShading: {value: 1.0},
             ares: {value:[resx,resy,patchres]},
@@ -139,6 +141,7 @@
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
             material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
             material.uniforms.multisampling.value = multisampling ? 1.0 : 0.0;
+            material.uniforms.fragSampling.value = fragSampling ? 1.0 : 0.0;
             material.uniforms.normals.value = normals ? 1.0 : 0.0;
             material.uniforms.smoothShading.value = smoothShading ? 1.0 : 0.0;
             material.uniforms.time.value = time/1000;
@@ -267,6 +270,11 @@ ul > li > header {
             <label>Illumination</label>
             <input type="checkbox" bind:checked={illumination} />
         </li>
+        <li>
+            <label>Fragment&nbsp;Sampling</label>
+            <input type="checkbox" bind:checked={fragSampling}/>
+        </li>
+
         <li>
             <label>Multisampling</label>
             <input type="checkbox" bind:checked={multisampling} />
