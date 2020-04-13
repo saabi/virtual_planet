@@ -168,14 +168,18 @@ div {
     background: rgba(64,64,64,0.5);
     color: white;
     font-family: sans-serif;
+    font-size: 85%;
 }
-
+ul {
+    margin:0;
+    padding:0;
+}
 ul > li {
     list-style-type: none;
 }
 ul > li > label {
     display: inline-block;
-    width: 5em;
+    width: 8em;
     text-align: right;
 }
 ul > li > data {
@@ -186,7 +190,9 @@ ul > li > data {
     background: rgba(64,64,64,0.5);
 }
 ul > li > header {
-    background: rgba(64,64,64,0.5);
+    background: rgba(92, 60, 0, 0.5);
+    margin: 2px;
+    padding: 2px;
 }
 </style>
 
@@ -262,7 +268,7 @@ ul > li > header {
             <input type="checkbox" bind:checked={illumination} />
         </li>
         <li>
-            <label>Multisampling></label>
+            <label>Multisampling</label>
             <input type="checkbox" bind:checked={multisampling} />
         </li>
         <li>

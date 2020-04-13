@@ -18,6 +18,9 @@ data {
     color: #0f0;
     background: rgba(64,64,64,0.5);
 }
+input {
+    height: 12px;
+}
 </style>
 
 <label>{label}</label>
