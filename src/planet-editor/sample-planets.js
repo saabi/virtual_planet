@@ -102,7 +102,7 @@ const planet_configs = {
     frozen: {
         radius: 100,
         voronoi_scale: 8,
-        voronoi_amplitude: 8.2,
+        voronoi_amplitude: 1.9,
         voronoi_albedo: 0.78,
         voronoi_albedo_y: 0.91,
         voronoi_albedo_z: 1,

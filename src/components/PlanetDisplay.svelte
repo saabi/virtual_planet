@@ -34,8 +34,8 @@
     let normals = false;
     let smoothShading = false;
     const maxres = 96;
-    let resx = 48;
-    let resy = 16;
+    let resx = 20;
+    let resy = 10;
     let patchres = 16;
     let config = {
         radius: 100,
