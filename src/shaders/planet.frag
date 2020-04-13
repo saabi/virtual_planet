@@ -1,11 +1,12 @@
-varying vec3 vor;
-varying float detail;
-varying float distortion;
-varying float height;
-varying vec3 op;
-varying float erosion_value;
+//varying vec3 vor;
+//varying float detail;
+//varying float distortion;
+//varying float height;
+//varying vec3 op;
+//varying float erosion_value;
 varying vec3 norm;
 varying vec4 viewPosition;
+varying vec3 samplePos;
 
 uniform float time;
 uniform float radius;
@@ -29,6 +30,13 @@ uniform float illumination;
 uniform float normals;
 uniform float multisampling;
 uniform float smoothShading;
+
+uniform float voronoi_scale;
+uniform float detail_scale;
+uniform float voronoi_distortion_scale;
+uniform float voronoi_distortion_amplitude;
+uniform float erosion;
+
 
 const vec3 ROCK = vec3(0.50, 0.35, 0.15);
 const vec3 TREE = vec3(0.05, 1.15, 0.10);
@@ -158,23 +166,71 @@ float fbm_4( in vec3 x )
 	return a;
 }
 
+struct Result {
+  float distortion;
+  vec3 vor;
+  float detail;
+  float height;
+  vec3 op;
+  float erosion_value;
+};
+
+Result sample(vec3 p, const float wl, const float total_amplitude) {
+  Result r;
+
+  r.distortion = fbm_4(p*voronoi_distortion_scale);
+  r.vor = voronoi(p*voronoi_scale + (r.distortion-0.5)*voronoi_distortion_amplitude);
+  r.detail = fbm_4(p*detail_scale);
+  r.height = (r.vor.x-0.5)*voronoi_amplitude +(r.detail-0.5)*detail_amplitude;
+
+  float th = r.height - wl;
+  float thf;
+  if (th > 0.0) 
+    thf = total_amplitude-wl;
+  else {
+    thf = wl-radius;
+  }
+
+  th /= thf;
+  th = pow(th, erosion);
+  r.erosion_value = th;
+  th *= thf;
+  r.height = wl + th;
+
+  if (render_water > 0.0) {
+    p *= radius + max(r.height, wl);
+  }
+  else {
+    p *= radius + r.height;
+  }
+
+  r.op = p;
+  return r;
+}
+
+
 void main() {
-	vec3 v = vor;
 	vec3 col;
 
-  float spots = vor.x*(1.0-voronoi_albedo) + voronoi_albedo;
-  spots *= vor.y*(1.0-voronoi_albedo_y) + voronoi_albedo_y;
-  spots *= vor.z*(1.0-voronoi_albedo_z) + voronoi_albedo_z;
-  spots *= distortion*(1.0-voronoi_distortion_albedo) + voronoi_distortion_albedo;
-  spots *= detail*(1.0-detail_albedo) + detail_albedo;
-
   float total_amplitude = voronoi_amplitude+detail_amplitude;
+  float wl = total_amplitude*(water_level - 0.5);
+
+  Result r = sample(samplePos, wl, total_amplitude);
+
+
+  float spots = r.vor.x*(1.0-voronoi_albedo) + voronoi_albedo;
+  spots *= r.vor.y*(1.0-voronoi_albedo_y) + voronoi_albedo_y;
+  spots *= r.vor.z*(1.0-voronoi_albedo_z) + voronoi_albedo_z;
+  spots *= r.distortion*(1.0-voronoi_distortion_albedo) + voronoi_distortion_albedo;
+  spots *= r.detail*(1.0-detail_albedo) + detail_albedo;
+
+  //float total_amplitude = voronoi_amplitude+detail_amplitude;
 
   col = ROCK * vec3(spots);
 
-  float tn = (fbm_4(op*sqrt(texture_noise_scale))-0.5)*texture_noise_amplitude;
-	float polar = ((abs(op.y)/radius)-polar_scale)*polar_amplitude;
-	float h = height + tn + polar;
+  float tn = (fbm_4(r.op*sqrt(texture_noise_scale))-0.5)*texture_noise_amplitude;
+	float polar = ((abs(r.op.y)/radius)-polar_scale)*polar_amplitude;
+	float h = r.height + tn + polar;
 
   float tl = h / total_amplitude;
 
@@ -185,8 +241,7 @@ void main() {
   if (tl < pow(sand_cutoff,2.))
     col = SAND * vec3(spots);
 
-  float l = (total_amplitude)*(water_level - 0.5);
-	if (render_water > 0.0 && height <= l) {
+	if (render_water > 0.0 && r.height <= wl) {
 		float depth = spots;
 		depth = sqrt(depth);
 		col = mix(SHALLOW_WATER, DEEP_WATER, depth);
@@ -194,7 +249,7 @@ void main() {
 
 	if (tl > pow(snow_cover,2.)) {
 		col = ICE+tl;
-    if (render_water > 0.0 && height > l)
+    if (render_water > 0.0 && r.height > wl)
       col *= vec3(spots);
 	}
 
@@ -207,7 +262,7 @@ void main() {
   }
   if (illumination > 0.0) {
     vec4 sp = viewMatrix * vec4(SUN_POS,1.0);
-    vec3 lightDir = normalize(sp.xyz - op);
+    vec3 lightDir = normalize(sp.xyz - r.op);
     float diff = max(dot(n, lightDir), 0.0);
     col *= diff;
   }

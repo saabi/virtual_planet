@@ -31,6 +31,7 @@ varying vec3 op;
 varying float erosion_value;
 varying vec3 norm;
 varying vec4 viewPosition;
+varying vec3 samplePos;
 
 vec3 hash( vec3 x ) {
   x = vec3( dot(x,vec3(127.1,311.7, 74.7)),
@@ -156,6 +157,7 @@ mat3 calcLookAtMatrix(vec3 origin, vec3 target, float roll) {
 }
 
 struct Result {
+  vec3 samplePos;
   float distortion;
   vec3 vor;
   float detail;
@@ -167,6 +169,7 @@ struct Result {
 Result sample(vec3 p, const float wl, const float total_amplitude) {
   Result r;
 
+  r.samplePos = p;
   r.distortion = fbm_4(p*voronoi_distortion_scale);
   r.vor = voronoi(p*voronoi_scale + (r.distortion-0.5)*voronoi_distortion_amplitude);
   r.detail = fbm_4(p*detail_scale);
@@ -217,6 +220,7 @@ void main() {
 
   Result acc = sample2(p2, wl, total_amplitude, lookAt);
   vec3 r1 = acc.op;
+  samplePos = acc.samplePos;
 
   float count = 1.0;
   vec3 samples[SAMPLES==0?1:SAMPLES];
