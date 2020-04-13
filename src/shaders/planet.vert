@@ -1,3 +1,4 @@
+#define PI 3.141592653589793
 const int SAMPLES = 4;
 const vec2 ares = vec2(512.0,128.0);
 
@@ -6,6 +7,7 @@ uniform mat4 inverseModelMatrix;
 uniform float angle;
 uniform float radius;
 uniform float multisampling;
+uniform float smoothShading;
 
 uniform float voronoi_scale;
 uniform float voronoi_amplitude;
@@ -206,17 +208,17 @@ void main() {
   float wl = total_amplitude*(water_level - 0.5);
 
   vec3 p = position + vec3(0.5,0.5,0.0);
-  vec2 p2 = vec2(p.x * 3.1415 * 2.0, p.y*angle);
+  vec2 p2 = vec2(p.x * PI * 2.0, p.y*angle);
 
   Result acc = sample2(p2, wl, total_amplitude, lookAt);
   vec3 r1 = acc.op;
 
   float count = 1.0;
+  vec3 samples[SAMPLES==0?1:SAMPLES];
   if (multisampling > 0.0 && SAMPLES > 0) {
     float s = SAMPLES==0?0.000001:float(SAMPLES);
-    vec3 samples[SAMPLES==0?1:SAMPLES];
     for (int i = 0; i < SAMPLES; i++) {
-      float a = 3.1415*2.0/s*float(i)+3.1415/s;
+      float a = PI*2.0/s*float(i)+PI/s;
 
       Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*0.66, wl, total_amplitude, lookAt);
       acc.vor += r.vor;
@@ -245,15 +247,16 @@ void main() {
   op = acc.op;
   erosion_value = acc.erosion_value;
 
-  /*norm = vec3(0.0);
-  norm += normalize(dot(samples[0],samples[1])); 
-  norm += normalize(dot(samples[1],samples[2])); 
-  norm += normalize(dot(samples[2],samples[3])); 
-  norm += normalize(dot(samples[3],samples[0])); 
-  norm /= 4.0;
+  if (smoothShading > 0.0 && multisampling > 0.0 && SAMPLES > 3) {
+    norm = normalize(cross(samples[0],samples[1])); 
+    norm += normalize(cross(samples[1],samples[2])); 
+    norm += normalize(cross(samples[2],samples[3])); 
+    norm += normalize(cross(samples[3],samples[0])); 
+    norm /= -4.0;
 
-  norm = normalMatrix * (normalize(norm)*0.2 + normalize(op)*0.8);
-  */
+    norm = normalMatrix * norm;
+  }
+  
   viewPosition =  modelViewMatrix * vec4(op, 1.0);
   gl_Position = projectionMatrix * viewPosition;
 }

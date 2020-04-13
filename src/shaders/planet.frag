@@ -1,4 +1,3 @@
-
 varying vec3 vor;
 varying float detail;
 varying float distortion;
@@ -27,6 +26,9 @@ uniform float texture_noise_amplitude;
 uniform float polar_scale;
 uniform float polar_amplitude;
 uniform float illumination;
+uniform float normals;
+uniform float multisampling;
+uniform float smoothShading;
 
 const vec3 ROCK = vec3(0.50, 0.35, 0.15);
 const vec3 TREE = vec3(0.05, 1.15, 0.10);
@@ -196,9 +198,14 @@ void main() {
       col *= vec3(spots);
 	}
 
+  vec3 n;
+  if (smoothShading > 0.0 && multisampling > 0.0) {
+    n = norm;
+  }
+  else {
+    n = normalize( cross( dFdx( viewPosition.xyz ), dFdy( viewPosition.xyz ) ) );
+  }
   if (illumination > 0.0) {
-    vec3 n = normalize( cross( dFdx( viewPosition.xyz ), dFdy( viewPosition.xyz ) ) );
-    //vec3 n = norm;
     vec4 sp = viewMatrix * vec4(SUN_POS,1.0);
     vec3 lightDir = normalize(sp.xyz - op);
     float diff = max(dot(n, lightDir), 0.0);
@@ -206,5 +213,7 @@ void main() {
   }
 
 	gl_FragColor = vec4( col, 1.0 );
-	//gl_FragColor = vec4(norm, 1.0);
+  if (normals > 0.0) {
+	  gl_FragColor = vec4(n, 1.0);
+  }
 }

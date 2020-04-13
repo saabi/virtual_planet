@@ -30,6 +30,8 @@
     let multisampling = true;
     let illumination = true;
     let render_water = true;
+    let normals = false;
+    let smoothShading = false;
     let config = {
         radius: 100,
         voronoi_scale: 1,
@@ -105,6 +107,8 @@
             polar_amplitude: {value: 8.5},
             illumination: {value: 1.0},
             multisampling: {value: 1.0},
+            normals: {value: 0.0},
+            smoothShading: {value: 1.0},
         };
         material.extensions.derivatives = true;
         material.uniforms.inverseModelMatrix = {value:  new THREE.Matrix4()};
@@ -121,6 +125,8 @@
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
             material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
             material.uniforms.multisampling.value = multisampling ? 1.0 : 0.0;
+            material.uniforms.normals.value = normals ? 1.0 : 0.0;
+            material.uniforms.smoothShading.value = smoothShading ? 1.0 : 0.0;
             material.uniforms.time.value = time/1000;
             material.uniforms.angle.value = angle;
             material.uniforms.inverseModelMatrix.value.getInverse(mesh.matrixWorld)
@@ -235,12 +241,20 @@ ul > li > header {
             <input type="checkbox" bind:checked={wireframe} />
         </li>
         <li>
+            <label>Illumination</label>
+            <input type="checkbox" bind:checked={illumination} />
+        </li>
+        <li>
             <label>Multisampling></label>
             <input type="checkbox" bind:checked={multisampling} />
         </li>
         <li>
-            <label>Illumination</label>
-            <input type="checkbox" bind:checked={illumination} />
+            <label>Smooth</label>
+            <input type="checkbox" bind:checked={smoothShading} disabled={!multisampling}/>
+        </li>
+        <li>
+            <label>Normals</label>
+            <input type="checkbox" bind:checked={normals} />
         </li>
         <li>
             <label>Render Water</label>
