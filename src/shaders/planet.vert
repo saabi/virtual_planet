@@ -1,6 +1,6 @@
 #define PI 3.141592653589793
 const int SAMPLES = 4;
-const vec2 ares = vec2(512.0,128.0);
+const vec2 ares = vec2(512.0,256.0);
 
 uniform mat4 inverseModelMatrix;
 
@@ -220,7 +220,7 @@ void main() {
     for (int i = 0; i < SAMPLES; i++) {
       float a = PI*2.0/s*float(i)+PI/s;
 
-      Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*0.66, wl, total_amplitude, lookAt);
+      Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*1.414, wl, total_amplitude, lookAt);
       acc.vor += r.vor;
       acc.height += r.height;
       acc.distortion += r.distortion;
