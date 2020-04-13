@@ -32,7 +32,7 @@
     let render_water = true;
     let normals = false;
     let smoothShading = false;
-    const maxres = 64;
+    const maxres = 96;
     let resx = 48;
     let resy = 16;
     let patchres = 16;
