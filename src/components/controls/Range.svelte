@@ -7,9 +7,9 @@
     let formatted_value;
 
     function format(n, step) {
-        const precision = -Math.pow(step);
+        const precision = Math.log10(step);
         if (precision < 0) {
-            const factor = Math.pow(10,precision);
+            const factor = Math.pow(10,-precision);
             return Math.round(n*factor)/factor
         }
         return n;
