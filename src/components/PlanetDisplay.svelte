@@ -4,7 +4,8 @@
     import * as THREE from 'three';
     import { OrbitControls }  from 'three/examples/jsm/controls/OrbitControls';
 
-    import Range from './Range.svelte';
+    import Range from './controls/Range.svelte';
+    import CheckBox from './controls/CheckBox.svelte';
     import ThreeView from './ThreeView.svelte';
 
     import planetVertexShader from '../shaders/planet.vert';
@@ -157,21 +158,17 @@
 </script>
 
 <style>
-/*
-    button {
-        position: fixed;
-        top: 0;
-        left: 0;
-    }
-*/
 div {
     position: absolute;
     top: 0;
     right: 0;
     background: rgba(64,64,64,0.5);
-    color: white;
+    color: silver;
     font-family: sans-serif;
     font-size: 85%;
+    max-height: 100%;
+    overflow-x: visible;
+    overflow-y: auto;
 }
 ul {
     margin:0;
@@ -182,8 +179,9 @@ ul > li {
 }
 ul > li > label {
     display: inline-block;
-    width: 8em;
+    width: 5em;
     text-align: right;
+    margin: 0 10px;
 }
 ul > li > data {
     display: inline-block;
@@ -191,11 +189,17 @@ ul > li > data {
     text-align: right;
     color: #0f0;
     background: rgba(64,64,64,0.5);
+    padding: 0 0.5em;
 }
 ul > li > header {
     background: rgba(92, 60, 0, 0.5);
     margin: 2px;
-    padding: 2px;
+    padding: 2px 1em;
+    color: white;
+}
+select {
+    margin: 0 10px;
+    width: 128px;
 }
 </style>
 
@@ -204,7 +208,7 @@ ul > li > header {
     <ul>
         <li><header>Planet</header></li>
         <li>
-            <label>Radius</label>
+            <label>Presets</label>
             <select bind:value={selection} >
                 {#each Object.keys(planet_configs) as planetName}
                     <option value={planetName}>
@@ -262,36 +266,13 @@ ul > li > header {
         <li><Range label="Angle" min="0" max={Math.PI} step="0.001" bind:value={angle} /></li>
         <li><Range label="Res X" min="1" max={maxres} step="1" bind:value={resx} /></li>
         <li><Range label="Res Y" min="1" max={maxres} step="1" bind:value={resy} /></li>
-        <li>
-            <label>WireFrame</label>
-            <input type="checkbox" bind:checked={wireframe} />
-        </li>
-        <li>
-            <label>Illumination</label>
-            <input type="checkbox" bind:checked={illumination} />
-        </li>
-        <li>
-            <label>Fragment&nbsp;Sampling</label>
-            <input type="checkbox" bind:checked={fragSampling}/>
-        </li>
-
-        <li>
-            <label>Multisampling</label>
-            <input type="checkbox" bind:checked={multisampling} />
-        </li>
-        <li>
-            <label>Smooth</label>
-            <input type="checkbox" bind:checked={smoothShading} disabled={!multisampling}/>
-        </li>
-        <li>
-            <label>Normals</label>
-            <input type="checkbox" bind:checked={normals} />
-        </li>
-        <li>
-            <label>Render Water</label>
-            <input type="checkbox" bind:checked={render_water} />
-        </li>
-
+        <li><CheckBox label="WireFrame" bind:checked={wireframe} /></li>
+        <li><CheckBox label="Illumination" bind:checked={illumination} /></li>
+        <li><CheckBox label="Fragment&nbsp;Sampling" bind:checked={fragSampling} /></li>
+        <li><CheckBox label="Multisampling" bind:checked={multisampling} /></li>
+        <li><CheckBox label="Smooth" bind:checked={smoothShading} disabled={!multisampling}/></li>
+        <li><CheckBox label="Normals" bind:checked={normals} /></li>
+        <li><CheckBox label="Render Water" bind:checked={render_water} /></li>
     </ul>
 </div>
 <!--<button on:click={() => run=!run}>Run</button>-->

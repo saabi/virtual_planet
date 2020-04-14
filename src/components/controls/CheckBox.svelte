@@ -1,28 +1,25 @@
 <script>
     export let label;
-    export let value;
-
-    export let min, max, step
+    export let checked;
+    export let disabled;
 </script>
 
 <style>
 label {
     display: inline-block;
-    width: 5em;
+    width: calc( 5em + 150px );
     text-align: right;
+    margin: 0 10px;
 }
-data {
+input {
     display: inline-block;
     width: 3em;
     text-align: right;
     color: #0f0;
     background: rgba(64,64,64,0.5);
-}
-input {
-    height: 12px;
+    margin: 1px calc( 1px + 0.5em);
 }
 </style>
 
 <label>{label}</label>
-<input type="range" min={min} max={max} step={step} bind:value={value} /> 
-<data>{value}</data>
+<input type="checkbox" bind:checked={checked} disabled={disabled}/>
