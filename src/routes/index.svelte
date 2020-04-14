@@ -2,9 +2,9 @@
 	import Subdivide from '@sveltejs/svelte-subdivide';
 	import WorkSpace from '../components/WorkSpace.svelte';
 	import ColorSpace from '../components/ColorSpace.svelte';
-	import PlanetDisplay from '../components/PlanetDisplay.svelte';
 	import Spectrum from '../components/Spectrum.svelte';
 	import Sandbox from '../components/SandboxShader.svelte';
+	import PlanetDisplay from '../components/PlanetDisplay.svelte';
 
 	const panels = {
 		colorspace: ColorSpace,
@@ -28,35 +28,23 @@
 					type: 'pane',
 					id: '1',
 					pos: 0,
-					size: 0.5,
+					size: 1,
 					prev: null,
 					next: null,
 					childProps: {panels, active: 'planetDisplay'}
 				},
-				{
-					type: 'pane',
-					id: '2',
-					pos: 0.5,
-					size: 0.5,
-					prev: null,
-					next: null,
-					childProps: {panels, active: 'planetDisplay'}
-				}
 			]
 		}
 	};
-
 </script>
 
 <svelte:head>
 	<title>ColorLab ALPHA</title>
 </svelte:head>
-
 <Subdivide component={WorkSpace} 
 	componentProps={defaultComponentProps}
 	thickness='3px' 
 	{layout} />
-
 
 <style>
 </style>
