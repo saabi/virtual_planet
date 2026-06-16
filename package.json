@@ -1,6 +1,6 @@
 {
-  "name": "TODO",
-  "description": "TODO",
+  "name": "virtual-planet",
+  "description": "Legacy Sapper app — procedural planet editor (from Color Lab test/planet-editor)",
   "version": "0.0.1",
   "scripts": {
     "dev": "sapper dev",
