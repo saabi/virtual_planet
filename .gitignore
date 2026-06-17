@@ -1,6 +1,17 @@
 .DS_Store
 node_modules
-yarn-error.log
-/cypress/screenshots/
-/__sapper__/
-.rpt2_cache
+
+# Frontend build and tooling
+fe/build
+fe/.svelte-kit
+fe/.env
+fe/.env.*
+!fe/.env.example
+
+# Legacy Sapper app
+fe.old/node_modules
+fe.old/__sapper__
+
+# Logs
+*.log
+npm-debug.log*

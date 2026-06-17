@@ -31,8 +31,14 @@ git remote remove source
 
 `fe.old/` @ `1d1ccdde^` continued the gamut explorer on newer deps but **dropped** planet-editor work and never wired `PlanetDisplay` in `index.svelte`. This repo keeps the last working integration.
 
+## Layout (2026-06-16 migration)
+
+| Path | Contents |
+|------|----------|
+| `fe/` | New SvelteKit 2 + Svelte 5 app (active) |
+| `fe.old/` | Legacy Sapper planet editor (archived from repo root) |
+
 ## Next steps
 
-1. `npm install && npm run dev`
-2. Add remote and push when ready
-3. Plan port target (Sapper restore vs modern stack vs shader-only extract)
+1. Port `PlanetDisplay` + shaders from `fe.old/` into `fe/`.
+2. Add remote and push when ready.

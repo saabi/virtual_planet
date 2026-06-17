@@ -1,33 +1,32 @@
 # virtual_planet
 
-Legacy **Sapper / Svelte 3** app with a working **procedural planet editor** — full git history from Color Lab branch `test/planet-editor`.
+Procedural planet renderer — migrating from legacy Sapper to **SvelteKit 2 + Svelte 5**.
 
-The default pane is **PlanetDisplay** (sample planets, crater noise, GLSL shading). Use the workspace menu (top-left triangle) to switch to colorspace, spectrum, or glsl-sandbox.
-
-## Stack
-
-- Sapper, Svelte 3, Rollup, WebGL + glslify
-- `@sveltejs/svelte-subdivide` — resizable pane layout
-- `src/color-engine/` — early TypeScript color math (shared ancestry with Color Lab)
+| Directory | Role |
+|-----------|------|
+| **`fe/`** | Active app (SvelteKit 2, Svelte 5 runes, TypeScript) |
+| **`fe.old/`** | Archived Sapper / Svelte 3 planet editor (reference for porting) |
 
 ## Commands
 
+Requires **Node.js ≥ 22.12** (see `fe/.nvmrc`). Run from **`fe/`**:
+
 ```sh
+cd fe
 npm install
-npm run dev      # sapper dev — PlanetDisplay by default
+npm run dev
 npm run build
+npm run check
 ```
 
-## Planet rendering
+Legacy Sapper app (reference only):
 
-| Path | Role |
-|------|------|
-| `src/routes/index.svelte` | Wires `PlanetDisplay` as default panel |
-| `src/components/PlanetDisplay.svelte` | Editor UI + WebGL viewport |
-| `src/shaders/planet.frag` / `planet.vert` | Procedural planet GLSL |
-| `src/planet-editor/sample-planets.js` | Preset planet parameters |
-| `src/components/controls/` | Range / CheckBox widgets |
+```sh
+cd fe.old
+npm install
+npm run dev
+```
 
-## Provenance
+## History
 
-Split from [saabi/colorlab](https://github.com/saabi/colorlab) — see `EXTRACTION.md` for how this repo was bootstrapped.
+Git history on `main` is the original Color Lab `test/planet-editor` branch (42 commits). See `EXTRACTION.md`.
