@@ -667,6 +667,47 @@
 		requestRender();
 	}
 
+	function orientTo(direction: 'prograde' | 'retrograde') {
+		if (!spaceflightActive) return;
+		const speed = len3(spaceflightVelocity);
+		if (speed < 0.01) return; // velocity is too small to orient
+
+		const velDir = normalize3(spaceflightVelocity);
+		const lookDir = direction === 'prograde' ? velDir : scale3(velDir, -1);
+
+		// b_vec points opposite to lookDir (camera's back vector)
+		const b_vec = scale3(lookDir, -1);
+
+		// Align Up vector as closely as possible to the outward radial direction
+		const outward = normalize3(freeFlyPosition);
+		let dotVal = dot3(outward, b_vec);
+		let u_vec = sub3(outward, scale3(b_vec, dotVal));
+		let lenU = len3(u_vec);
+
+		if (lenU < 1e-4) {
+			// Fallback 1: project planet's North Pole [0, 1, 0]
+			const north = [0, 1, 0] as Vec3;
+			dotVal = dot3(north, b_vec);
+			u_vec = sub3(north, scale3(b_vec, dotVal));
+			lenU = len3(u_vec);
+		}
+
+		if (lenU < 1e-4) {
+			// Fallback 2: project X-axis [1, 0, 0]
+			const refX = [1, 0, 0] as Vec3;
+			dotVal = dot3(refX, b_vec);
+			u_vec = sub3(refX, scale3(b_vec, dotVal));
+			lenU = len3(u_vec);
+		}
+
+		u_vec = scale3(u_vec, 1 / (lenU || 1));
+		const s_vec = normalize3(cross3(u_vec, b_vec));
+
+		freeFlyRotation = quatFromRotationMatrix(s_vec, u_vec, b_vec);
+		needsRender = true;
+		requestRender();
+	}
+
 	function project3DTo2D(P: Vec3, M: Float32Array, width: number, height: number) {
 		const cx = M[0] * P[0] + M[4] * P[1] + M[8] * P[2] + M[12];
 		const cy = M[1] * P[0] + M[5] * P[1] + M[9] * P[2] + M[13];
@@ -754,129 +795,8 @@
 		hudPeAltitude = pePoint ? len3(pePoint) - params.radius : null;
 		hudApAltitude = apPoint ? len3(apPoint) - params.radius : null;
 
-		// Project points to screen coordinates and compute occlusion
-		const projectedPoints: ({ sx: number; sy: number; occluded: boolean } | null)[] = [];
-		const M = camera.viewProjectionMatrix;
-		const camPos = camera.position;
-
-		for (const pt of pathPoints) {
-			const proj = project3DTo2D(pt, M, width, height);
-			if (!proj) {
-				projectedPoints.push(null);
-				continue;
-			}
-
-			// Occlusion check
-			const rx = pt[0] - camPos[0];
-			const ry = pt[1] - camPos[1];
-			const rz = pt[2] - camPos[2];
-
-			const A = rx * rx + ry * ry + rz * rz;
-			const B = 2 * (camPos[0] * rx + camPos[1] * ry + camPos[2] * rz);
-			const C_coeff =
-				camPos[0] * camPos[0] +
-				camPos[1] * camPos[1] +
-				camPos[2] * camPos[2] -
-				params.radius * params.radius;
-
-			const disc = B * B - 4 * A * C_coeff;
-			let occluded = false;
-			if (disc >= 0) {
-				const t1 = (-B - Math.sqrt(disc)) / (2 * A);
-				if (t1 > 0 && t1 < 1.0) {
-					occluded = true;
-				}
-			}
-
-			projectedPoints.push({ sx: proj.x, sy: proj.y, occluded });
-		}
-
-		// Draw the line segments
-		ctx.lineWidth = 2.5;
-		ctx.shadowBlur = 4;
-		ctx.shadowColor = '#00f0ff';
-
-		for (let i = 1; i < projectedPoints.length; i++) {
-			const p0 = projectedPoints[i - 1];
-			const p1 = projectedPoints[i];
-			if (!p0 || !p1) continue;
-
-			ctx.beginPath();
-			ctx.moveTo(p0.sx, p0.sy);
-			ctx.lineTo(p1.sx, p1.sy);
-
-			if (p1.occluded) {
-				ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
-				ctx.setLineDash([4, 4]);
-			} else {
-				ctx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
-				ctx.setLineDash([]);
-			}
-			ctx.stroke();
-		}
-
-		ctx.setLineDash([]);
-		ctx.shadowBlur = 0;
-
-		// Draw landmarks
-		ctx.font = 'bold 11px Courier New, Courier, monospace';
-		ctx.lineWidth = 3;
-		ctx.strokeStyle = '#000000';
-
-		// Draw Pe
-		if (pePoint) {
-			const proj = project3DTo2D(pePoint, M, width, height);
-			if (proj) {
-				const peAlt = len3(pePoint) - params.radius;
-				ctx.beginPath();
-				ctx.arc(proj.x, proj.y, 4, 0, 2 * Math.PI);
-				ctx.fillStyle = '#00ff66';
-				ctx.fill();
-
-				const text = `Pe: Alt ${peAlt.toFixed(0)} m`;
-				ctx.strokeText(text, proj.x + 8, proj.y + 4);
-				ctx.fillText(text, proj.x + 8, proj.y + 4);
-			}
-		}
-
-		// Draw Ap
-		if (apPoint) {
-			const proj = project3DTo2D(apPoint, M, width, height);
-			if (proj) {
-				const apAlt = len3(apPoint) - params.radius;
-				ctx.beginPath();
-				ctx.arc(proj.x, proj.y, 4, 0, 2 * Math.PI);
-				ctx.fillStyle = '#ff3366';
-				ctx.fill();
-
-				const text = `Ap: Alt ${apAlt.toFixed(0)} m`;
-				ctx.strokeText(text, proj.x + 8, proj.y + 4);
-				ctx.fillText(text, proj.x + 8, proj.y + 4);
-			}
-		}
-
-		// Draw Impact Site
-		if (crashed) {
-			const crashPt = pathPoints[pathPoints.length - 1];
-			const proj = project3DTo2D(crashPt, M, width, height);
-			if (proj) {
-				ctx.strokeStyle = '#ff3333';
-				ctx.lineWidth = 2.5;
-
-				// Draw X
-				ctx.beginPath();
-				ctx.moveTo(proj.x - 5, proj.y - 5);
-				ctx.lineTo(proj.x + 5, proj.y + 5);
-				ctx.moveTo(proj.x + 5, proj.y - 5);
-				ctx.lineTo(proj.x - 5, proj.y + 5);
-				ctx.stroke();
-
-				ctx.fillStyle = '#ff3333';
-				const text = 'IMPACT SITE';
-				ctx.strokeText(text, proj.x + 8, proj.y + 4);
-				ctx.fillText(text, proj.x + 8, proj.y + 4);
-			}
-		}
+		// Clear overlay canvas so nothing is drawn in the 3D viewport
+		ctx.clearRect(0, 0, width, height);
 
 		// Draw top-down monitor
 		drawOrbitMonitor(pathPoints, crashed, pePoint, apPoint);
@@ -1790,6 +1710,12 @@
 				<button type="button" class="hud-action-btn abort-btn" onclick={killVelocity}>
 					Kill Velocity
 				</button>
+				<button type="button" class="hud-action-btn" onclick={() => orientTo('prograde')}>
+					Prograde
+				</button>
+				<button type="button" class="hud-action-btn" onclick={() => orientTo('retrograde')}>
+					Retrograde
+				</button>
 			</div>
 		</div>
 
@@ -1893,6 +1819,25 @@
 							bind:value={predictionHorizonSeconds}
 						/>
 					{/if}
+				</div>
+
+				<div class="sidebar-spaceflight-actions" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
+					<div style="display: flex; gap: 6px; width: 100%;">
+						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={circularizeOrbit}>
+							Circulize
+						</button>
+						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(255,85,85,0.1); border: 1px solid #ff5555; color: #ff5555; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={killVelocity}>
+							Kill Vel
+						</button>
+					</div>
+					<div style="display: flex; gap: 6px; width: 100%;">
+						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={() => orientTo('prograde')}>
+							Prograde
+						</button>
+						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={() => orientTo('retrograde')}>
+							Retrograde
+						</button>
+					</div>
 				</div>
 			{/if}
 		</aside>
