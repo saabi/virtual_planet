@@ -170,6 +170,7 @@
 	<details class="section">
 		<summary>Atmosphere</summary>
 		<ul class="section-body">
+			<CheckBox id="atmosphere-enabled" label="Enabled" bind:checked={atmosphere.enabled} />
 			{#each atmoSliders as slider (slider.key)}
 				<Range
 					id="atmo-{slider.key}"
@@ -178,6 +179,7 @@
 					max={slider.max}
 					step={slider.step}
 					bind:value={atmosphere[slider.key]}
+					disabled={!atmosphere.enabled}
 				/>
 			{/each}
 		</ul>
@@ -196,6 +198,8 @@
 					onchange={(e) => (params.illumination = e.currentTarget.checked ? 1 : 0)}
 				/>
 			</li>
+			<CheckBox id="shadows" label="Shadows" bind:checked={materialOverrides.shadows} />
+			<Range id="shadow-fill" label="Shadow Fill" min={0} max={1} step={0.01} bind:value={materialOverrides.shadowFill} />
 			<Range id="exposure" label="Exposure" min={0.5} max={3} step={0.05} bind:value={materialOverrides.exposure} />
 			<Range id="roughness-mult" label="Roughness" min={0.5} max={2} step={0.05} bind:value={materialOverrides.roughnessMult} />
 			<Range id="water-gloss" label="Water Gloss" min={0.5} max={3} step={0.05} bind:value={materialOverrides.waterGloss} />

@@ -18,6 +18,8 @@ export function writeMaterialOverrides(buffer: ArrayBuffer, o: MaterialOverrides
 	view.setFloat32(8, o.waterGloss, true);
 	view.setFloat32(12, materialDebugToGpu(o.materialDebug), true);
 	view.setFloat32(16, o.fogDensity, true);
+	view.setFloat32(20, o.shadows ? 1 : 0, true);
+	view.setFloat32(24, o.shadowFill, true);
 }
 
 export function defaultMaterialOverrides(): MaterialOverrides {

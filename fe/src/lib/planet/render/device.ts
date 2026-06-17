@@ -21,7 +21,9 @@ export function configureWebGPUCanvas(
 	context.configure({
 		device,
 		format,
-		alphaMode: 'opaque'
+		alphaMode: 'opaque',
+		// COPY_DST: the atmosphere pass blits the terrain texture here when disabled.
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST
 	});
 	return context;
 }

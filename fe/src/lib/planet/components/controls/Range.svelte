@@ -6,9 +6,10 @@
 		min: number | string;
 		max: number | string;
 		step: number | string;
+		disabled?: boolean;
 	}
 
-	let { id, label, value = $bindable(), min, max, step }: Props = $props();
+	let { id, label, value = $bindable(), min, max, step, disabled = false }: Props = $props();
 	const inputId = id ?? label;
 
 	function format(n: number, stepVal: number | string) {
@@ -25,7 +26,7 @@
 
 <li class="range-row">
 	<label class="range-label" for={inputId}>{label}</label>
-	<input class="range-input" id={inputId} type="range" {min} {max} {step} bind:value />
+	<input class="range-input" id={inputId} type="range" {min} {max} {step} {disabled} bind:value />
 	<data class="range-value">{formattedValue}</data>
 </li>
 

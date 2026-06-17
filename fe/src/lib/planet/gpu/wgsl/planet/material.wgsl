@@ -36,8 +36,8 @@ struct MaterialOverrides {
   water_gloss: f32,
   material_debug: f32,
   fog_density: f32,
-  _pad0: f32,
-  _pad1: f32,
+  shadows_enabled: f32,
+  shadow_fill: f32,
   _pad2: f32,
 }
 

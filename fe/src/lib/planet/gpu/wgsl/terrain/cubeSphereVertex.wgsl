@@ -1,6 +1,7 @@
 #include "../planet/material.wgsl"
 #include "../planet/normal.wgsl"
 #include "../planet/lighting.wgsl"
+#include "../planet/shadow.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
 #include "../atmosphere/atmosphereParams.wgsl"
@@ -82,6 +83,12 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   if (planet.illumination > 0.5) {
     n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
     let v = view_u.camera_pos.xyz - sample.world_pos;
+    var sun_shadow = 1.0;
+    if (mat_overrides.shadows_enabled > 0.5 && lighting.light_count > 0u) {
+      let raw_shadow = terrain_sun_shadow(sample.world_pos, primary_sun_dir(lighting), planet, scale_ctx);
+      // Lift shadows back toward full sun by shadow_fill, faking scattered fill past the fold.
+      sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow);
+    }
     lit = evaluate_pbr(
       material,
       n,
@@ -91,6 +98,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       mat_overrides,
       atmo,
       view_u.camera_pos.xyz,
+      sun_shadow,
     );
     col = lit.color;
   }

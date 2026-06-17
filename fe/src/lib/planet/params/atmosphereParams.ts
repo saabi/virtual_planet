@@ -1,5 +1,7 @@
 /** Serializable atmosphere parameters. */
 export interface AtmosphereParameters {
+	/** When false, skip scattering/fog and present terrain without an atmosphere pass. */
+	enabled: boolean;
 	shellHeightMeters: number;
 	scaleHeightMeters: number;
 	rayleighStrength: number;
@@ -32,6 +34,7 @@ export function defaultAtmosphereParams(
 	groundFogDensity = 0.8
 ): AtmosphereParameters {
 	return {
+		enabled: true,
 		shellHeightMeters: radius * 0.2,
 		scaleHeightMeters: radius * 0.1,
 		rayleighStrength: 1.0,
@@ -51,18 +54,19 @@ export function toGpuAtmosphereParams(
 ): GpuAtmosphereParams {
 	const shell = Math.max(params.shellHeightMeters, planetRadius * 0.05);
 	const scaleH = Math.max(params.scaleHeightMeters, planetRadius * 0.02);
+	const active = params.enabled;
 	return {
 		planet_center: planetCenter,
 		planet_radius: planetRadius,
 		outer_radius: planetRadius + shell,
 		scale_height: scaleH,
 		mie_g: params.mieG,
-		ground_fog_density: params.groundFogDensity,
-		rayleigh_strength: params.rayleighStrength,
-		mie_strength: params.mieStrength,
-		sun_radiance: params.sunDiskIntensity,
+		ground_fog_density: active ? params.groundFogDensity : 0,
+		rayleigh_strength: active ? params.rayleighStrength : 0,
+		mie_strength: active ? params.mieStrength : 0,
+		sun_radiance: active ? params.sunDiskIntensity : 0,
 		fog_height: scaleH * 2.0,
-		integrate_steps: integrateSteps,
+		integrate_steps: active ? integrateSteps : 0,
 		_pad0: 0
 	};
 }

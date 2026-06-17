@@ -100,14 +100,26 @@ export class AtmospherePass {
 
 	render(
 		encoder: GPUCommandEncoder,
-		outputView: GPUTextureView,
+		outputTexture: GPUTexture,
 		terrain: TerrainPass,
 		frame: RenderFrame,
-		_width: number,
-		_height: number
+		width: number,
+		height: number
 	): void {
 		if (!ATMOSPHERE_PASS_ENABLED) return;
 
+		const colorTexture = terrain.getColorTexture();
+		if (!frame.atmosphere.enabled) {
+			if (!colorTexture) return;
+			encoder.copyTextureToTexture(
+				{ texture: colorTexture },
+				{ texture: outputTexture },
+				{ width, height, depthOrArrayLayers: 1 }
+			);
+			return;
+		}
+
+		const outputView = outputTexture.createView();
 		const colorView = terrain.getColorView();
 		const depthView = terrain.getDepthView();
 		if (!colorView || !depthView) return;

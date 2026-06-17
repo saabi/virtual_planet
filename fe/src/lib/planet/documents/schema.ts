@@ -83,6 +83,7 @@ function coerceAtmosphere(
 ): AtmosphereParameters {
 	const src = isRecord(raw) ? raw : {};
 	return {
+		enabled: typeof src.enabled === 'boolean' ? src.enabled : (fallback.enabled ?? true),
 		shellHeightMeters: finiteNumber(src.shellHeightMeters, fallback.shellHeightMeters),
 		scaleHeightMeters: finiteNumber(src.scaleHeightMeters, fallback.scaleHeightMeters),
 		rayleighStrength: finiteNumber(src.rayleighStrength, fallback.rayleighStrength),

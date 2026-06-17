@@ -92,7 +92,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 ];
 
 export interface AtmosphereSliderDef {
-	key: keyof AtmosphereParameters;
+	key: Exclude<keyof AtmosphereParameters, 'enabled'>;
 	label: string;
 	min: number;
 	max: number;

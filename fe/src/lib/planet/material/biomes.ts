@@ -49,6 +49,10 @@ export interface MaterialOverrides {
 	waterGloss: number;
 	materialDebug: MaterialDebugMode;
 	fogDensity: number;
+	/** Terrain self-shadows for the directional sun. */
+	shadows: boolean;
+	/** Sun light retained inside shadows (0 = black, 1 = none); fakes scattered fill past the fold. */
+	shadowFill: number;
 }
 
 export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
@@ -56,5 +60,7 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	roughnessMult: 1.0,
 	waterGloss: 1.5,
 	materialDebug: 'off',
-	fogDensity: 0.8
+	fogDensity: 0.8,
+	shadows: true,
+	shadowFill: 0.15
 };

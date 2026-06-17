@@ -84,6 +84,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       mat_overrides,
       atmo,
       view_u.camera_pos.xyz,
+      1.0, // TODO: surface-patch self-shadow (needs planet-center coordinate mapping)
     );
     col = lit.color;
   }

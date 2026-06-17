@@ -266,7 +266,11 @@ export class TerrainPass {
 		this.colorTexture = this.device.createTexture({
 			size: [w, h],
 			format: this.format,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+			// COPY_SRC: when the atmosphere pass is disabled it blits this straight to the swapchain.
+			usage:
+				GPUTextureUsage.RENDER_ATTACHMENT |
+				GPUTextureUsage.TEXTURE_BINDING |
+				GPUTextureUsage.COPY_SRC
 		});
 		this.colorView = this.colorTexture.createView();
 		this.depthTexture = this.device.createTexture({
@@ -279,6 +283,10 @@ export class TerrainPass {
 
 	getColorView(): GPUTextureView | null {
 		return this.colorView;
+	}
+
+	getColorTexture(): GPUTexture | null {
+		return this.colorTexture;
 	}
 
 	getDepthView(): GPUTextureView | null {

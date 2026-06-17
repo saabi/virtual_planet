@@ -24,4 +24,14 @@ describe('atmosphereParams', () => {
 		expect(view.getFloat32(28, true)).toBeCloseTo(0.8);
 		expect(view.getFloat32(48, true)).toBe(12);
 	});
+
+	it('zeros scattering when atmosphere is disabled', () => {
+		const params = { ...defaultAtmosphereParams(100), enabled: false };
+		const gpu = toGpuAtmosphereParams(params, 100);
+		expect(gpu.rayleigh_strength).toBe(0);
+		expect(gpu.mie_strength).toBe(0);
+		expect(gpu.ground_fog_density).toBe(0);
+		expect(gpu.sun_radiance).toBe(0);
+		expect(gpu.integrate_steps).toBe(0);
+	});
 });

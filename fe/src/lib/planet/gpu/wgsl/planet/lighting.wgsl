@@ -121,6 +121,7 @@ fn evaluate_pbr(
   overrides: MaterialOverrides,
   atmo: AtmosphereParams,
   camera_pos: vec3f,
+  sun_shadow: f32,
 ) -> LightingResult {
   let nrm = normalize(n);
   let view_dir = normalize(v);
@@ -171,6 +172,9 @@ fn evaluate_pbr(
       continue;
     }
 
+    // Terrain self-shadow applies to the directional sun only; point lights are unshadowed.
+    let shadow = select(1.0, sun_shadow, light.position_or_dir.w < 0.5);
+
     let h = normalize(view_dir + l);
     let v_dot_h = max(dot(view_dir, h), 0.0);
     let n_dot_h = max(dot(nrm, h), 0.0);
@@ -180,9 +184,9 @@ fn evaluate_pbr(
     let kD = (vec3f(1.0) - kS) * (1.0 - material.metallic);
     let diffuse = kD * material.albedo * burley_diffuse(material.roughness, n_dot_v, n_dot_l, v_dot_h);
     let spec = brdf_specular_direct(n_dot_v, n_dot_l, n_dot_h, v_dot_h, material.roughness, f0);
-    let contrib = (diffuse + spec) * radiance * n_dot_l * atten;
+    let contrib = (diffuse + spec) * radiance * n_dot_l * atten * shadow;
     lo += contrib;
-    direct_spec_acc += spec * radiance * n_dot_l * atten;
+    direct_spec_acc += spec * radiance * n_dot_l * atten * shadow;
   }
 
   let mapped = tone_map_reinhard(lo, overrides.exposure);
