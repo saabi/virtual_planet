@@ -17,6 +17,23 @@
 	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
+	import {
+		builtinSelection,
+		defaultSelection,
+		documentSelection,
+		parseSelection,
+		selectionLabel
+	} from '../documents/selection.js';
+	import { applySnapshot, toSnapshot } from '../documents/snapshot.js';
+	import {
+		deleteDocument,
+		getDocument,
+		listDocuments,
+		readSession,
+		upsertDocument,
+		writeSession
+	} from '../documents/storage.js';
+	import type { StoredPlanetDocument } from '../documents/types.js';
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let backend = $state<RenderBackend | null>(null);
@@ -25,10 +42,10 @@
 
 	let presetName = $state<PlanetPresetName>(DEFAULT_PRESET);
 	let params = $state<PlanetParameters>({ ...PLANET_PRESETS[DEFAULT_PRESET] });
-
-	$effect(() => {
-		params = { ...PLANET_PRESETS[presetName] };
-	});
+	let selection = $state(defaultSelection());
+	let activeDocumentId = $state<string | null>(null);
+	let savedDocuments = $state<StoredPlanetDocument[]>([]);
+	let hydrated = $state(false);
 
 	let wireframe = $state(false);
 	let faceColors = $state(false);
@@ -52,6 +69,134 @@
 	let frames = 0;
 	let canvasWidth = 0;
 	let canvasHeight = 0;
+
+	let selectionReadout = $derived(
+		selectionLabel(
+			selection,
+			activeDocumentId ? savedDocuments.find((d) => d.id === activeDocumentId)?.name : null
+		)
+	);
+
+	function currentSnapshotInput() {
+		return {
+			presetName,
+			params,
+			camera: { azimuth, elevation, distance }
+		};
+	}
+
+	function applyBuiltinPreset(name: PlanetPresetName) {
+		presetName = name;
+		params = { ...PLANET_PRESETS[name] };
+		activeDocumentId = null;
+		selection = builtinSelection(name);
+	}
+
+	function applyDocument(id: string) {
+		const doc = getDocument(id);
+		if (!doc) return;
+		const applied = applySnapshot(doc.snapshot);
+		presetName = applied.presetName;
+		params = applied.params;
+		azimuth = applied.camera.azimuth;
+		elevation = applied.camera.elevation;
+		distance = applied.camera.distance;
+		activeDocumentId = id;
+		selection = documentSelection(id);
+	}
+
+	function handleSelectionChange(next: string) {
+		const parsed = parseSelection(next);
+		if (!parsed) return;
+		if (parsed.kind === 'builtin') {
+			applyBuiltinPreset(parsed.preset);
+			return;
+		}
+		applyDocument(parsed.id);
+	}
+
+	function refreshDocuments() {
+		savedDocuments = listDocuments();
+	}
+
+	function handleSave() {
+		if (!activeDocumentId) return;
+		const existing = getDocument(activeDocumentId);
+		if (!existing) return;
+		upsertDocument({
+			...existing,
+			snapshot: toSnapshot(currentSnapshotInput()),
+			updatedAt: Date.now()
+		});
+		refreshDocuments();
+	}
+
+	function handleSaveAs() {
+		const name = window.prompt('Save planet as…', 'My planet');
+		if (!name?.trim()) return;
+		const id = crypto.randomUUID();
+		const snapshot = toSnapshot(currentSnapshotInput());
+		if (
+			!upsertDocument({
+				id,
+				name: name.trim(),
+				updatedAt: Date.now(),
+				snapshot
+			})
+		) {
+			return;
+		}
+		activeDocumentId = id;
+		selection = documentSelection(id);
+		refreshDocuments();
+	}
+
+	function handleDelete() {
+		if (!activeDocumentId) return;
+		const doc = getDocument(activeDocumentId);
+		if (!doc) return;
+		if (!window.confirm(`Delete saved planet "${doc.name}"?`)) return;
+		deleteDocument(activeDocumentId);
+		refreshDocuments();
+		applyBuiltinPreset(DEFAULT_PRESET);
+	}
+
+	function hydrateFromSession() {
+		refreshDocuments();
+		const session = readSession();
+		if (!session) {
+			selection = builtinSelection(presetName);
+			return;
+		}
+		const applied = applySnapshot(session.snapshot);
+		presetName = applied.presetName;
+		params = applied.params;
+		azimuth = applied.camera.azimuth;
+		elevation = applied.camera.elevation;
+		distance = applied.camera.distance;
+
+		if (session.activeDocumentId && getDocument(session.activeDocumentId)) {
+			activeDocumentId = session.activeDocumentId;
+			selection = documentSelection(session.activeDocumentId);
+		} else {
+			activeDocumentId = null;
+			selection = builtinSelection(applied.presetName);
+		}
+	}
+
+	$effect(() => {
+		if (!hydrated || !browser) return;
+		const snapshot = toSnapshot(currentSnapshotInput());
+		const docId = activeDocumentId;
+		const timer = window.setTimeout(() => {
+			writeSession({
+				schemaVersion: 1,
+				snapshot,
+				activeDocumentId: docId
+			});
+		}, 400);
+		return () => window.clearTimeout(timer);
+	});
 
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
 		const aspect = width / Math.max(height, 1);
@@ -192,6 +337,9 @@
 	onMount(() => {
 		if (!browser || !canvas) return;
 
+		hydrateFromSession();
+		hydrated = true;
+
 		void (async () => {
 			try {
 				if (navigator.gpu) {
@@ -241,7 +389,7 @@
 	<aside class="debug-panel">
 		<h2>Virtual Planet</h2>
 		<p class="backend">{backendLabel}</p>
-		<p class="preset-readout">Preset: {presetName}</p>
+		<p class="preset-readout">{selectionReadout}</p>
 		{#if initError}
 			<p class="error">{initError}</p>
 		{/if}
@@ -268,7 +416,16 @@
 		</div>
 	</aside>
 
-	<PlanetEditorPanel bind:params bind:presetName bind:wireframe />
+	<PlanetEditorPanel
+		bind:params
+		bind:wireframe
+		{selection}
+		{savedDocuments}
+		onSelectionChange={handleSelectionChange}
+		onSave={handleSave}
+		onSaveAs={handleSaveAs}
+		onDelete={handleDelete}
+	/>
 </div>
 
 <style>

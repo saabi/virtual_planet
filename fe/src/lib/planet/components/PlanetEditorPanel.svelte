@@ -2,19 +2,43 @@
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import { PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 	import { PARAM_EDITOR_SECTIONS } from '../params/paramEditorSchema.js';
+	import type { StoredPlanetDocument } from '../documents/types.js';
+	import { parseSelection } from '../documents/selection.js';
 	import Range from './controls/Range.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
 
 	interface Props {
 		params: PlanetParameters;
-		presetName: PlanetPresetName;
+		selection: string;
+		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
+		onSelectionChange: (selection: string) => void;
+		onSave: () => void;
+		onSaveAs: () => void;
+		onDelete: () => void;
 	}
 
-	let { params = $bindable(), presetName = $bindable(), wireframe = $bindable() }: Props =
-		$props();
+	let {
+		params = $bindable(),
+		selection,
+		savedDocuments,
+		wireframe = $bindable(),
+		onSelectionChange,
+		onSave,
+		onSaveAs,
+		onDelete
+	}: Props = $props();
 
 	const presetNames = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
+
+	let parsedSelection = $derived(parseSelection(selection));
+	let canSaveDocument = $derived(parsedSelection?.kind === 'document');
+	let canDeleteDocument = $derived(parsedSelection?.kind === 'document');
+
+	function handleSelectChange(e: Event) {
+		const value = (e.currentTarget as HTMLSelectElement).value;
+		onSelectionChange(value);
+	}
 </script>
 
 <aside class="editor-panel" aria-label="Planet parameter editor">
@@ -22,12 +46,25 @@
 		<li><header>Planet</header></li>
 		<li class="preset-row">
 			<label class="preset-label" for="planet-preset">Presets</label>
-			<select id="planet-preset" class="preset-select" bind:value={presetName}>
-				{#each presetNames as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
+			<select id="planet-preset" class="preset-select" value={selection} onchange={handleSelectChange}>
+				<optgroup label="Built-in">
+					{#each presetNames as name (name)}
+						<option value="builtin:{name}">{name}</option>
+					{/each}
+				</optgroup>
+				{#if savedDocuments.length > 0}
+					<optgroup label="Saved">
+						{#each savedDocuments as doc (doc.id)}
+							<option value="doc:{doc.id}">{doc.name}</option>
+						{/each}
+					</optgroup>
+				{/if}
 			</select>
-			<data class="preset-name">{presetName}</data>
+		</li>
+		<li class="doc-actions">
+			<button type="button" disabled={!canSaveDocument} onclick={onSave}>Save</button>
+			<button type="button" onclick={onSaveAs}>Save as…</button>
+			<button type="button" disabled={!canDeleteDocument} onclick={onDelete}>Delete</button>
 		</li>
 
 		{#each PARAM_EDITOR_SECTIONS as section (section.title)}
@@ -113,7 +150,7 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 6px;
+		margin-bottom: 4px;
 	}
 
 	.preset-label {
@@ -125,7 +162,6 @@
 	.preset-select {
 		flex: 1;
 		min-width: 0;
-		max-width: 128px;
 		background: #1a1f30;
 		color: inherit;
 		border: 1px solid rgba(255, 255, 255, 0.15);
@@ -133,12 +169,31 @@
 		padding: 2px 4px;
 	}
 
-	.preset-name {
-		flex: 0 0 4em;
-		text-align: right;
-		font-size: 11px;
-		color: #9ecfff;
-		font-variant-numeric: tabular-nums;
+	.doc-actions {
+		display: flex;
+		gap: 6px;
+		justify-content: flex-end;
+		margin: 0 0 8px;
+		padding-right: 2px;
+	}
+
+	.doc-actions button {
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.doc-actions button:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+
+	.doc-actions button:not(:disabled):hover {
+		background: #252d45;
 	}
 
 	.flag-row {
