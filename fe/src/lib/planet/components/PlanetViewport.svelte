@@ -16,6 +16,7 @@
 	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
+	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let backend = $state<RenderBackend | null>(null);
@@ -23,7 +24,11 @@
 	let initError = $state<string | null>(null);
 
 	let presetName = $state<PlanetPresetName>(DEFAULT_PRESET);
-	let params = $derived(PLANET_PRESETS[presetName] as PlanetParameters);
+	let params = $state<PlanetParameters>({ ...PLANET_PRESETS[DEFAULT_PRESET] });
+
+	$effect(() => {
+		params = { ...PLANET_PRESETS[presetName] };
+	});
 
 	let wireframe = $state(false);
 	let faceColors = $state(false);
@@ -47,8 +52,6 @@
 	let frames = 0;
 	let canvasWidth = 0;
 	let canvasHeight = 0;
-
-	const presetNames = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
 
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
 		const aspect = width / Math.max(height, 1);
@@ -238,23 +241,17 @@
 	<aside class="debug-panel">
 		<h2>Virtual Planet</h2>
 		<p class="backend">{backendLabel}</p>
+		<p class="preset-readout">Preset: {presetName}</p>
 		{#if initError}
 			<p class="error">{initError}</p>
 		{/if}
 
-		<label>
-			Preset
-			<select bind:value={presetName}>
-				{#each presetNames as name}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		</label>
-
-		<label><input type="checkbox" bind:checked={wireframe} /> Wireframe</label>
-		<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
-		<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
-		<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
+		<div class="debug-toggles">
+			<p class="section-label">Debug</p>
+			<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
+			<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
+			<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
+		</div>
 
 		<div class="stats">
 			<div>FPS: {hud.fps}</div>
@@ -270,6 +267,8 @@
 			<div>Distance: {distance.toFixed(0)}</div>
 		</div>
 	</aside>
+
+	<PlanetEditorPanel bind:params bind:presetName bind:wireframe />
 </div>
 
 <style>
@@ -303,6 +302,7 @@
 		color: #e8ecf8;
 		font: 13px/1.4 system-ui, sans-serif;
 		min-width: 180px;
+		max-width: 220px;
 	}
 
 	.debug-panel h2 {
@@ -312,8 +312,14 @@
 	}
 
 	.backend {
-		margin: 0 0 10px;
+		margin: 0 0 4px;
 		opacity: 0.75;
+	}
+
+	.preset-readout {
+		margin: 0 0 10px;
+		opacity: 0.85;
+		font-size: 12px;
 	}
 
 	.error {
@@ -321,19 +327,24 @@
 		margin: 0 0 8px;
 	}
 
+	.debug-toggles {
+		margin-bottom: 8px;
+	}
+
+	.section-label {
+		margin: 0 0 4px;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		opacity: 0.65;
+	}
+
 	label {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 6px;
-	}
-
-	select {
-		flex: 1;
-		background: #1a1f30;
-		color: inherit;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
+		font-size: 12px;
 	}
 
 	.stats {
@@ -343,5 +354,6 @@
 		display: grid;
 		gap: 2px;
 		font-variant-numeric: tabular-nums;
+		font-size: 12px;
 	}
 </style>
