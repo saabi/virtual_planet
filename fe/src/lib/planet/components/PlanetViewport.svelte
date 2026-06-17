@@ -6,12 +6,13 @@
 	import { createOrbitCamera, quatFromAzimuthElevation, lookAt, perspective, multiply4 } from '../camera/orbitCamera.js';
 	import type { Quat } from '../scene/types.js';
 	import { quatFromAxisAngle, quatMultiply, rotateVec3, quatFromRotationMatrix } from '../scene/transform.js';
-	import { len3, normalize3, cross3, add3, type Vec3 } from '../math/vec.js';
+	import { len3, normalize3, cross3, add3, dot3, sub3, scale3, type Vec3 } from '../math/vec.js';
 	import { geodeticToEcef } from '../math/geodetic.js';
 	import {
 		altitudeToDistance,
 		distanceToAltitude,
-		nudgeAltitudeASL
+		nudgeAltitudeASL,
+		seaLevelRadius
 	} from '../camera/seaLevel.js';
 	import {
 		buildLocalFrame,
@@ -96,6 +97,28 @@
 	let freeFlyPosition = $state<Vec3>([0, 0, 0]);
 	let freeFlyRotation = $state<Quat>([0, 0, 0, 1]);
 
+	let spaceflightActive = $state(false);
+	let spaceflightVelocity = $state<Vec3>([0, 0, 0]);
+	let spaceflightGravity = $state(9.8);
+
+	// Derived HUD statistics
+	let sfOrbitalSpeed = $derived(len3(spaceflightVelocity));
+	let sfRadialSpeed = $derived(
+		spaceflightActive ? dot3(spaceflightVelocity, normalize3(freeFlyPosition)) : 0
+	);
+	let sfHorizontalSpeed = $derived(
+		spaceflightActive
+			? Math.sqrt(Math.max(0, sfOrbitalSpeed * sfOrbitalSpeed - sfRadialSpeed * sfRadialSpeed))
+			: 0
+	);
+	let sfGravityAcc = $derived.by(() => {
+		if (!spaceflightActive) return 0;
+		const dist = len3(freeFlyPosition);
+		const R = seaLevelRadius(params);
+		const mu = spaceflightGravity * R * R;
+		return mu / (dist * dist || 1);
+	});
+
 	const keysPressed = {
 		w: false,
 		a: false,
@@ -103,6 +126,8 @@
 		d: false,
 		q: false,
 		e: false,
+		space: false,
+		control: false,
 		shift: false
 	};
 
@@ -313,6 +338,9 @@
 		void freeFlyActive;
 		void freeFlyPosition;
 		void freeFlyRotation;
+		void spaceflightActive;
+		void spaceflightVelocity;
+		void spaceflightGravity;
 		requestRender();
 	});
 
@@ -495,6 +523,8 @@
 		keysPressed.d = false;
 		keysPressed.q = false;
 		keysPressed.e = false;
+		keysPressed.space = false;
+		keysPressed.control = false;
 		keysPressed.shift = false;
 
 		canvas?.requestPointerLock();
@@ -509,13 +539,124 @@
 		if (freeFlyActive) {
 			exitFreeFly();
 		} else {
+			if (spaceflightActive) {
+				spaceflightActive = false;
+			}
 			enterFreeFly();
 		}
 	}
 
+	function enterSpaceflight() {
+		if (spaceflightActive) return;
+
+		const camera = buildCamera(canvasWidth || 800, canvasHeight || 600, params);
+		freeFlyPosition = camera.position;
+
+		const vm = camera.viewMatrix;
+		const s: Vec3 = [vm[0], vm[4], vm[8]];
+		const u: Vec3 = [vm[1], vm[5], vm[9]];
+		const b: Vec3 = [vm[2], vm[6], vm[10]];
+
+		freeFlyRotation = quatFromRotationMatrix(s, u, b);
+		spaceflightActive = true;
+
+		// Initialize circular orbit velocity
+		const R = seaLevelRadius(params);
+		const mu = spaceflightGravity * R * R;
+		const pos = freeFlyPosition;
+		const dist = len3(pos);
+		const vc = Math.sqrt(mu / (dist || 1));
+
+		const outward = normalize3(pos);
+		const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+		let tangent = sub3(forward, scale3(outward, dot3(forward, outward)));
+		let lenT = len3(tangent);
+		if (lenT < 1e-4) {
+			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
+			tangent = sub3(right, scale3(outward, dot3(right, outward)));
+			lenT = len3(tangent);
+		}
+		const tangentDir = scale3(tangent, 1 / (lenT || 1));
+		spaceflightVelocity = scale3(tangentDir, vc);
+
+		// Lock keys
+		keysPressed.w = false;
+		keysPressed.a = false;
+		keysPressed.s = false;
+		keysPressed.d = false;
+		keysPressed.q = false;
+		keysPressed.e = false;
+		keysPressed.space = false;
+		keysPressed.control = false;
+		keysPressed.shift = false;
+
+		canvas?.requestPointerLock();
+	}
+
+	function exitSpaceflight() {
+		if (!spaceflightActive) return;
+		document.exitPointerLock();
+	}
+
+	function toggleSpaceflight() {
+		if (spaceflightActive) {
+			exitSpaceflight();
+		} else {
+			if (freeFlyActive) {
+				freeFlyActive = false;
+			}
+			enterSpaceflight();
+		}
+	}
+
+	function circularizeOrbit() {
+		if (!spaceflightActive) return;
+		const pos = freeFlyPosition;
+		const dist = len3(pos);
+		const R = seaLevelRadius(params);
+		const mu = spaceflightGravity * R * R;
+		const vc = Math.sqrt(mu / (dist || 1));
+
+		const outward = normalize3(pos);
+		const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+		let tangent = sub3(forward, scale3(outward, dot3(forward, outward)));
+		let lenT = len3(tangent);
+		if (lenT < 1e-4) {
+			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
+			tangent = sub3(right, scale3(outward, dot3(right, outward)));
+			lenT = len3(tangent);
+		}
+		const tangentDir = scale3(tangent, 1 / (lenT || 1));
+		spaceflightVelocity = scale3(tangentDir, vc);
+		needsRender = true;
+		requestRender();
+	}
+
+	function killVelocity() {
+		if (!spaceflightActive) return;
+		spaceflightVelocity = [0, 0, 0];
+		needsRender = true;
+		requestRender();
+	}
+
 	function handlePointerLockChange() {
 		if (document.pointerLockElement !== canvas) {
-			if (freeFlyActive) {
+			if (spaceflightActive) {
+				const camera = buildFreeFlyCamera(canvasWidth || 800, canvasHeight || 600, params);
+				const vm = camera.viewMatrix;
+				const s: Vec3 = [vm[0], vm[4], vm[8]];
+				const u: Vec3 = [vm[1], vm[5], vm[9]];
+				const outward = normalize3(camera.position);
+
+				altitudeMeters = Math.max(0, len3(freeFlyPosition) - params.radius);
+				azimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
+				elevation = Math.max(-1.55, Math.min(1.55, Math.asin(freeFlyPosition[1] / (len3(freeFlyPosition) || 1))));
+				cameraRotation = quatFromRotationMatrix(outward, u, s);
+
+				spaceflightActive = false;
+				needsRender = true;
+				requestRender();
+			} else if (freeFlyActive) {
 				const camera = buildFreeFlyCamera(canvasWidth || 800, canvasHeight || 600, params);
 				const vm = camera.viewMatrix;
 				const s: Vec3 = [vm[0], vm[4], vm[8]];
@@ -535,12 +676,20 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (!freeFlyActive) return;
+		if (!freeFlyActive && !spaceflightActive) return;
 		const key = e.key.toLowerCase();
 
 		if (e.key === 'Escape') {
-			exitFreeFly();
+			if (spaceflightActive) {
+				exitSpaceflight();
+			} else {
+				exitFreeFly();
+			}
 			return;
+		}
+
+		if (spaceflightActive && (key === ' ' || e.code === 'Space' || key === 'control')) {
+			e.preventDefault();
 		}
 
 		let changed = false;
@@ -550,6 +699,8 @@
 		if (key === 'd' && !keysPressed.d) { keysPressed.d = true; changed = true; }
 		if (key === 'q' && !keysPressed.q) { keysPressed.q = true; changed = true; }
 		if (key === 'e' && !keysPressed.e) { keysPressed.e = true; changed = true; }
+		if ((key === ' ' || e.code === 'Space') && !keysPressed.space) { keysPressed.space = true; changed = true; }
+		if (key === 'control' && !keysPressed.control) { keysPressed.control = true; changed = true; }
 		if (e.shiftKey) keysPressed.shift = true;
 
 		if (changed) {
@@ -565,11 +716,13 @@
 		if (key === 'd') keysPressed.d = false;
 		if (key === 'q') keysPressed.q = false;
 		if (key === 'e') keysPressed.e = false;
+		if (key === ' ' || e.code === 'Space') keysPressed.space = false;
+		if (key === 'control') keysPressed.control = false;
 		if (!e.shiftKey) keysPressed.shift = false;
 	}
 
 	function onPointerDown(e: PointerEvent) {
-		if (freeFlyActive) return;
+		if (freeFlyActive || spaceflightActive) return;
 		dragging = true;
 		lastX = e.clientX;
 		lastY = e.clientY;
@@ -577,7 +730,7 @@
 	}
 
 	function onPointerMove(e: PointerEvent) {
-		if (freeFlyActive) {
+		if (freeFlyActive || spaceflightActive) {
 			const dx = e.movementX;
 			const dy = e.movementY;
 			const sensitivity = 0.0025;
@@ -631,13 +784,13 @@
 	}
 
 	function onPointerUp(e: PointerEvent) {
-		if (freeFlyActive) return;
+		if (freeFlyActive || spaceflightActive) return;
 		dragging = false;
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
 	}
 
 	function onWheel(e: WheelEvent) {
-		if (freeFlyActive) return;
+		if (freeFlyActive || spaceflightActive) return;
 		e.preventDefault();
 		altitudeMeters = nudgeAltitudeASL(params, altitudeMeters, e.deltaY, atmosphere);
 	}
@@ -700,11 +853,86 @@
 			}
 		}
 
+		if (spaceflightActive && dt > 0) {
+			const pos = freeFlyPosition;
+			const dist = len3(pos);
+			const R = seaLevelRadius(params);
+			const mu = spaceflightGravity * R * R;
+
+			// 1. Gravity acceleration
+			const gAccMagnitude = mu / (dist * dist || 1);
+			const outward = normalize3(pos);
+			const gravityAcceleration = scale3(outward, -gAccMagnitude);
+
+			// 2. Thruster translation force
+			const altitude = Math.max(1, dist - params.radius);
+			const thrusterPower = Math.max(5.0, altitude * 0.15);
+			const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
+			const up = rotateVec3(freeFlyRotation, [0, 1, 0]);
+
+			let thrustDir: Vec3 = [0, 0, 0];
+			if (keysPressed.w) thrustDir = add3(thrustDir, forward);
+			if (keysPressed.s) thrustDir = sub3(thrustDir, forward);
+			if (keysPressed.d) thrustDir = add3(thrustDir, right);
+			if (keysPressed.a) thrustDir = sub3(thrustDir, right);
+			if (keysPressed.space) thrustDir = add3(thrustDir, up);
+			if (keysPressed.control) thrustDir = sub3(thrustDir, up);
+
+			const thrustLen = len3(thrustDir);
+			const thrustAcceleration = thrustLen > 0
+				? scale3(thrustDir, thrusterPower / thrustLen)
+				: ([0, 0, 0] as Vec3);
+
+			// 3. Integrate velocity and position
+			const totalAcc = add3(gravityAcceleration, thrustAcceleration);
+			spaceflightVelocity = [
+				spaceflightVelocity[0] + totalAcc[0] * dt,
+				spaceflightVelocity[1] + totalAcc[1] * dt,
+				spaceflightVelocity[2] + totalAcc[2] * dt
+			];
+
+			freeFlyPosition = [
+				freeFlyPosition[0] + spaceflightVelocity[0] * dt,
+				freeFlyPosition[1] + spaceflightVelocity[1] * dt,
+				freeFlyPosition[2] + spaceflightVelocity[2] * dt
+			];
+
+			// Collision check
+			const minRadius = params.radius + 1.0;
+			const newDist = len3(freeFlyPosition);
+			if (newDist < minRadius) {
+				freeFlyPosition = scale3(normalize3(freeFlyPosition), minRadius);
+				const out = normalize3(freeFlyPosition);
+				const radialVelMag = dot3(spaceflightVelocity, out);
+				if (radialVelMag < 0) {
+					spaceflightVelocity = sub3(spaceflightVelocity, scale3(out, radialVelMag));
+				}
+			}
+
+			// QE roll: rotation around local Forward axis [0, 0, -1]
+			let rollDir = 0;
+			if (keysPressed.q) rollDir -= 1;
+			if (keysPressed.e) rollDir += 1;
+
+			if (rollDir !== 0) {
+				const rollSpeed = 1.0;
+				const qRoll = quatFromAxisAngle([0, 0, -1], rollDir * rollSpeed * dt);
+				freeFlyRotation = quatMultiply(freeFlyRotation, qRoll);
+			}
+
+			needsRender = true;
+		}
+
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
 		const resized =
 			width > 0 && height > 0 && (width !== canvasWidth || height !== canvasHeight);
-		const animating = orbitSpeedRadPerSec !== 0 || spinSpeedRadPerSec !== 0 || (freeFlyActive && isMoving());
+		const animating =
+			orbitSpeedRadPerSec !== 0 ||
+			spinSpeedRadPerSec !== 0 ||
+			(freeFlyActive && isMoving()) ||
+			spaceflightActive;
 
 		if ((needsRender || resized || animating) && width > 0 && height > 0) {
 			if (resized) {
@@ -714,13 +942,13 @@
 				canvasWidth = width;
 				canvasHeight = height;
 			}
-			const camera = freeFlyActive
+			const camera = (freeFlyActive || spaceflightActive)
 				? buildFreeFlyCamera(width, height, params)
 				: buildCamera(width, height, params);
 			const frame = buildFrame(time * 0.001, camera, width, height, params);
 			stats = backend.render(frame);
 			hud = {
-				altitude: freeFlyActive ? len3(freeFlyPosition) - params.radius : altitudeMeters,
+				altitude: (freeFlyActive || spaceflightActive) ? len3(freeFlyPosition) - params.radius : altitudeMeters,
 				sphereAltitude: camera.altitudeMeters,
 				mode: modeState,
 				rebases: localFrame.rebaseCount,
@@ -791,6 +1019,8 @@
 			keysPressed.d = false;
 			keysPressed.q = false;
 			keysPressed.e = false;
+			keysPressed.space = false;
+			keysPressed.control = false;
 			keysPressed.shift = false;
 		};
 		window.addEventListener('blur', handleBlur);
@@ -821,6 +1051,50 @@
 		onpointercancel={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
+
+	{#if spaceflightActive}
+		<div class="spaceflight-hud">
+			<div class="hud-header">ORBITAL FLIGHT HUD</div>
+			<div class="hud-grid">
+				<div class="hud-stat">
+					<span class="hud-label">Orbital Speed</span>
+					<span class="hud-value">{sfOrbitalSpeed.toFixed(1)} m/s</span>
+				</div>
+				<div class="hud-stat">
+					<span class="hud-label">Radial Speed</span>
+					<span class="hud-value" class:positive={sfRadialSpeed > 0.05} class:negative={sfRadialSpeed < -0.05}>
+						{sfRadialSpeed.toFixed(1)} m/s
+						{#if sfRadialSpeed > 0.05}
+							▲
+						{:else if sfRadialSpeed < -0.05}
+							▼
+						{:else}
+							◀▶
+						{/if}
+					</span>
+				</div>
+				<div class="hud-stat">
+					<span class="hud-label">Horizontal Speed</span>
+					<span class="hud-value">{sfHorizontalSpeed.toFixed(1)} m/s</span>
+				</div>
+				<div class="hud-stat">
+					<span class="hud-label">Gravity Accel</span>
+					<span class="hud-value">{sfGravityAcc.toFixed(2)} m/s²</span>
+				</div>
+			</div>
+			<div class="hud-controls-hint">
+				RCS translation: W/S (Fwd/Bwd), A/D (L/R), Space/Ctrl (Up/Dn) & Q/E roll
+			</div>
+			<div class="hud-actions">
+				<button type="button" class="hud-action-btn" onclick={circularizeOrbit}>
+					Circulize
+				</button>
+				<button type="button" class="hud-action-btn abort-btn" onclick={killVelocity}>
+					Kill Velocity
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<div class="left-stack">
 		<aside class="debug-panel">
@@ -854,6 +1128,28 @@
 			>
 				{freeFlyActive ? 'Fly Mode: Active (Esc)' : 'Enter WASD Fly Mode'}
 			</button>
+			<button
+				type="button"
+				class="nav-toggle-btn spaceflight-btn"
+				class:active={spaceflightActive}
+				onclick={toggleSpaceflight}
+			>
+				{spaceflightActive ? 'Spaceflight: Active (Esc)' : 'Enter Spaceflight'}
+			</button>
+			<div class="gravity-control-container">
+				<div class="gravity-label-row">
+					<span>Surface Gravity</span>
+					<span class="gravity-val">{spaceflightGravity.toFixed(1)} m/s²</span>
+				</div>
+				<input
+					type="range"
+					min="0.0"
+					max="30.0"
+					step="0.5"
+					class="gravity-range-slider"
+					bind:value={spaceflightGravity}
+				/>
+			</div>
 		</aside>
 
 		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
@@ -989,5 +1285,192 @@
 
 	.nav-toggle-btn.active:hover {
 		background: rgba(0, 150, 80, 0.55);
+	}
+
+	.nav-toggle-btn.spaceflight-btn {
+		background: rgba(80, 0, 150, 0.45);
+		color: #f5e6ff;
+		margin-top: 8px;
+	}
+
+	.nav-toggle-btn.spaceflight-btn:hover {
+		background: rgba(110, 0, 200, 0.55);
+		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.nav-toggle-btn.spaceflight-btn.active {
+		background: rgba(0, 120, 150, 0.45);
+		border-color: rgba(0, 240, 255, 0.3);
+		color: #e6f7fc;
+	}
+
+	.nav-toggle-btn.spaceflight-btn.active:hover {
+		background: rgba(0, 150, 180, 0.55);
+	}
+
+	.gravity-control-container {
+		margin-top: 14px;
+		padding-top: 10px;
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.gravity-label-row {
+		display: flex;
+		justify-content: space-between;
+		font-size: 11px;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.gravity-val {
+		color: #c084fc;
+		font-weight: bold;
+	}
+
+	.gravity-range-slider {
+		width: 100%;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.15);
+		border-radius: 2px;
+		outline: none;
+		-webkit-appearance: none;
+	}
+
+	.gravity-range-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: #a855f7;
+		cursor: pointer;
+		transition: background 0.15s ease, transform 0.15s ease;
+	}
+
+	.gravity-range-slider::-webkit-slider-thumb:hover {
+		background: #c084fc;
+		transform: scale(1.2);
+	}
+
+	.spaceflight-hud {
+		position: absolute;
+		top: 20px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: rgba(10, 15, 30, 0.85);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border: 1.5px solid rgba(0, 240, 255, 0.4);
+		border-radius: 12px;
+		padding: 16px 24px;
+		width: 480px;
+		max-width: 90%;
+		box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.15), inset 0 0 12px rgba(0, 240, 255, 0.05);
+		color: #00f0ff;
+		font-family: 'Courier New', Courier, monospace;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		pointer-events: auto;
+	}
+
+	.hud-header {
+		font-size: 14px;
+		font-weight: bold;
+		letter-spacing: 2px;
+		text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+		border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+		width: 100%;
+		text-align: center;
+		padding-bottom: 6px;
+	}
+
+	.hud-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+		width: 100%;
+	}
+
+	.hud-stat {
+		display: flex;
+		flex-direction: column;
+		background: rgba(0, 0, 0, 0.3);
+		padding: 6px 10px;
+		border-radius: 4px;
+		border-left: 3px solid rgba(0, 240, 255, 0.6);
+	}
+
+	.hud-label {
+		font-size: 9px;
+		color: rgba(0, 240, 255, 0.6);
+		text-transform: uppercase;
+	}
+
+	.hud-value {
+		font-size: 15px;
+		font-weight: bold;
+		color: #ffffff;
+		text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+	}
+
+	.hud-value.positive {
+		color: #33ff99;
+		text-shadow: 0 0 4px rgba(51, 255, 153, 0.5);
+	}
+
+	.hud-value.negative {
+		color: #ff5555;
+		text-shadow: 0 0 4px rgba(255, 85, 85, 0.5);
+	}
+
+	.hud-controls-hint {
+		font-size: 9px;
+		color: rgba(255, 255, 255, 0.6);
+		text-align: center;
+		line-height: 1.3;
+	}
+
+	.hud-actions {
+		display: flex;
+		gap: 12px;
+		width: 100%;
+		margin-top: 4px;
+	}
+
+	.hud-action-btn {
+		flex: 1;
+		background: rgba(0, 240, 255, 0.15);
+		border: 1px solid #00f0ff;
+		border-radius: 6px;
+		color: #00f0ff;
+		padding: 8px;
+		font-family: 'Courier New', Courier, monospace;
+		font-size: 11px;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-shadow: 0 0 4px rgba(0, 240, 255, 0.4);
+	}
+
+	.hud-action-btn:hover {
+		background: rgba(0, 240, 255, 0.35);
+		box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+	}
+
+	.hud-action-btn.abort-btn {
+		background: rgba(255, 85, 85, 0.15);
+		border-color: #ff5555;
+		color: #ff5555;
+		text-shadow: 0 0 4px rgba(255, 85, 85, 0.4);
+	}
+
+	.hud-action-btn.abort-btn:hover {
+		background: rgba(255, 85, 85, 0.35);
+		box-shadow: 0 0 12px rgba(255, 85, 85, 0.4);
 	}
 </style>
