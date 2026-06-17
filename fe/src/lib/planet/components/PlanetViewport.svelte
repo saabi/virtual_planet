@@ -101,6 +101,8 @@
 		a: false,
 		s: false,
 		d: false,
+		q: false,
+		e: false,
 		shift: false
 	};
 
@@ -491,6 +493,8 @@
 		keysPressed.a = false;
 		keysPressed.s = false;
 		keysPressed.d = false;
+		keysPressed.q = false;
+		keysPressed.e = false;
 		keysPressed.shift = false;
 
 		canvas?.requestPointerLock();
@@ -544,6 +548,8 @@
 		if (key === 'a' && !keysPressed.a) { keysPressed.a = true; changed = true; }
 		if (key === 's' && !keysPressed.s) { keysPressed.s = true; changed = true; }
 		if (key === 'd' && !keysPressed.d) { keysPressed.d = true; changed = true; }
+		if (key === 'q' && !keysPressed.q) { keysPressed.q = true; changed = true; }
+		if (key === 'e' && !keysPressed.e) { keysPressed.e = true; changed = true; }
 		if (e.shiftKey) keysPressed.shift = true;
 
 		if (changed) {
@@ -557,6 +563,8 @@
 		if (key === 'a') keysPressed.a = false;
 		if (key === 's') keysPressed.s = false;
 		if (key === 'd') keysPressed.d = false;
+		if (key === 'q') keysPressed.q = false;
+		if (key === 'e') keysPressed.e = false;
 		if (!e.shiftKey) keysPressed.shift = false;
 	}
 
@@ -635,7 +643,7 @@
 	}
 
 	function isMoving() {
-		return keysPressed.w || keysPressed.a || keysPressed.s || keysPressed.d;
+		return keysPressed.w || keysPressed.a || keysPressed.s || keysPressed.d || keysPressed.q || keysPressed.e;
 	}
 
 	function tick(time: number) {
@@ -676,6 +684,18 @@
 				const dy = (moveDir[1] / moveLen) * speed * dt;
 				const dz = (moveDir[2] / moveLen) * speed * dt;
 				freeFlyPosition = [freeFlyPosition[0] + dx, freeFlyPosition[1] + dy, freeFlyPosition[2] + dz];
+				needsRender = true;
+			}
+
+			// QE roll: rotation around local Forward axis [0, 0, -1]
+			let rollDir = 0;
+			if (keysPressed.q) rollDir += 1; // roll left (counter-clockwise)
+			if (keysPressed.e) rollDir -= 1; // roll right (clockwise)
+
+			if (rollDir !== 0) {
+				const rollSpeed = 1.0;
+				const qRoll = quatFromAxisAngle([0, 0, -1], rollDir * rollSpeed * dt);
+				freeFlyRotation = quatMultiply(freeFlyRotation, qRoll);
 				needsRender = true;
 			}
 		}
@@ -769,6 +789,8 @@
 			keysPressed.a = false;
 			keysPressed.s = false;
 			keysPressed.d = false;
+			keysPressed.q = false;
+			keysPressed.e = false;
 			keysPressed.shift = false;
 		};
 		window.addEventListener('blur', handleBlur);
