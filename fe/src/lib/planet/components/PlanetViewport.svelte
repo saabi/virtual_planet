@@ -16,6 +16,10 @@
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 	import { scheduleOrbitPatches } from '../patches/cubeSphere.js';
+	import {
+		DEFAULT_TESSELLATION,
+		type TessellationSettings
+	} from '../patches/tessellationSettings.js';
 	import type { CubeSpherePatch } from '../patches/types.js';
 	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
 	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
@@ -69,6 +73,7 @@
 	let showRingColors = $state(false);
 
 	let materialOverrides = $state<MaterialOverrides>({ ...DEFAULT_MATERIAL_OVERRIDES });
+	let tessellation = $state<TessellationSettings>({ ...DEFAULT_TESSELLATION });
 	let atmosphere = $state<AtmosphereParameters>(
 		defaultAtmosphereParams(PLANET_PRESETS[DEFAULT_PRESET].radius)
 	);
@@ -261,6 +266,7 @@
 		void JSON.stringify(params);
 		void JSON.stringify(atmosphere);
 		void JSON.stringify(materialOverrides);
+		void JSON.stringify(tessellation);
 		void wireframe;
 		void faceColors;
 		void showPatchBorders;
@@ -333,7 +339,9 @@
 		if (modes.cubeSphere) {
 			const scheduled = scheduleOrbitPatches(activeCamera.position, p.radius, activeCamera.viewProjectionMatrix, {
 				viewport: { width, height },
-				focalLengthPx: camera.focalLengthPx
+				focalLengthPx: camera.focalLengthPx,
+				detail: tessellation.detail,
+				maxVertices: tessellation.vertexBudgetMillions * 1_000_000
 			});
 			cubeSpherePatches = scheduled.patches;
 			orbitSchedule = {
@@ -553,6 +561,7 @@
 		bind:showPatchBorders
 		bind:showRingColors
 		bind:materialOverrides
+		bind:tessellation
 		{selection}
 		{savedDocuments}
 		onSelectionChange={handleSelectionChange}

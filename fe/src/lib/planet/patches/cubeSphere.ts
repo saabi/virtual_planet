@@ -112,6 +112,8 @@ export interface OrbitScheduleOptions {
 	focalLengthPx?: number;
 	targetVertexSpacingPx?: number;
 	maxVertices?: number;
+	/** Density multiplier: >1 finer (smaller spacing), <1 coarser. */
+	detail?: number;
 }
 
 export interface OrbitScheduleResult {
@@ -131,11 +133,12 @@ export function scheduleOrbitPatches(
 ): OrbitScheduleResult {
 	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
 	const baseSpacing = options.targetVertexSpacingPx ?? 6;
+	const detail = Math.max(options.detail ?? 1, 0.25);
 	const estimate = estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing);
-	// Start from the altitude-appropriate estimate. The hint only eases the search
-	// loop's coarsening from the previous frame; it must decay toward the estimate
-	// so spacing recovers after a zoom-out instead of ratcheting up permanently.
-	let spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8);
+	// Start from the altitude-appropriate estimate (eased by the previous frame's
+	// hint), then apply the user detail multiplier. The hint stores the un-scaled
+	// spacing so detail does not compound frame to frame.
+	let spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8) / detail;
 	let candidates = scheduleAdaptiveOrbitPatches({
 		cameraPos,
 		planetRadius,
@@ -143,8 +146,10 @@ export function scheduleOrbitPatches(
 		viewport: options.viewport,
 		targetVertexSpacingPx: spacing
 	});
+	// Coarsen only to protect CPU from a candidate explosion; applyVertexBudget
+	// enforces the real patch-count and vertex caps, so allow finer detail through.
 	let spacingSteps = 0;
-	while (candidates.length > MAX_CUBE_PATCHES && spacing < 256 && spacingSteps < 12) {
+	while (candidates.length > MAX_CUBE_PATCHES * 2 && spacing < 256 && spacingSteps < 12) {
 		spacing *= 1.6;
 		candidates = scheduleAdaptiveOrbitPatches({
 			cameraPos,
@@ -155,7 +160,7 @@ export function scheduleOrbitPatches(
 		});
 		spacingSteps++;
 	}
-	orbitSpacingHint = spacing;
+	orbitSpacingHint = spacing * detail;
 	const candidateCount = candidates.length;
 	const budgeted = applyVertexBudget(candidates, maxVertices, MAX_CUBE_PATCHES);
 	const patches = budgeted.patches;

@@ -27,6 +27,7 @@ struct VSOut {
   @location(1) unit_dir: vec3f,
   @location(2) @interpolate(flat) face: u32,
   @location(3) patch_uv: vec2f,
+  @location(4) bary: vec3f,
 }
 
 @vertex
@@ -56,6 +57,8 @@ fn vs_main(
   out.unit_dir = unit_dir;
   out.face = patch_desc.face;
   out.patch_uv = uv_local;
+  let baries = array<vec3f, 3>(vec3f(1.0, 0.0, 0.0), vec3f(0.0, 1.0, 0.0), vec3f(0.0, 0.0, 1.0));
+  out.bary = baries[corner];
   out.position = view_u.view_projection * vec4f(sample.world_pos, 1.0);
   return out;
 }
@@ -74,10 +77,6 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       col = mix(col, vec3f(0.0), 0.6);
     }
   }
-  if (view_u.debug.x > 0.5) {
-    return vec4f(vec3f(0.2, 0.8, 0.2), 1.0);
-  }
-
   var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
   var n = normalize(sample.world_pos);
   if (planet.illumination > 0.5) {
@@ -106,6 +105,14 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   let debug_mode = u32(mat_overrides.material_debug + 0.5);
   if (debug_mode > 0u) {
     col = apply_material_debug(debug_mode, n, material, lit);
+  }
+
+  // Wireframe overlay: bright lines along triangle edges (barycentric distance).
+  if (view_u.debug.x > 0.5) {
+    let edge = min(min(in.bary.x, in.bary.y), in.bary.z);
+    let aa = fwidth(edge) * 1.5;
+    let line = 1.0 - smoothstep(0.0, max(aa, 1e-5), edge);
+    col = mix(col, vec3f(0.05, 1.0, 0.4), line);
   }
 
   return vec4f(col, 1.0);

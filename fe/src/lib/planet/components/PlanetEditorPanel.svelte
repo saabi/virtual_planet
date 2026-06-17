@@ -9,6 +9,7 @@
 		MATERIAL_DEBUG_LABELS,
 		type MaterialOverrides
 	} from '../material/biomes.js';
+	import type { TessellationSettings } from '../patches/tessellationSettings.js';
 	import Range from './controls/Range.svelte';
 	import LogRange from './controls/LogRange.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
@@ -29,6 +30,7 @@
 		showPatchBorders: boolean;
 		showRingColors: boolean;
 		materialOverrides: MaterialOverrides;
+		tessellation: TessellationSettings;
 		onSelectionChange: (selection: string) => void;
 		onSave: () => void;
 		onSaveAs: () => void;
@@ -50,6 +52,7 @@
 		showPatchBorders = $bindable(),
 		showRingColors = $bindable(),
 		materialOverrides = $bindable(),
+		tessellation = $bindable(),
 		onSelectionChange,
 		onSave,
 		onSaveAs,
@@ -182,6 +185,14 @@
 					disabled={!atmosphere.enabled}
 				/>
 			{/each}
+		</ul>
+	</details>
+
+	<details class="section">
+		<summary>Tessellation</summary>
+		<ul class="section-body">
+			<Range id="tess-detail" label="Detail" min={0.05} max={4} step={0.05} bind:value={tessellation.detail} />
+			<Range id="tess-budget" label="Vertex Budget (M)" min={1} max={32} step={1} bind:value={tessellation.vertexBudgetMillions} />
 		</ul>
 	</details>
 
