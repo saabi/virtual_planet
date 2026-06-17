@@ -689,8 +689,8 @@
 
 			// QE roll: rotation around local Forward axis [0, 0, -1]
 			let rollDir = 0;
-			if (keysPressed.q) rollDir += 1; // roll left (counter-clockwise)
-			if (keysPressed.e) rollDir -= 1; // roll right (clockwise)
+			if (keysPressed.q) rollDir -= 1; // roll right (clockwise)
+			if (keysPressed.e) rollDir += 1; // roll left (counter-clockwise)
 
 			if (rollDir !== 0) {
 				const rollSpeed = 1.0;
