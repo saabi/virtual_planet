@@ -27,6 +27,8 @@ npm install
 npm run dev
 ```
 
+During migration, the ported planet editor is available at **`/old`** in the SvelteKit app (`fe/`).
+
 ## History
 
 Git history on `main` is the original Color Lab `test/planet-editor` branch (42 commits). See `EXTRACTION.md`.
