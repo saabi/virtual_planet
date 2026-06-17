@@ -138,13 +138,13 @@
 	) {
 		if (!predictorWorker) return;
 		if (predictionPending) {
-			nextPredictionRequest = { pos, vel, mu, rad, horizon, autoPeriod };
+			nextPredictionRequest = { pos: [...pos], vel: [...vel], mu, rad, horizon, autoPeriod };
 			return;
 		}
 		predictionPending = true;
 		predictorWorker.postMessage({
-			freeFlyPosition: pos,
-			spaceflightVelocity: vel,
+			freeFlyPosition: [...pos],
+			spaceflightVelocity: [...vel],
 			spaceflightGravity,
 			seaLevelRadius: seaLevelRadius(params),
 			radius: rad,
