@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import OrbitPredictorWorker from '../workers/orbitPredictor.ts?worker';
 	import type { CameraState } from '../camera/cameraModes.js';
 	import { blendPatchModes, selectRenderMode } from '../camera/cameraModes.js';
 	import { createOrbitCamera, quatFromAzimuthElevation, lookAt, perspective, multiply4 } from '../camera/orbitCamera.js';
@@ -111,6 +112,47 @@
 	let spaceflightThrustMultiplier = $state(1.0);
 	let hudPeAltitude = $state<number | null>(null);
 	let hudApAltitude = $state<number | null>(null);
+
+	let predictorWorker: Worker | null = null;
+	let workerPathPoints = $state<Vec3[]>([]);
+	let workerCrashed = $state(false);
+	let workerPePoint = $state<Vec3 | null>(null);
+	let workerApPoint = $state<Vec3 | null>(null);
+	let predictionPending = false;
+	let nextPredictionRequest: {
+		pos: Vec3;
+		vel: Vec3;
+		mu: number;
+		rad: number;
+		horizon: number;
+		autoPeriod: boolean;
+	} | null = null;
+
+	function sendPredictionRequest(
+		pos: Vec3,
+		vel: Vec3,
+		mu: number,
+		rad: number,
+		horizon: number,
+		autoPeriod: boolean
+	) {
+		if (!predictorWorker) return;
+		if (predictionPending) {
+			nextPredictionRequest = { pos, vel, mu, rad, horizon, autoPeriod };
+			return;
+		}
+		predictionPending = true;
+		predictorWorker.postMessage({
+			freeFlyPosition: pos,
+			spaceflightVelocity: vel,
+			spaceflightGravity,
+			seaLevelRadius: seaLevelRadius(params),
+			radius: rad,
+			predictionHorizonSeconds: horizon,
+			predictionAutoPeriod: autoPeriod,
+			requestId: Date.now()
+		});
+	}
 
 	// Derived HUD statistics
 	let sfOrbitalSpeed = $derived(len3(spaceflightVelocity));
@@ -742,66 +784,15 @@
 
 		ctx.clearRect(0, 0, width, height);
 
-		const R = seaLevelRadius(params);
-		const mu = spaceflightGravity * R * R;
-		const dist = len3(freeFlyPosition);
-
-		// Calculate lookahead time T
-		let T = predictionHorizonSeconds;
-		if (predictionAutoPeriod) {
-			const period = 2 * Math.PI * Math.sqrt(Math.pow(dist, 3) / (mu || 1));
-			T = Math.min(3600, period); // cap at 1 hour
-		}
-
-		// Numerical integration
-		const N = 250;
-		const dt = T / N;
-		let p = [...freeFlyPosition] as Vec3;
-		let v = [...spaceflightVelocity] as Vec3;
-
-		const pathPoints: Vec3[] = [[...p]];
-		let crashed = false;
-
-		for (let i = 0; i < N; i++) {
-			const d = len3(p);
-			if (d < params.radius + 1.0) {
-				crashed = true;
-				break;
-			}
-			const gAccMagnitude = mu / (d * d * d || 1);
-			const ax = -p[0] * gAccMagnitude;
-			const ay = -p[1] * gAccMagnitude;
-			const az = -p[2] * gAccMagnitude;
-
-			v = [v[0] + ax * dt, v[1] + ay * dt, v[2] + az * dt];
-			p = [p[0] + v[0] * dt, p[1] + v[1] * dt, p[2] + v[2] * dt];
-			pathPoints.push([...p]);
-		}
-
-		// Detect landmarks (Ap/Pe)
-		let pePoint: Vec3 | null = null;
-		let apPoint: Vec3 | null = null;
-
-		for (let i = 1; i < pathPoints.length - 1; i++) {
-			const dPrev = len3(pathPoints[i - 1]);
-			const dCurr = len3(pathPoints[i]);
-			const dNext = len3(pathPoints[i + 1]);
-
-			if (dCurr < dPrev && dCurr < dNext) {
-				if (dCurr > params.radius + 1.05) {
-					pePoint = pathPoints[i];
-				}
-			}
-			if (dCurr > dPrev && dCurr > dNext) {
-				apPoint = pathPoints[i];
-			}
-		}
-
-		hudPeAltitude = pePoint ? len3(pePoint) - params.radius : null;
-		hudApAltitude = apPoint ? len3(apPoint) - params.radius : null;
-
-		// Clear overlay canvas
-		ctx.clearRect(0, 0, width, height);
+		// Send request to web worker for orbit calculation
+		sendPredictionRequest(
+			freeFlyPosition,
+			spaceflightVelocity,
+			spaceflightGravity * seaLevelRadius(params) * seaLevelRadius(params),
+			params.radius,
+			predictionHorizonSeconds,
+			predictionAutoPeriod
+		);
 
 		// Draw prograde and retrograde indicators directly on the 3D display
 		const speed = len3(spaceflightVelocity);
@@ -851,11 +842,11 @@
 			}
 		}
 
-		// Draw top-down monitor
-		drawOrbitMonitor(pathPoints, crashed, pePoint, apPoint);
-
-		// Draw new floating top-down overlay view
-		drawTopDownOverlay(pathPoints, crashed, pePoint, apPoint);
+		// Draw top-down monitor and overlay from worker prediction cache
+		if (workerPathPoints.length > 0) {
+			drawOrbitMonitor(workerPathPoints, workerCrashed, workerPePoint, workerApPoint);
+			drawTopDownOverlay(workerPathPoints, workerCrashed, workerPePoint, workerApPoint);
+		}
 	}
 
 	function drawMarkerSymbol(
@@ -1315,6 +1306,11 @@
 	function clearOverlayCanvas() {
 		hudPeAltitude = null;
 		hudApAltitude = null;
+		workerPathPoints = [];
+		workerCrashed = false;
+		workerPePoint = null;
+		workerApPoint = null;
+		nextPredictionRequest = null;
 		if (overlayCanvas) {
 			const ctx = overlayCanvas.getContext('2d');
 			if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -1760,6 +1756,29 @@
 	onMount(() => {
 		if (!browser || !canvas) return;
 
+		predictorWorker = new OrbitPredictorWorker();
+		predictorWorker.onmessage = (e) => {
+			const { pathPoints, crashed, pePoint, apPoint } = e.data;
+			workerPathPoints = pathPoints;
+			workerCrashed = crashed;
+			workerPePoint = pePoint;
+			workerApPoint = apPoint;
+
+			hudPeAltitude = pePoint ? len3(pePoint) - params.radius : null;
+			hudApAltitude = apPoint ? len3(apPoint) - params.radius : null;
+
+			predictionPending = false;
+			needsRender = true;
+			requestRender();
+
+			// If there's a queued request, send it now
+			if (nextPredictionRequest) {
+				const req = nextPredictionRequest;
+				nextPredictionRequest = null;
+				sendPredictionRequest(req.pos, req.vel, req.mu, req.rad, req.horizon, req.autoPeriod);
+			}
+		};
+
 		hydrateFromSession();
 		hydrated = true;
 
@@ -1820,6 +1839,9 @@
 			window.removeEventListener('keyup', handleKeyUp);
 			document.removeEventListener('pointerlockchange', handlePointerLockChange);
 			window.removeEventListener('blur', handleBlur);
+
+			predictorWorker?.terminate();
+			predictorWorker = null;
 		};
 	});
 </script>
