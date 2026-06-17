@@ -6,7 +6,7 @@
 	import { createOrbitCamera, quatFromAzimuthElevation } from '../camera/orbitCamera.js';
 	import type { Quat } from '../scene/types.js';
 	import { quatFromAxisAngle, quatMultiply, rotateVec3 } from '../scene/transform.js';
-	import { len3 } from '../math/vec.js';
+	import { len3, normalize3, cross3, type Vec3 } from '../math/vec.js';
 	import {
 		altitudeToDistance,
 		distanceToAltitude,
@@ -432,19 +432,29 @@
 		lastY = e.clientY;
 
 		const sensitivity = 0.005;
-		// 1. Yaw: rotate around camera's local Up axis [0, 1, 0]
-		const qYaw = quatFromAxisAngle([0, 1, 0], -dx * sensitivity);
-		// 2. Pitch: rotate around camera's local Right axis [0, 0, 1]
-		const qPitch = quatFromAxisAngle([0, 0, 1], -dy * sensitivity);
 
-		// Post-multiply to apply rotations in local camera space
-		let nextRot = quatMultiply(cameraRotation, qYaw);
-		nextRot = quatMultiply(nextRot, qPitch);
+		// Build camera state for the current view and position
+		const camera = buildCamera(canvasWidth || 800, canvasHeight || 600, params);
+		const vm = camera.viewMatrix;
+		const s: Vec3 = [vm[0], vm[4], vm[8]]; // world-space Right vector
+		const outward = normalize3(camera.position);
+
+		// Compute world-space rotation axes aligned with the screen
+		const axisYaw = normalize3(cross3(outward, s));
+		const axisPitch = s;
+
+		// Create world-space rotations
+		const qYaw = quatFromAxisAngle(axisYaw, -dx * sensitivity);
+		const qPitch = quatFromAxisAngle(axisPitch, -dy * sensitivity);
+
+		// Pre-multiply to apply rotations in world space
+		let nextRot = quatMultiply(qYaw, cameraRotation);
+		nextRot = quatMultiply(qPitch, nextRot);
 
 		// Update the camera rotation quaternion directly to preserve roll
 		cameraRotation = nextRot;
 
-		// 3. Decompose back to azimuth/elevation so the UI sliders update:
+		// Decompose back to azimuth/elevation so the UI sliders update:
 		const pos = rotateVec3(nextRot, [cameraDistance, 0, 0]);
 		const dist = len3(pos);
 		elevation = Math.max(-1.55, Math.min(1.55, Math.asin(pos[1] / (dist || 1))));
