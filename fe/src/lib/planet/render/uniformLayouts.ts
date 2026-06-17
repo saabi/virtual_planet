@@ -15,6 +15,9 @@ export const MAX_GPU_LIGHTS = 4;
 /** Mirrors `LightingUniforms` in lighting.wgsl (padded to 256 bytes). */
 export const LIGHTING_UNIFORM_SIZE = 256;
 
+/** Mirrors `AtmosphereParams` in atmosphereParams.wgsl (64 bytes). */
+export const ATMOSPHERE_UNIFORM_SIZE = 64;
+
 export interface GpuLightPacked {
 	positionOrDir: [number, number, number, number];
 	color: [number, number, number, number];

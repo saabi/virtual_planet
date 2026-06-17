@@ -1,5 +1,6 @@
 import type { PickingResult, RenderBackend, RenderFrame, RenderStats } from './RenderBackend.js';
 import { configureWebGPUCanvas, requestWebGPUDevice } from './device.js';
+import { AtmospherePass } from './passes/atmospherePass.js';
 import { TerrainPass } from './passes/terrainPass.js';
 
 export class WebGPUBackend implements RenderBackend {
@@ -8,6 +9,7 @@ export class WebGPUBackend implements RenderBackend {
 	private context: GPUCanvasContext | null = null;
 	private format: GPUTextureFormat = 'bgra8unorm';
 	private terrain: TerrainPass | null = null;
+	private atmosphere: AtmospherePass | null = null;
 	private width = 1;
 	private height = 1;
 
@@ -17,6 +19,7 @@ export class WebGPUBackend implements RenderBackend {
 		this.format = navigator.gpu!.getPreferredCanvasFormat();
 		this.context = configureWebGPUCanvas(device, canvas, this.format);
 		this.terrain = new TerrainPass(device, this.format);
+		this.atmosphere = new AtmospherePass(device, this.format);
 	}
 
 	resize(width: number, height: number): void {
@@ -25,13 +28,14 @@ export class WebGPUBackend implements RenderBackend {
 	}
 
 	render(frame: RenderFrame): RenderStats {
-		if (!this.device || !this.context || !this.terrain) {
+		if (!this.device || !this.context || !this.terrain || !this.atmosphere) {
 			return { frameMs: 0, patchCount: 0, vertexCount: 0, mode: frame.camera.mode };
 		}
 		this.terrain.updateSurfacePatches(frame);
 		const texture = this.context.getCurrentTexture();
 		const encoder = this.device.createCommandEncoder();
-		const stats = this.terrain.render(encoder, texture.createView(), frame, this.width, this.height);
+		const stats = this.terrain.render(encoder, frame, this.width, this.height);
+		this.atmosphere.render(encoder, texture.createView(), this.terrain, frame, this.width, this.height);
 		this.device.queue.submit([encoder.finish()]);
 		return stats;
 	}
@@ -45,10 +49,12 @@ export class WebGPUBackend implements RenderBackend {
 	}
 
 	destroy(): void {
+		this.atmosphere?.destroy();
 		this.terrain?.destroy();
 		this.device?.destroy();
 		this.device = null;
 		this.context = null;
 		this.terrain = null;
+		this.atmosphere = null;
 	}
 }

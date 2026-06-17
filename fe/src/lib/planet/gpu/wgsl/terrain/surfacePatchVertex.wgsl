@@ -3,6 +3,7 @@
 #include "../planet/lighting.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
+#include "../atmosphere/atmosphereParams.wgsl"
 
 struct ViewUniforms {
   view_projection: mat4x4f,
@@ -14,6 +15,7 @@ struct ViewUniforms {
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
+@group(0) @binding(3) var<uniform> atmo: AtmosphereParams;
 @group(1) @binding(0) var<uniform> planet: PlanetParams;
 @group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
 @group(2) @binding(1) var<uniform> local_frame: LocalFrame;
@@ -79,8 +81,9 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       v,
       sample.world_pos,
       lighting,
-      scale_ctx.camera_altitude_meters,
       mat_overrides,
+      atmo,
+      view_u.camera_pos.xyz,
     );
     col = lit.color;
   }

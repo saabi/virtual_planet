@@ -3,8 +3,7 @@
 #include "../planet/lighting.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
-#include "../atmosphere/atmosphere.wgsl"
-#include "../atmosphere/skyRadiance.wgsl"
+#include "../atmosphere/atmosphereParams.wgsl"
 
 struct ViewUniforms {
   view_projection: mat4x4f,
@@ -16,6 +15,7 @@ struct ViewUniforms {
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
+@group(0) @binding(3) var<uniform> atmo: AtmosphereParams;
 @group(1) @binding(0) var<uniform> planet: PlanetParams;
 @group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
 @group(3) @binding(0) var<storage, read> patches: array<CubeSpherePatchGpu>;
@@ -88,8 +88,9 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       v,
       sample.world_pos,
       lighting,
-      scale_ctx.camera_altitude_meters,
       mat_overrides,
+      atmo,
+      view_u.camera_pos.xyz,
     );
     col = lit.color;
   }
@@ -99,9 +100,5 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     col = apply_material_debug(debug_mode, n, material, lit);
   }
 
-  let view_dir = normalize(in.world_pos - view_u.camera_pos.xyz);
-  let fog = atmosphere_fog(view_dir, scale_ctx.camera_altitude_meters, 0.8);
-  let fog_sky = sky_radiance(view_dir, scale_ctx.camera_altitude_meters);
-  col = mix(col, fog_sky, fog.a);
   return vec4f(col, 1.0);
 }

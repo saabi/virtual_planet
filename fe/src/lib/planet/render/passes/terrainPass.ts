@@ -19,6 +19,7 @@ import { buildScaleContext, gatedParams } from '../../planet/layers.js';
 import {
 	BIND_GROUP,
 	LIGHTING_UNIFORM_SIZE,
+	ATMOSPHERE_UNIFORM_SIZE,
 	UNIFORM_ALIGN,
 	writeLightingUniforms,
 	writeViewUniforms,
@@ -29,6 +30,11 @@ import {
 	MATERIAL_OVERRIDES_UNIFORM_SIZE,
 	writeMaterialOverrides
 } from '../materialOverrides.js';
+import {
+	defaultAtmosphereParams,
+	toGpuAtmosphereParams,
+	writeAtmosphereParamsToBuffer
+} from '../../params/atmosphereParams.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
 import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
 import { uploadCubeSpherePatches } from '../../params/gpuBuffers.js';
@@ -49,10 +55,13 @@ export class TerrainPass {
 	readonly viewBuffer: GPUBuffer;
 	readonly lightingBuffer: GPUBuffer;
 	readonly materialOverridesBuffer: GPUBuffer;
+	readonly atmosphereBuffer: GPUBuffer;
 	readonly planetBuffer: GPUBuffer;
 	readonly scaleBuffer: GPUBuffer;
 	readonly localFrameBuffer: GPUBuffer;
 	readonly patchCull: PatchCullPass;
+	colorTexture: GPUTexture | null = null;
+	colorView: GPUTextureView | null = null;
 	depthTexture: GPUTexture | null = null;
 	depthView: GPUTextureView | null = null;
 	surfacePatchBuffer: GPUBuffer | null = null;
@@ -80,6 +89,10 @@ export class TerrainPass {
 			size: MATERIAL_OVERRIDES_UNIFORM_SIZE,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
+		this.atmosphereBuffer = device.createBuffer({
+			size: ATMOSPHERE_UNIFORM_SIZE,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
 		this.planetBuffer = createPlanetParamsBuffer(device);
 		this.scaleBuffer = createScaleContextBuffer(device);
 		this.localFrameBuffer = createLocalFrameBuffer(device);
@@ -99,7 +112,8 @@ export class TerrainPass {
 			entries: [
 				{ binding: 0, resource: { buffer: this.viewBuffer } },
 				{ binding: 1, resource: { buffer: this.lightingBuffer } },
-				{ binding: 2, resource: { buffer: this.materialOverridesBuffer } }
+				{ binding: 2, resource: { buffer: this.materialOverridesBuffer } },
+				{ binding: 3, resource: { buffer: this.atmosphereBuffer } }
 			]
 		});
 		this.cubePlanetBg = device.createBindGroup({
@@ -168,6 +182,11 @@ export class TerrainPass {
 					binding: 2,
 					visibility: GPUShaderStage.FRAGMENT,
 					buffer: { type: 'uniform' }
+				},
+				{
+					binding: 3,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: { type: 'uniform' }
 				}
 			]
 		});
@@ -232,15 +251,39 @@ export class TerrainPass {
 		});
 	}
 
-	ensureDepth(width: number, height: number): void {
-		if (this.depthTexture?.width === width && this.depthTexture?.height === height) return;
+	ensureTargets(width: number, height: number): void {
+		const w = Math.max(1, width);
+		const h = Math.max(1, height);
+		if (
+			this.colorTexture?.width === w &&
+			this.colorTexture?.height === h &&
+			this.depthTexture?.width === w &&
+			this.depthTexture?.height === h
+		) {
+			return;
+		}
+		this.colorTexture?.destroy();
 		this.depthTexture?.destroy();
+		this.colorTexture = this.device.createTexture({
+			size: [w, h],
+			format: this.format,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+		});
+		this.colorView = this.colorTexture.createView();
 		this.depthTexture = this.device.createTexture({
-			size: [Math.max(1, width), Math.max(1, height)],
+			size: [w, h],
 			format: 'depth24plus',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 		});
 		this.depthView = this.depthTexture.createView();
+	}
+
+	getColorView(): GPUTextureView | null {
+		return this.colorView;
+	}
+
+	getDepthView(): GPUTextureView | null {
+		return this.depthView;
 	}
 
 	updateSurfacePatches(frame: RenderFrame): void {
@@ -304,6 +347,15 @@ export class TerrainPass {
 		writeMaterialOverrides(overridesStaging, frame.materialOverrides);
 		this.device.queue.writeBuffer(this.materialOverridesBuffer, 0, overridesStaging);
 
+		const atmoParams = defaultAtmosphereParams(
+			frame.params.radius,
+			frame.materialOverrides.fogDensity
+		);
+		const atmoGpu = toGpuAtmosphereParams(atmoParams, frame.params.radius, [0, 0, 0]);
+		const atmoStaging = new ArrayBuffer(ATMOSPHERE_UNIFORM_SIZE);
+		writeAtmosphereParamsToBuffer(atmoStaging, 0, atmoGpu);
+		this.device.queue.writeBuffer(this.atmosphereBuffer, 0, atmoStaging);
+
 		const dist = Math.hypot(...frame.camera.position);
 		const scaleCtx = buildScaleContext(
 			frame.camera.mode,
@@ -344,20 +396,19 @@ export class TerrainPass {
 
 	render(
 		encoder: GPUCommandEncoder,
-		colorView: GPUTextureView,
 		frame: RenderFrame,
 		width: number,
 		height: number
 	): RenderStats {
 		const t0 = performance.now();
-		this.ensureDepth(width, height);
+		this.ensureTargets(width, height);
 		this.uploadUniforms(frame);
 		this.cubeBucketDraws = this.prepareCubeBuckets(frame);
 
 		const passEncoder = encoder.beginRenderPass({
 			colorAttachments: [
 				{
-					view: colorView,
+					view: this.colorView!,
 					clearValue: { r: 0.02, g: 0.03, b: 0.08, a: 1 },
 					loadOp: 'clear',
 					storeOp: 'store'
@@ -428,11 +479,13 @@ export class TerrainPass {
 		this.viewBuffer.destroy();
 		this.lightingBuffer.destroy();
 		this.materialOverridesBuffer.destroy();
+		this.atmosphereBuffer.destroy();
 		this.planetBuffer.destroy();
 		this.scaleBuffer.destroy();
 		this.localFrameBuffer.destroy();
 		this.patchCull.destroy();
 		this.surfacePatchBuffer?.destroy();
+		this.colorTexture?.destroy();
 		this.depthTexture?.destroy();
 	}
 }
