@@ -1,18 +1,26 @@
 <script lang="ts">
 	import type { PlanetParameters } from '../params/planetParams.js';
+	import type { AtmosphereParameters } from '../params/atmosphereParams.js';
 	import { PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
-	import { PARAM_EDITOR_SECTIONS } from '../params/paramEditorSchema.js';
+	import { PARAM_EDITOR_SECTIONS, atmosphereSliders } from '../params/paramEditorSchema.js';
 	import type { StoredPlanetDocument } from '../documents/types.js';
 	import { parseSelection } from '../documents/selection.js';
-	import type { MaterialOverrides } from '../material/biomes.js';
+	import {
+		MATERIAL_DEBUG_LABELS,
+		type MaterialOverrides
+	} from '../material/biomes.js';
 	import Range from './controls/Range.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
 
 	interface Props {
 		params: PlanetParameters;
+		atmosphere: AtmosphereParameters;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
+		faceColors: boolean;
+		showPatchBorders: boolean;
+		showRingColors: boolean;
 		materialOverrides: MaterialOverrides;
 		onSelectionChange: (selection: string) => void;
 		onSave: () => void;
@@ -22,9 +30,13 @@
 
 	let {
 		params = $bindable(),
+		atmosphere = $bindable(),
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
+		faceColors = $bindable(),
+		showPatchBorders = $bindable(),
+		showRingColors = $bindable(),
 		materialOverrides = $bindable(),
 		onSelectionChange,
 		onSave,
@@ -38,6 +50,8 @@
 	let canSaveDocument = $derived(parsedSelection?.kind === 'document');
 	let canDeleteDocument = $derived(parsedSelection?.kind === 'document');
 
+	let atmoSliders = $derived(atmosphereSliders(params.radius));
+
 	function handleSelectChange(e: Event) {
 		const value = (e.currentTarget as HTMLSelectElement).value;
 		onSelectionChange(value);
@@ -45,9 +59,10 @@
 </script>
 
 <aside class="editor-panel" aria-label="Planet parameter editor">
-	<ul class="editor-list">
-		<li><header>Planet</header></li>
-		<li class="preset-row">
+	<header class="panel-title">Planet</header>
+
+	<div class="presets">
+		<div class="preset-row">
 			<label class="preset-label" for="planet-preset">Presets</label>
 			<select id="planet-preset" class="preset-select" value={selection} onchange={handleSelectChange}>
 				<optgroup label="Built-in">
@@ -63,85 +78,106 @@
 					</optgroup>
 				{/if}
 			</select>
-		</li>
-		<li class="doc-actions">
+		</div>
+		<div class="doc-actions">
 			<button type="button" disabled={!canSaveDocument} onclick={onSave}>Save</button>
 			<button type="button" onclick={onSaveAs}>Save as…</button>
 			<button type="button" disabled={!canDeleteDocument} onclick={onDelete}>Delete</button>
-		</li>
+		</div>
+	</div>
 
-		{#each PARAM_EDITOR_SECTIONS as section (section.title)}
-			{#if section.title !== 'Planet'}
-				<li><header>{section.title}</header></li>
-			{/if}
-			{#each section.sliders as slider (slider.key)}
+	{#each PARAM_EDITOR_SECTIONS as section (section.title)}
+		<details class="section" open={section.defaultOpen ?? false}>
+			<summary>{section.title}</summary>
+			<ul class="section-body">
+				{#each section.sliders as slider (slider.key)}
+					<Range
+						id={slider.key}
+						label={slider.label}
+						min={slider.min}
+						max={slider.max}
+						step={slider.step}
+						bind:value={params[slider.key]}
+					/>
+				{/each}
+				{#each section.toggles ?? [] as toggle (toggle.key)}
+					<li class="flag-row">
+						<label class="flag-label" for={toggle.key}>{toggle.label}</label>
+						<input
+							id={toggle.key}
+							class="flag-input"
+							type="checkbox"
+							checked={params[toggle.key] > 0.5}
+							onchange={(e) => (params[toggle.key] = e.currentTarget.checked ? 1 : 0)}
+						/>
+					</li>
+				{/each}
+			</ul>
+		</details>
+	{/each}
+
+	<details class="section">
+		<summary>Atmosphere</summary>
+		<ul class="section-body">
+			{#each atmoSliders as slider (slider.key)}
 				<Range
-					id={slider.key}
+					id="atmo-{slider.key}"
 					label={slider.label}
 					min={slider.min}
 					max={slider.max}
 					step={slider.step}
-					bind:value={params[slider.key]}
+					bind:value={atmosphere[slider.key]}
 				/>
 			{/each}
-		{/each}
+		</ul>
+	</details>
 
-		<li><header>Rendering</header></li>
-		<CheckBox id="wireframe" label="Wireframe" bind:checked={wireframe} />
-		<li><header>Material</header></li>
-		<Range
-			id="exposure"
-			label="Exposure"
-			min={0.5}
-			max={3}
-			step={0.05}
-			bind:value={materialOverrides.exposure}
-		/>
-		<Range
-			id="roughness-mult"
-			label="Roughness"
-			min={0.5}
-			max={2}
-			step={0.05}
-			bind:value={materialOverrides.roughnessMult}
-		/>
-		<Range
-			id="water-gloss"
-			label="Water gloss"
-			min={0.5}
-			max={3}
-			step={0.05}
-			bind:value={materialOverrides.waterGloss}
-		/>
-		<Range
-			id="fog-density"
-			label="Fog"
-			min={0}
-			max={2}
-			step={0.05}
-			bind:value={materialOverrides.fogDensity}
-		/>
-		<li class="flag-row">
-			<label class="flag-label" for="illumination">Scene lighting</label>
-			<input
-				id="illumination"
-				class="flag-input"
-				type="checkbox"
-				checked={params.illumination > 0.5}
-				onchange={(e) => (params.illumination = e.currentTarget.checked ? 1 : 0)}
-			/>
-		</li>
-		<li class="flag-row">
-			<label class="flag-label" for="render-water">Render Water</label>
-			<input
-				id="render-water"
-				class="flag-input"
-				type="checkbox"
-				checked={params.render_water > 0.5}
-				onchange={(e) => (params.render_water = e.currentTarget.checked ? 1 : 0)}
-			/>
-		</li>
-	</ul>
+	<details class="section">
+		<summary>Shading</summary>
+		<ul class="section-body">
+			<li class="flag-row">
+				<label class="flag-label" for="illumination">Scene Lighting</label>
+				<input
+					id="illumination"
+					class="flag-input"
+					type="checkbox"
+					checked={params.illumination > 0.5}
+					onchange={(e) => (params.illumination = e.currentTarget.checked ? 1 : 0)}
+				/>
+			</li>
+			<Range id="exposure" label="Exposure" min={0.5} max={3} step={0.05} bind:value={materialOverrides.exposure} />
+			<Range id="roughness-mult" label="Roughness" min={0.5} max={2} step={0.05} bind:value={materialOverrides.roughnessMult} />
+			<Range id="water-gloss" label="Water Gloss" min={0.5} max={3} step={0.05} bind:value={materialOverrides.waterGloss} />
+			<Range id="aerial-fog" label="Aerial Fog" min={0} max={2} step={0.05} bind:value={materialOverrides.fogDensity} />
+		</ul>
+	</details>
+
+	<details class="section">
+		<summary>Debug</summary>
+		<ul class="section-body">
+			<CheckBox id="wireframe" label="Wireframe" bind:checked={wireframe} />
+			<CheckBox id="face-colors" label="Face Colors" bind:checked={faceColors} />
+			<CheckBox id="patch-borders" label="Patch Borders" bind:checked={showPatchBorders} />
+			<CheckBox id="ring-colors" label="Ring Colors" bind:checked={showRingColors} />
+			<li class="select-row">
+				<label class="select-label" for="material-view">Material View</label>
+				<select
+					id="material-view"
+					class="select-input"
+					value={materialOverrides.materialDebug}
+					onchange={(e) =>
+						(materialOverrides = {
+							...materialOverrides,
+							materialDebug: e.currentTarget.value as MaterialOverrides['materialDebug']
+						})}
+				>
+					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+			</li>
+		</ul>
+	</details>
 </aside>
 
 <style>
@@ -162,31 +198,72 @@
 		box-sizing: border-box;
 	}
 
-	.editor-list {
-		margin: 0;
-		padding: 0;
-	}
-
-	.editor-list > li {
-		list-style: none;
-	}
-
-	header {
+	.panel-title {
 		display: block;
-		background: rgba(92, 60, 0, 0.45);
-		margin: 6px 0 4px;
+		margin: 0 0 8px;
 		padding: 3px 10px;
+		background: rgba(92, 60, 0, 0.55);
+		color: #f0e6d8;
+		font-size: 13px;
+		font-weight: 700;
+		border-radius: 3px;
+	}
+
+	.presets {
+		margin-bottom: 8px;
+	}
+
+	.section {
+		margin: 4px 0;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.section > summary {
+		list-style: none;
+		cursor: pointer;
+		user-select: none;
+		padding: 4px 10px;
+		background: rgba(92, 60, 0, 0.35);
 		color: #f0e6d8;
 		font-size: 12px;
 		font-weight: 600;
-		border-radius: 3px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.section > summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.section > summary::before {
+		content: '▸';
+		font-size: 10px;
+		color: #c9a87a;
+		transition: transform 0.12s ease;
+	}
+
+	.section[open] > summary::before {
+		transform: rotate(90deg);
+	}
+
+	.section > summary:hover {
+		background: rgba(120, 80, 0, 0.45);
+	}
+
+	.section-body {
+		margin: 0;
+		padding: 6px 6px 8px;
+		list-style: none;
 	}
 
 	.preset-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 4px;
+		margin-bottom: 6px;
 	}
 
 	.preset-label {
@@ -209,7 +286,6 @@
 		display: flex;
 		gap: 6px;
 		justify-content: flex-end;
-		margin: 0 0 8px;
 		padding-right: 2px;
 	}
 
@@ -232,16 +308,19 @@
 		background: #252d45;
 	}
 
-	.flag-row {
+	.flag-row,
+	.select-row {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
 		gap: 10px;
 		margin: 4px 0;
 		padding-right: 4px;
+		list-style: none;
 	}
 
-	.flag-label {
+	.flag-label,
+	.select-label {
 		flex: 1;
 		text-align: right;
 		font-size: 12px;
@@ -249,5 +328,14 @@
 
 	.flag-input {
 		accent-color: #6b9fff;
+	}
+
+	.select-input {
+		flex: 0 0 auto;
+		background: #1a1f30;
+		color: inherit;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		padding: 2px 4px;
 	}
 </style>

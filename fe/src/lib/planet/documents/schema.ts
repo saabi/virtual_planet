@@ -1,4 +1,8 @@
 import type { PlanetParameters } from '../params/planetParams.js';
+import {
+	defaultAtmosphereParams,
+	type AtmosphereParameters
+} from '../params/atmosphereParams.js';
 import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import {
 	CURRENT_SNAPSHOT_VERSION,
@@ -69,6 +73,23 @@ function coerceParams(raw: unknown, fallback: PlanetParameters): PlanetParameter
 	};
 }
 
+function coerceAtmosphere(
+	raw: unknown,
+	fallback: AtmosphereParameters
+): AtmosphereParameters {
+	const src = isRecord(raw) ? raw : {};
+	return {
+		shellHeightMeters: finiteNumber(src.shellHeightMeters, fallback.shellHeightMeters),
+		scaleHeightMeters: finiteNumber(src.scaleHeightMeters, fallback.scaleHeightMeters),
+		rayleighStrength: finiteNumber(src.rayleighStrength, fallback.rayleighStrength),
+		mieStrength: finiteNumber(src.mieStrength, fallback.mieStrength),
+		mieG: finiteNumber(src.mieG, fallback.mieG),
+		groundFogDensity: finiteNumber(src.groundFogDensity, fallback.groundFogDensity),
+		sunDiskIntensity: finiteNumber(src.sunDiskIntensity, fallback.sunDiskIntensity),
+		integrateSteps: finiteNumber(src.integrateSteps, fallback.integrateSteps)
+	};
+}
+
 function coerceCamera(raw: unknown, fallback: PlanetCameraState): PlanetCameraState {
 	const src = isRecord(raw) ? raw : {};
 	return {
@@ -79,10 +100,12 @@ function coerceCamera(raw: unknown, fallback: PlanetCameraState): PlanetCameraSt
 }
 
 export function defaultSnapshot(): PlanetSnapshot {
+	const params = { ...PLANET_PRESETS[DEFAULT_PRESET] };
 	return {
 		schemaVersion: CURRENT_SNAPSHOT_VERSION,
 		presetName: DEFAULT_PRESET,
-		params: { ...PLANET_PRESETS[DEFAULT_PRESET] },
+		params,
+		atmosphere: defaultAtmosphereParams(params.radius),
 		camera: { azimuth: 0.6, elevation: 0.35, distance: 320 }
 	};
 }
@@ -97,10 +120,13 @@ export function coerceSnapshot(raw: unknown): PlanetSnapshot | null {
 	const paramsSource = isRecord(raw.params) ? raw.params : raw;
 	const cameraSource = isRecord(raw.camera) ? raw.camera : {};
 
+	const params = coerceParams(paramsSource, { ...presetDefaults });
+
 	return {
 		schemaVersion: CURRENT_SNAPSHOT_VERSION,
 		presetName,
-		params: coerceParams(paramsSource, { ...presetDefaults }),
+		params,
+		atmosphere: coerceAtmosphere(raw.atmosphere, defaultAtmosphereParams(params.radius)),
 		camera: coerceCamera(cameraSource, defaults.camera)
 	};
 }

@@ -31,7 +31,6 @@ import {
 	writeMaterialOverrides
 } from '../materialOverrides.js';
 import {
-	defaultAtmosphereParams,
 	toGpuAtmosphereParams,
 	writeAtmosphereParamsToBuffer
 } from '../../params/atmosphereParams.js';
@@ -347,11 +346,7 @@ export class TerrainPass {
 		writeMaterialOverrides(overridesStaging, frame.materialOverrides);
 		this.device.queue.writeBuffer(this.materialOverridesBuffer, 0, overridesStaging);
 
-		const atmoParams = defaultAtmosphereParams(
-			frame.params.radius,
-			frame.materialOverrides.fogDensity
-		);
-		const atmoGpu = toGpuAtmosphereParams(atmoParams, frame.params.radius, [0, 0, 0]);
+		const atmoGpu = toGpuAtmosphereParams(frame.atmosphere, frame.params.radius, [0, 0, 0]);
 		const atmoStaging = new ArrayBuffer(ATMOSPHERE_UNIFORM_SIZE);
 		writeAtmosphereParamsToBuffer(atmoStaging, 0, atmoGpu);
 		this.device.queue.writeBuffer(this.atmosphereBuffer, 0, atmoStaging);

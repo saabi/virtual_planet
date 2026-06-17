@@ -1,4 +1,4 @@
-/** Serializable atmosphere parameters (not persisted in documents yet). */
+/** Serializable atmosphere parameters. */
 export interface AtmosphereParameters {
 	shellHeightMeters: number;
 	scaleHeightMeters: number;
@@ -7,6 +7,7 @@ export interface AtmosphereParameters {
 	mieG: number;
 	groundFogDensity: number;
 	sunDiskIntensity: number;
+	integrateSteps: number;
 }
 
 export interface GpuAtmosphereParams {
@@ -37,7 +38,8 @@ export function defaultAtmosphereParams(
 		mieStrength: 1.0,
 		mieG: 0.76,
 		groundFogDensity,
-		sunDiskIntensity: 20.0
+		sunDiskIntensity: 20.0,
+		integrateSteps: 12
 	};
 }
 
@@ -45,7 +47,7 @@ export function toGpuAtmosphereParams(
 	params: AtmosphereParameters,
 	planetRadius: number,
 	planetCenter: [number, number, number] = [0, 0, 0],
-	integrateSteps = 12
+	integrateSteps = params.integrateSteps
 ): GpuAtmosphereParams {
 	const shell = Math.max(params.shellHeightMeters, planetRadius * 0.05);
 	const scaleH = Math.max(params.scaleHeightMeters, planetRadius * 0.02);

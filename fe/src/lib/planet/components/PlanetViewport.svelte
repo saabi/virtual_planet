@@ -34,16 +34,15 @@
 		upsertDocument,
 		writeSession
 	} from '../documents/storage.js';
-	import type { StoredPlanetDocument } from '../documents/types.js';
+	import { CURRENT_SNAPSHOT_VERSION, type StoredPlanetDocument } from '../documents/types.js';
 	import { createDefaultPlanetScene } from '../scene/defaults.js';
 	import { collectSceneLighting } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
+	import { DEFAULT_MATERIAL_OVERRIDES, type MaterialOverrides } from '../material/biomes.js';
 	import {
-		DEFAULT_MATERIAL_OVERRIDES,
-		MATERIAL_DEBUG_LABELS,
-		type MaterialDebugMode,
-		type MaterialOverrides
-	} from '../material/biomes.js';
+		defaultAtmosphereParams,
+		type AtmosphereParameters
+	} from '../params/atmosphereParams.js';
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let backend = $state<RenderBackend | null>(null);
@@ -65,6 +64,9 @@
 	let showRingColors = $state(false);
 
 	let materialOverrides = $state<MaterialOverrides>({ ...DEFAULT_MATERIAL_OVERRIDES });
+	let atmosphere = $state<AtmosphereParameters>(
+		defaultAtmosphereParams(PLANET_PRESETS[DEFAULT_PRESET].radius)
+	);
 
 	let azimuth = $state(0.6);
 	let elevation = $state(0.35);
@@ -108,6 +110,7 @@
 		return {
 			presetName,
 			params,
+			atmosphere,
 			camera: { azimuth, elevation, distance }
 		};
 	}
@@ -125,6 +128,7 @@
 		const applied = applySnapshot(doc.snapshot);
 		presetName = applied.presetName;
 		params = applied.params;
+		atmosphere = applied.atmosphere;
 		azimuth = applied.camera.azimuth;
 		elevation = applied.camera.elevation;
 		distance = applied.camera.distance;
@@ -198,6 +202,7 @@
 		const applied = applySnapshot(session.snapshot);
 		presetName = applied.presetName;
 		params = applied.params;
+		atmosphere = applied.atmosphere;
 		azimuth = applied.camera.azimuth;
 		elevation = applied.camera.elevation;
 		distance = applied.camera.distance;
@@ -217,7 +222,7 @@
 		const docId = activeDocumentId;
 		const timer = window.setTimeout(() => {
 			writeSession({
-				schemaVersion: 1,
+				schemaVersion: CURRENT_SNAPSHOT_VERSION,
 				snapshot,
 				activeDocumentId: docId
 			});
@@ -230,6 +235,7 @@
 		if (!hydrated || !backend) return;
 		void backend;
 		void JSON.stringify(params);
+		void JSON.stringify(atmosphere);
 		void JSON.stringify(materialOverrides);
 		void wireframe;
 		void faceColors;
@@ -325,7 +331,8 @@
 			orbitSchedule,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
 			lighting: sceneLighting,
-			materialOverrides
+			materialOverrides,
+			atmosphere
 		};
 	}
 
@@ -468,28 +475,6 @@
 				<p class="error">{initError}</p>
 			{/if}
 
-			<div class="debug-toggles">
-				<p class="section-label">Debug</p>
-				<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
-				<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
-				<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
-				<label class="material-debug-row">
-					Material
-					<select
-						value={materialOverrides.materialDebug}
-						onchange={(e) =>
-							(materialOverrides = {
-								...materialOverrides,
-								materialDebug: e.currentTarget.value as MaterialDebugMode
-							})}
-					>
-						{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
-							<option value={opt.value}>{opt.label}</option>
-						{/each}
-					</select>
-				</label>
-			</div>
-
 			<div class="stats">
 				<div>FPS: {hud.fps}</div>
 				<div>Frame: {stats.frameMs.toFixed(1)} ms</div>
@@ -511,7 +496,11 @@
 
 	<PlanetEditorPanel
 		bind:params
+		bind:atmosphere
 		bind:wireframe
+		bind:faceColors
+		bind:showPatchBorders
+		bind:showRingColors
 		bind:materialOverrides
 		{selection}
 		{savedDocuments}
@@ -587,36 +576,6 @@
 	.error {
 		color: #f88;
 		margin: 0 0 8px;
-	}
-
-	.debug-toggles {
-		margin-bottom: 8px;
-	}
-
-	.section-label {
-		margin: 0 0 4px;
-		font-size: 11px;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		opacity: 0.65;
-	}
-
-	label {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 6px;
-		font-size: 12px;
-	}
-
-	.material-debug-row select {
-		flex: 1;
-		min-width: 0;
-		background: #1a1f30;
-		color: inherit;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
-		font-size: 12px;
 	}
 
 	.stats {
