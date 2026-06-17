@@ -33,7 +33,7 @@ varying vec3 norm;
 varying vec4 viewPosition;
 varying vec3 samplePos;
 
-#pragma glslify: samplePlanet = require('../../planet/gpu/glsl/planet/kernel.glsl')
+#pragma glslify: samplePlanet = require('../glsl/planet/kernel.glsl')
 
 mat3 calcLookAtMatrix(vec3 origin, vec3 target, float roll) {
     vec3 rr = vec3(sin(roll), cos(roll), 0.0);
