@@ -1,5 +1,3 @@
-#extension GL_OES_standard_derivatives : enable
-
 precision highp float;
 
 varying vec3 vor;
@@ -270,15 +268,7 @@ void main() {
       col *= vec3(spots);
 	}
 
-  vec3 n;
-  if (smoothShading > 0.0 && multisampling > 0.0) {
-    n = norm;
-  }
-  else {
-    vec3 dx = dFdx(viewPosition.xyz);
-    vec3 dy = dFdy(viewPosition.xyz);
-    n = normalize(cross(dx, dy));
-  }
+  vec3 n = norm;
   if (illumination > 0.0) {
     vec4 sp = viewMatrix * vec4(SUN_POS,1.0);
     vec3 lightDir = normalize(sp.xyz - r.op);

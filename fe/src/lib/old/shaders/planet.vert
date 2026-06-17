@@ -270,6 +270,9 @@ void main() {
 
     norm = normalMatrix * norm;
   }
+  else {
+    norm = normalMatrix * normalize(op);
+  }
   
   viewPosition =  modelViewMatrix * vec4(op, 1.0);
   gl_Position = projectionMatrix * viewPosition;
