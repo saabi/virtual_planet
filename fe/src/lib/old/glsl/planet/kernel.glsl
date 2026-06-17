@@ -1,8 +1,8 @@
-#pragma glslify: export(samplePlanet)
+#pragma glslify: export(samplePlanet, PlanetSample)
 #pragma glslify: fbm_4 = require('../noise/fbm.glsl')
 #pragma glslify: voronoi = require('../noise/voronoi.glsl')
 
-struct Result {
+struct PlanetSample {
   vec3 samplePos;
   float distortion;
   vec3 vor;
@@ -12,8 +12,8 @@ struct Result {
   float erosion_value;
 };
 
-Result samplePlanet(vec3 p, const float wl, const float total_amplitude) {
-  Result r;
+PlanetSample samplePlanet(vec3 p, const float wl, const float total_amplitude) {
+  PlanetSample r;
   r.samplePos = p;
   r.distortion = fbm_4(p*voronoi_distortion_scale);
   r.vor = voronoi(p*voronoi_scale + (r.distortion-0.5)*voronoi_distortion_amplitude);

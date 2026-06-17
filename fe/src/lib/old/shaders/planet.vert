@@ -33,7 +33,7 @@ varying vec3 norm;
 varying vec4 viewPosition;
 varying vec3 samplePos;
 
-#pragma glslify: samplePlanet = require('../glsl/planet/kernel.glsl')
+#pragma glslify: samplePlanet, PlanetSample = require('../glsl/planet/kernel.glsl')
 
 mat3 calcLookAtMatrix(vec3 origin, vec3 target, float roll) {
     vec3 rr = vec3(sin(roll), cos(roll), 0.0);
@@ -44,7 +44,7 @@ mat3 calcLookAtMatrix(vec3 origin, vec3 target, float roll) {
     return mat3(uu, vv, ww);
 }
 
-Result sample2(vec2 a, const float wl, const float total_amplitude, mat3 lookAt) {
+PlanetSample sample2(vec2 a, const float wl, const float total_amplitude, mat3 lookAt) {
   vec3 pp = lookAt * vec3(cos(a.x)*sin(a.y), sin(a.x)*sin(a.y), cos(a.y));
   return samplePlanet( pp,wl, total_amplitude);
 }
@@ -62,7 +62,7 @@ void main() {
   float x = mod(aIdx, ares.x)/ares.x;
   vec2 p2 = vec2((x+p.x) * PI * 2.0 , (y+p.y)*angle);
 
-  Result acc = sample2(p2, wl, total_amplitude, lookAt);
+  PlanetSample acc = sample2(p2, wl, total_amplitude, lookAt);
   vec3 r1 = acc.op;
   samplePos = acc.samplePos;
 
@@ -73,7 +73,7 @@ void main() {
     for (int i = 0; i < SAMPLES; i++) {
       float a = PI*2.0/s*float(i)+PI/s;
 
-      Result r = sample2(p2 + vec2(sin(a)/(ares.x*ares.z), cos(a)/(ares.y*ares.z)*angle)*1.414, wl, total_amplitude, lookAt);
+      PlanetSample r = sample2(p2 + vec2(sin(a)/(ares.x*ares.z), cos(a)/(ares.y*ares.z)*angle)*1.414, wl, total_amplitude, lookAt);
       acc.vor += r.vor;
       acc.height += r.height;
       acc.distortion += r.distortion;

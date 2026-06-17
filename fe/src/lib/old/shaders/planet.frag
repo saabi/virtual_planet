@@ -40,7 +40,7 @@ uniform float erosion;
 
 const vec3 SUN_POS = vec3(10000.0, 0.0, 0.0);
 
-#pragma glslify: samplePlanet = require('../glsl/planet/kernel.glsl')
+#pragma glslify: samplePlanet, PlanetSample = require('../glsl/planet/kernel.glsl')
 #pragma glslify: shadePlanet = require('../glsl/planet/material.glsl')
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
   float total_amplitude = voronoi_amplitude+detail_amplitude;
   float wl = total_amplitude*(water_level - 0.5);
 
-  Result r;
+  PlanetSample r;
   if (fragSampling > 0.0) {
     r = samplePlanet(samplePos, wl, total_amplitude);
   }
@@ -62,7 +62,7 @@ void main() {
     r.erosion_value = erosion_value;
   }
 
-  col = shadePlanet(r, total_amplitude, wl);
+  col = shadePlanet(r.vor, r.distortion, r.detail, r.height, r.op, total_amplitude, wl);
 
   vec3 n;
   if (smoothShading > 0.0 && multisampling > 0.0) {

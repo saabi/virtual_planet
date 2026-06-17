@@ -1,4 +1,4 @@
-#pragma glslify: export(fbm_4, noise)
+#pragma glslify: export(fbm_4)
 
 float mod289(float x){return x - floor(x * (1.0 / 289.0)) * 289.0;}
 vec4 mod289(vec4 x){return x - floor(x * (1.0 / 289.0)) * 289.0;}
