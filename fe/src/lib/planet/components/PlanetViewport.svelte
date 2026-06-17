@@ -299,7 +299,18 @@
 	});
 
 	$effect(() => {
-		if (!dragging) {
+		// Calculate the decomposed angles of cameraRotation
+		const pos = rotateVec3(cameraRotation, [cameraDistance, 0, 0]);
+		const dist = len3(pos);
+		const decompEl = Math.max(-1.55, Math.min(1.55, Math.asin(pos[1] / (dist || 1))));
+		const decompAz = Math.atan2(pos[2], pos[0]);
+
+		// Check if the current azimuth/elevation differ from the decomposed values
+		const diffAz = Math.abs(azimuth - decompAz);
+		const diffEl = Math.abs(elevation - decompEl);
+
+		if (diffAz > 1e-4 || diffEl > 1e-4) {
+			// The change came from the sliders or external source, so update the quaternion
 			cameraRotation = quatFromAzimuthElevation(azimuth, elevation);
 		}
 	});
@@ -421,23 +432,23 @@
 		lastY = e.clientY;
 
 		const sensitivity = 0.005;
-		// 1. Yaw: rotate around world Up [0, -1, 0]
-		const qYaw = quatFromAxisAngle([0, -1, 0], dx * sensitivity);
-		let nextRot = quatMultiply(qYaw, cameraRotation);
+		// 1. Yaw: rotate around camera's local Up axis [0, 1, 0]
+		const qYaw = quatFromAxisAngle([0, 1, 0], -dx * sensitivity);
+		// 2. Pitch: rotate around camera's local Right axis [0, 0, 1]
+		const qPitch = quatFromAxisAngle([0, 0, 1], -dy * sensitivity);
 
-		// 2. Pitch: rotate around local Right axis
-		const localRight = rotateVec3(nextRot, [0, 0, 1]);
-		const qPitch = quatFromAxisAngle(localRight, -dy * sensitivity);
-		nextRot = quatMultiply(qPitch, nextRot);
+		// Post-multiply to apply rotations in local camera space
+		let nextRot = quatMultiply(cameraRotation, qYaw);
+		nextRot = quatMultiply(nextRot, qPitch);
+
+		// Update the camera rotation quaternion directly to preserve roll
+		cameraRotation = nextRot;
 
 		// 3. Decompose back to azimuth/elevation so the UI sliders update:
 		const pos = rotateVec3(nextRot, [cameraDistance, 0, 0]);
 		const dist = len3(pos);
 		elevation = Math.max(-1.55, Math.min(1.55, Math.asin(pos[1] / (dist || 1))));
 		azimuth = Math.atan2(pos[2], pos[0]);
-
-		// 4. Update the camera rotation quaternion to match the clamped values
-		cameraRotation = quatFromAzimuthElevation(azimuth, elevation);
 	}
 
 	function onPointerUp(e: PointerEvent) {
