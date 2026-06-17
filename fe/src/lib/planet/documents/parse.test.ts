@@ -51,6 +51,28 @@ describe('planet document parse', () => {
 		expect(parsed.snapshot?.presetName).toBe(DEFAULT_PRESET);
 	});
 
+	it('migrates pre-v3 absolute relief amplitudes to ratios (shape preserved)', () => {
+		const parsed = parseSnapshot({
+			schemaVersion: 2,
+			presetName: 'normie',
+			params: {
+				radius: 200,
+				voronoi_amplitude: 50,
+				detail_amplitude: 10,
+				texture_noise_amplitude: 4,
+				polar_amplitude: 8
+			},
+			camera: {}
+		});
+		expect(parsed.migrated).toBe(true);
+		const p = parsed.snapshot!.params;
+		// absolute metres ÷ radius → ratio (so ratio × radius reproduces the metres)
+		expect(p.voronoi_amplitude).toBeCloseTo(0.25);
+		expect(p.detail_amplitude).toBeCloseTo(0.05);
+		expect(p.texture_noise_amplitude).toBeCloseTo(0.02);
+		expect(p.polar_amplitude).toBeCloseTo(0.04);
+	});
+
 	it('rejects snapshots newer than the app schema', () => {
 		const parsed = parseSnapshot({
 			schemaVersion: CURRENT_SNAPSHOT_VERSION + 1,

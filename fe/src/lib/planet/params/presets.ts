@@ -1,10 +1,14 @@
 import type { PlanetParameters } from './planetParams.js';
 
+// Relief amplitudes (voronoi/detail/texture/polar) are ratios of radius
+// (scale-independent); the shader multiplies them by radius. Presets were
+// authored at radius 100, so their old absolute metres ÷ 100 give the ratios —
+// identical shape at radius 100, proportional at any other size.
 export const PLANET_PRESETS = {
 	starter: {
 		radius: 100,
 		voronoi_scale: 1,
-		voronoi_amplitude: 1,
+		voronoi_amplitude: 0.01,
 		voronoi_albedo: 1,
 		voronoi_albedo_y: 1,
 		voronoi_albedo_z: 1,
@@ -29,7 +33,7 @@ export const PLANET_PRESETS = {
 	twirly: {
 		radius: 100,
 		voronoi_scale: 1,
-		voronoi_amplitude: 12,
+		voronoi_amplitude: 0.12,
 		voronoi_albedo: 0.23,
 		voronoi_albedo_y: 0.91,
 		voronoi_albedo_z: 1,
@@ -37,7 +41,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 46.8,
 		voronoi_distortion_albedo: 1,
 		detail_scale: 8,
-		detail_amplitude: 5,
+		detail_amplitude: 0.05,
 		detail_albedo: 0.93,
 		water_level: 0.46,
 		render_water: 1.0,
@@ -46,7 +50,7 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0.25,
 		snow_cover: 0.42,
 		texture_noise_scale: 0.29,
-		texture_noise_amplitude: 1.73,
+		texture_noise_amplitude: 0.0173,
 		polar_scale: 0,
 		polar_amplitude: 0,
 		illumination: 1.0
@@ -54,7 +58,7 @@ export const PLANET_PRESETS = {
 	desert: {
 		radius: 100,
 		voronoi_scale: 1,
-		voronoi_amplitude: 9.1,
+		voronoi_amplitude: 0.091,
 		voronoi_albedo: 0.66,
 		voronoi_albedo_y: 0.91,
 		voronoi_albedo_z: 1,
@@ -62,7 +66,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 7,
 		voronoi_distortion_albedo: 1,
 		detail_scale: 1.2,
-		detail_amplitude: 23.5,
+		detail_amplitude: 0.235,
 		detail_albedo: 0.93,
 		water_level: 0.37,
 		render_water: 1.0,
@@ -71,15 +75,15 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0,
 		snow_cover: 0.18,
 		texture_noise_scale: 0.04,
-		texture_noise_amplitude: 4.02,
+		texture_noise_amplitude: 0.0402,
 		polar_scale: 0.15,
-		polar_amplitude: 2.3,
+		polar_amplitude: 0.023,
 		illumination: 1.0
 	},
 	archipelago: {
 		radius: 100,
 		voronoi_scale: 8,
-		voronoi_amplitude: 9.1,
+		voronoi_amplitude: 0.091,
 		voronoi_albedo: 0.66,
 		voronoi_albedo_y: 0.91,
 		voronoi_albedo_z: 1,
@@ -87,7 +91,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 6.5,
 		voronoi_distortion_albedo: 1,
 		detail_scale: 31.7,
-		detail_amplitude: 3.2,
+		detail_amplitude: 0.032,
 		detail_albedo: 0.96,
 		water_level: 0.66,
 		render_water: 1.0,
@@ -96,15 +100,15 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0.54,
 		snow_cover: 0.61,
 		texture_noise_scale: 0.04,
-		texture_noise_amplitude: 3.77,
+		texture_noise_amplitude: 0.0377,
 		polar_scale: 0.28,
-		polar_amplitude: 0.6,
+		polar_amplitude: 0.006,
 		illumination: 1.0
 	},
 	frozen: {
 		radius: 100,
 		voronoi_scale: 8,
-		voronoi_amplitude: 1.9,
+		voronoi_amplitude: 0.019,
 		voronoi_albedo: 0.78,
 		voronoi_albedo_y: 0.91,
 		voronoi_albedo_z: 1,
@@ -112,7 +116,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 6.5,
 		voronoi_distortion_albedo: 0.78,
 		detail_scale: 31.7,
-		detail_amplitude: 3.2,
+		detail_amplitude: 0.032,
 		detail_albedo: 0.19,
 		water_level: 0.35,
 		render_water: 1.0,
@@ -121,15 +125,15 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0.36,
 		snow_cover: 0.46,
 		texture_noise_scale: 0.04,
-		texture_noise_amplitude: 3.77,
+		texture_noise_amplitude: 0.0377,
 		polar_scale: 0,
-		polar_amplitude: 18.6,
+		polar_amplitude: 0.186,
 		illumination: 1.0
 	},
 	craters: {
 		radius: 100,
 		voronoi_scale: 2.6,
-		voronoi_amplitude: 11.6,
+		voronoi_amplitude: 0.116,
 		voronoi_albedo: 1,
 		voronoi_albedo_y: 1,
 		voronoi_albedo_z: 1,
@@ -137,7 +141,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 2.3,
 		voronoi_distortion_albedo: 1,
 		detail_scale: 7.2,
-		detail_amplitude: 1.5,
+		detail_amplitude: 0.015,
 		detail_albedo: 0.55,
 		water_level: 0.41,
 		render_water: 1.0,
@@ -146,7 +150,7 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0.47,
 		snow_cover: 0.82,
 		texture_noise_scale: 1.56,
-		texture_noise_amplitude: 1.73,
+		texture_noise_amplitude: 0.0173,
 		polar_scale: 0,
 		polar_amplitude: 0,
 		illumination: 1.0
@@ -154,7 +158,7 @@ export const PLANET_PRESETS = {
 	normie: {
 		radius: 100,
 		voronoi_scale: 1,
-		voronoi_amplitude: 25.6,
+		voronoi_amplitude: 0.256,
 		voronoi_albedo: 0.85,
 		voronoi_albedo_y: 1,
 		voronoi_albedo_z: 1,
@@ -162,7 +166,7 @@ export const PLANET_PRESETS = {
 		voronoi_distortion_amplitude: 4,
 		voronoi_distortion_albedo: 1,
 		detail_scale: 47.8,
-		detail_amplitude: 8.2,
+		detail_amplitude: 0.082,
 		detail_albedo: 0.55,
 		water_level: 0.5,
 		render_water: 1.0,
@@ -171,9 +175,9 @@ export const PLANET_PRESETS = {
 		vegetation_level: 0.27,
 		snow_cover: 0.39,
 		texture_noise_scale: 0.46,
-		texture_noise_amplitude: 2.5,
+		texture_noise_amplitude: 0.025,
 		polar_scale: 0.15,
-		polar_amplitude: 12.1,
+		polar_amplitude: 0.121,
 		illumination: 1.0
 	}
 } as const satisfies Record<string, PlanetParameters>;

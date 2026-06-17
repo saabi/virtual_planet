@@ -3,7 +3,9 @@ import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 import type { PlanetParameters } from '../params/planetParams.js';
 
 export function terrainAmplitude(params: PlanetParameters): number {
-	return params.voronoi_amplitude + params.detail_amplitude;
+	// Relief amplitudes are ratios of radius; convert to absolute metres to mirror
+	// the GPU (kernel.wgsl multiplies by radius).
+	return (params.voronoi_amplitude + params.detail_amplitude) * params.radius;
 }
 
 /** Radial offset of sea level from the reference sphere (matches GPU `wl`). */

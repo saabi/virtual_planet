@@ -2,7 +2,7 @@ import type { PlanetParameters } from '../params/planetParams.js';
 import type { AtmosphereParameters } from '../params/atmosphereParams.js';
 import type { PlanetPresetName } from '../params/presets.js';
 
-export const CURRENT_SNAPSHOT_VERSION = 2;
+export const CURRENT_SNAPSHOT_VERSION = 3;
 
 export interface PlanetCameraState {
 	azimuth: number;

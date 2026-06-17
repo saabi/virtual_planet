@@ -29,7 +29,10 @@ fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> 
   var r: PlanetSample;
   r.unit_dir = unit_dir;
 
-  let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
+  // Relief amplitudes are ratios of radius (scale-independent); convert to metres.
+  let v_amp = params.voronoi_amplitude * params.radius;
+  let d_amp = params.detail_amplitude * params.radius;
+  let total_amplitude = v_amp + d_amp;
   let wl = total_amplitude * (params.water_level - 0.5);
 
   var distortion = 0.0;
@@ -50,7 +53,7 @@ fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> 
   }
   r.detail = detail;
 
-  var height = (vor.x - 0.5) * params.voronoi_amplitude + (detail - 0.5) * params.detail_amplitude;
+  var height = (vor.x - 0.5) * v_amp + (detail - 0.5) * d_amp;
   var th = height - wl;
   var thf: f32;
   if (th > 0.0) {

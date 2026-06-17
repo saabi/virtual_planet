@@ -39,7 +39,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 		defaultOpen: true,
 		sliders: [
 			{ key: 'voronoi_scale', label: 'Plate Scale', min: 0, max: 10, step: 0.1 },
-			{ key: 'voronoi_amplitude', label: 'Elevation', min: 0, max: 50, step: 0.1 },
+			{ key: 'voronoi_amplitude', label: 'Elevation', min: 0, max: 0.5, step: 0.001 },
 			{ key: 'voronoi_albedo', label: 'Color Spot 1', min: 0, max: 1, step: 0.01 },
 			{ key: 'voronoi_albedo_y', label: 'Color Spot 2', min: 0, max: 1, step: 0.01 },
 			{ key: 'voronoi_albedo_z', label: 'Color Spot 3', min: 0, max: 1, step: 0.01 }
@@ -57,7 +57,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 		title: 'Terrain Detail',
 		sliders: [
 			{ key: 'detail_scale', label: 'Scale', min: 0, max: 100, step: 0.1 },
-			{ key: 'detail_amplitude', label: 'Height', min: 0, max: 50, step: 0.1 },
+			{ key: 'detail_amplitude', label: 'Height', min: 0, max: 0.5, step: 0.001 },
 			{ key: 'detail_albedo', label: 'Color', min: 0, max: 1, step: 0.01 }
 		]
 	},
@@ -65,7 +65,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 		title: 'Surface Texture',
 		sliders: [
 			{ key: 'texture_noise_scale', label: 'Scale', min: 0, max: 10, step: 0.01 },
-			{ key: 'texture_noise_amplitude', label: 'Strength', min: 0, max: 10, step: 0.01 }
+			{ key: 'texture_noise_amplitude', label: 'Strength', min: 0, max: 0.1, step: 0.001 }
 		]
 	},
 	{
@@ -90,7 +90,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 		title: 'Polar Caps',
 		sliders: [
 			{ key: 'polar_scale', label: 'Cap Extent', min: 0, max: 1, step: 0.01 },
-			{ key: 'polar_amplitude', label: 'Cap Strength', min: 0, max: 20, step: 0.1 }
+			{ key: 'polar_amplitude', label: 'Cap Strength', min: 0, max: 0.3, step: 0.001 }
 		]
 	}
 ];
