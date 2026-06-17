@@ -12,6 +12,18 @@ fn rotate_y(v: vec3f, c: f32, s: f32) -> vec3f {
   return vec3f(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
 }
 
+/// Rotate a vector v by quaternion q = [x, y, z, w]
+fn rotate_vector_by_quat(q: vec4f, v: vec3f) -> vec3f {
+  let temp = cross(q.xyz, v) + q.w * v;
+  return v + 2.0 * cross(q.xyz, temp);
+}
+
+/// Rotate a vector v by the conjugate/inverse of quaternion q
+fn rotate_vector_by_quat_inv(q: vec4f, v: vec3f) -> vec3f {
+  let temp = cross(-q.xyz, v) + q.w * v;
+  return v + 2.0 * cross(-q.xyz, temp);
+}
+
 fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> PlanetSample {
   var p = unit_dir;
   var r: PlanetSample;

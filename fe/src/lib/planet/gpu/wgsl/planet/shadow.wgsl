@@ -52,7 +52,7 @@ fn terrain_sun_shadow(
   sun_dir: vec3f,
   params: PlanetParams,
   scale: ScaleContext,
-  spin: vec2f, // planet spin (cos, sin) about +Y; world dirs rotate by -spin to body
+  planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
 ) -> f32 {
   let n = normalize(surface_pos);
   let sun_elev = dot(n, sun_dir);
@@ -75,7 +75,7 @@ fn terrain_sun_shadow(
   var t = bias + step;
   for (var i = 0u; i < SHADOW_STEPS; i++) {
     let p = surface_pos + sun_dir * t;
-    let surf_r = sample_shadow_height(rotate_y(normalize(p), spin.x, -spin.y), params);
+    let surf_r = sample_shadow_height(rotate_vector_by_quat_inv(planet_rot, normalize(p)), params);
     if (length(p) < surf_r) {
       return 0.0; // terrain rises above the ray — occluded
     }

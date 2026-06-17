@@ -3,7 +3,10 @@
 	import { browser } from '$app/environment';
 	import type { CameraState } from '../camera/cameraModes.js';
 	import { blendPatchModes, selectRenderMode } from '../camera/cameraModes.js';
-	import { createOrbitCamera } from '../camera/orbitCamera.js';
+	import { createOrbitCamera, quatFromAzimuthElevation } from '../camera/orbitCamera.js';
+	import type { Quat } from '../scene/types.js';
+	import { quatFromAxisAngle, quatMultiply, rotateVec3 } from '../scene/transform.js';
+	import { len3 } from '../math/vec.js';
 	import {
 		altitudeToDistance,
 		distanceToAltitude,
@@ -85,6 +88,15 @@
 	let lookAtHorizon = $state(true);
 	let spinAngle = $state(0);
 	let spinSpeedRadPerSec = $state(0);
+	let axialTilt = $state(0);
+	let cameraRotation = $state<Quat>([0, 0, 0, 1]);
+
+	let planetRotation = $derived.by(() => {
+		const tiltRad = (axialTilt * Math.PI) / 180;
+		const tiltQuat = quatFromAxisAngle([0, 0, 1], tiltRad);
+		const spinQuat = quatFromAxisAngle([0, 1, 0], spinAngle);
+		return quatMultiply(tiltQuat, spinQuat);
+	});
 
 	let stats = $state<RenderStats>({ frameMs: 0, patchCount: 0, vertexCount: 0, mode: 'orbit' });
 	let hud = $state({ altitude: 0, sphereAltitude: 0, mode: 'orbit', rebases: 0, fps: 0 });
@@ -281,7 +293,15 @@
 		void lookAtHorizon;
 		void spinAngle;
 		void spinSpeedRadPerSec;
+		void axialTilt;
+		void cameraRotation;
 		requestRender();
+	});
+
+	$effect(() => {
+		if (!dragging) {
+			cameraRotation = quatFromAzimuthElevation(azimuth, elevation);
+		}
 	});
 
 	$effect(() => {
@@ -312,7 +332,8 @@
 			far,
 			planetRadius: p.radius,
 			lookMode: lookAtHorizon ? 'horizon' : 'planet-center',
-			orbitSpeedRadPerSec
+			orbitSpeedRadPerSec,
+			cameraRotation
 		});
 	}
 
@@ -381,7 +402,7 @@
 			lighting: sceneLighting,
 			materialOverrides,
 			atmosphere,
-			planetSpinAngle: spinAngle
+			planetRotation
 		};
 	}
 
@@ -398,8 +419,24 @@
 		const dy = e.clientY - lastY;
 		lastX = e.clientX;
 		lastY = e.clientY;
-		azimuth += dx * 0.005;
-		elevation = Math.max(-1.4, Math.min(1.4, elevation - dy * 0.005));
+
+		const sensitivity = 0.005;
+		// 1. Yaw: rotate around world Up [0, 1, 0]
+		const qYaw = quatFromAxisAngle([0, 1, 0], dx * sensitivity);
+		let nextRot = quatMultiply(qYaw, cameraRotation);
+
+		// 2. Pitch: rotate around local Right axis
+		const localRight = rotateVec3(nextRot, [1, 0, 0]);
+		const qPitch = quatFromAxisAngle(localRight, -dy * sensitivity);
+		nextRot = quatMultiply(qPitch, nextRot);
+
+		cameraRotation = nextRot;
+
+		// 3. Decompose back to azimuth/elevation so the UI sliders update:
+		const pos = rotateVec3(cameraRotation, [cameraDistance, 0, 0]);
+		const dist = len3(pos);
+		elevation = Math.asin(pos[1] / (dist || 1));
+		azimuth = Math.atan2(pos[2], pos[0]);
 	}
 
 	function onPointerUp(e: PointerEvent) {
@@ -567,6 +604,7 @@
 		bind:lookAtHorizon
 		bind:spinAngle
 		bind:spinSpeedRadPerSec
+		bind:axialTilt
 		bind:wireframe
 		bind:faceColors
 		bind:showPatchBorders

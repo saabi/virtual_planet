@@ -2,6 +2,8 @@ import { geodeticToEcef } from '../math/geodetic.js';
 import type { Vec3 } from '../math/vec.js';
 import { add3, cross3, dot3, len3, normalize3, scale3, sub3 } from '../math/vec.js';
 import type { CameraState } from './cameraModes.js';
+import type { Quat } from '../scene/types.js';
+import { rotateVec3, quatFromAxisAngle, quatMultiply } from '../scene/transform.js';
 
 export type OrbitLookMode = 'planet-center' | 'horizon';
 
@@ -17,6 +19,14 @@ export interface OrbitCameraInput {
 	lookMode?: OrbitLookMode;
 	/** Sign determines travel direction for horizon look when non-zero. */
 	orbitSpeedRadPerSec?: number;
+	cameraRotation?: Quat;
+}
+
+export function quatFromAzimuthElevation(azimuth: number, elevation: number): Quat {
+	const qAz = quatFromAxisAngle([0, 1, 0], azimuth);
+	const localRight: Vec3 = [Math.sin(azimuth), 0, -Math.cos(azimuth)];
+	const qEl = quatFromAxisAngle(localRight, elevation);
+	return quatMultiply(qEl, qAz);
 }
 
 /** Unit tangent to the azimuth orbit (prograde when speed ≥ 0). */
@@ -66,23 +76,27 @@ export function createOrbitCamera(input: OrbitCameraInput): CameraState {
 		far,
 		planetRadius,
 		lookMode = 'horizon',
-		orbitSpeedRadPerSec = 0
+		orbitSpeedRadPerSec = 0,
+		cameraRotation
 	} = input;
-	const cosEl = Math.cos(elevation);
-	const position: Vec3 = [
-		distance * cosEl * Math.cos(azimuth),
-		distance * Math.sin(elevation),
-		distance * cosEl * Math.sin(azimuth)
-	];
+
+	const position: Vec3 = cameraRotation
+		? rotateVec3(cameraRotation, [distance, 0, 0])
+		: [
+			distance * Math.cos(elevation) * Math.cos(azimuth),
+			distance * Math.sin(elevation),
+			distance * Math.cos(elevation) * Math.sin(azimuth)
+		];
+
 	const outward = normalize3(position);
 	let target: Vec3 = [0, 0, 0];
-	let viewUp: Vec3 = [0, 1, 0];
+	let viewUp: Vec3 = cameraRotation ? rotateVec3(cameraRotation, [0, 1, 0]) : [0, 1, 0];
+
 	if (lookMode === 'horizon') {
-		target = horizonLookTarget(
-			position,
-			planetRadius,
-			orbitTravelDirection(azimuth, elevation, orbitSpeedRadPerSec)
-		);
+		const travel = cameraRotation
+			? rotateVec3(cameraRotation, [0, 0, -1])
+			: orbitTravelDirection(azimuth, elevation, orbitSpeedRadPerSec);
+		target = horizonLookTarget(position, planetRadius, travel);
 		// Up = radial outward orthogonalized against the gaze, so up ⟂ gaze at every
 		// altitude. A plain radial up goes (anti)parallel to the gaze as it dips
 		// toward the planet center from afar, collapsing cross(forward, up) ∝
@@ -94,7 +108,15 @@ export function createOrbitCamera(input: OrbitCameraInput): CameraState {
 	const projection = perspective(fovDeg, aspect, near, far);
 	const viewProjection = multiply4(projection, view);
 	const altitudeMeters = Math.max(len3(position) - planetRadius, 0);
-	const geo = { latRad: elevation, lonRad: azimuth, altitudeMeters };
+
+	const currentAzimuth = cameraRotation
+		? Math.atan2(position[2], position[0])
+		: azimuth;
+	const currentElevation = cameraRotation
+		? Math.asin(position[1] / (len3(position) || 1))
+		: elevation;
+
+	const geo = { latRad: currentElevation, lonRad: currentAzimuth, altitudeMeters };
 	const ecef = geodeticToEcef(geo);
 	const focalLengthPx = (0.5 * 1080) / Math.tan((fovDeg * Math.PI) / 360);
 
@@ -108,7 +130,8 @@ export function createOrbitCamera(input: OrbitCameraInput): CameraState {
 		viewProjectionMatrix: viewProjection,
 		focalLengthPx,
 		position,
-		target
+		target,
+		cameraRotation: cameraRotation ?? quatFromAzimuthElevation(azimuth, elevation)
 	};
 }
 
@@ -124,7 +147,8 @@ export function updateOrbitCamera(
 		aspect: input.aspect ?? 1,
 		near: input.near ?? 0.1,
 		far: input.far ?? 100_000,
-		planetRadius: input.planetRadius ?? 100
+		planetRadius: input.planetRadius ?? 100,
+		cameraRotation: input.cameraRotation ?? cam.cameraRotation
 	});
 }
 

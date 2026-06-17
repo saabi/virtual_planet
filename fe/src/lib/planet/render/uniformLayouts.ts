@@ -35,8 +35,8 @@ export interface ViewUniforms {
 	view: Float32Array;
 	cameraPos: [number, number, number, number];
 	debug: [number, number, number, number]; // wireframe, faceColors, showPatches, time
-	/** Planet spin about +Y: [cos, sin, 0, 0]. */
-	spin: [number, number, number, number];
+	/** Planet rotation quaternion: [qx, qy, qz, qw]. */
+	rotation: [number, number, number, number];
 }
 
 export function writeViewUniforms(buffer: ArrayBuffer, u: ViewUniforms): void {
@@ -51,10 +51,10 @@ export function writeViewUniforms(buffer: ArrayBuffer, u: ViewUniforms): void {
 	view.setFloat32(148, u.debug[1], true);
 	view.setFloat32(152, u.debug[2], true);
 	view.setFloat32(156, u.debug[3], true);
-	view.setFloat32(160, u.spin[0], true);
-	view.setFloat32(164, u.spin[1], true);
-	view.setFloat32(168, u.spin[2], true);
-	view.setFloat32(172, u.spin[3], true);
+	view.setFloat32(160, u.rotation[0], true);
+	view.setFloat32(164, u.rotation[1], true);
+	view.setFloat32(168, u.rotation[2], true);
+	view.setFloat32(172, u.rotation[3], true);
 }
 
 export function writeLightingUniforms(buffer: ArrayBuffer, u: LightingUniforms): void {

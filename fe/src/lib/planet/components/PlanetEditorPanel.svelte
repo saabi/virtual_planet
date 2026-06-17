@@ -25,6 +25,7 @@
 		lookAtHorizon: boolean;
 		spinAngle: number;
 		spinSpeedRadPerSec: number;
+		axialTilt: number;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
@@ -49,6 +50,7 @@
 		lookAtHorizon = $bindable(),
 		spinAngle = $bindable(),
 		spinSpeedRadPerSec = $bindable(),
+		axialTilt = $bindable(),
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
@@ -147,6 +149,14 @@
 	<details class="section">
 		<summary>Rotation</summary>
 		<ul class="section-body">
+			<Range
+				id="axial-tilt"
+				label="Axial Tilt"
+				min={-90}
+				max={90}
+				step={1}
+				bind:value={axialTilt}
+			/>
 			<Range
 				id="spin-angle"
 				label="Angle"

@@ -11,7 +11,7 @@ struct ViewUniforms {
   view: mat4x4f,
   camera_pos: vec4f,
   debug: vec4f,
-  spin: vec4f, // planet spin about +Y: (cos, sin, _, _)
+  planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
 }
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
@@ -56,7 +56,7 @@ fn vs_main(
   // Sample terrain in the planet's body frame (world dir rotated by -spin), but
   // place the vertex at the world direction so the camera/sun stay fixed and the
   // terrain rotates beneath them.
-  let body_dir = rotate_y(unit_dir, view_u.spin.x, -view_u.spin.y);
+  let body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir);
   let sample = sample_planet(body_dir, planet, scale_ctx);
   let world_pos = unit_dir * sample.world_radius_meters;
   var out: VSOut;
@@ -88,13 +88,13 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
   var n = normalize(in.world_pos);
   if (planet.illumination > 0.5) {
-    // Normal computed in body space, rotated back to world by +spin.
+    // Normal computed in body space, rotated back to world by +rotation.
     let n_body = planet_surface_normal(in.body_dir, planet, scale_ctx);
-    n = rotate_y(n_body, view_u.spin.x, view_u.spin.y);
+    n = rotate_vector_by_quat(view_u.planet_rot, n_body);
     let v = view_u.camera_pos.xyz - in.world_pos;
     var sun_shadow = 1.0;
     if (mat_overrides.shadows_enabled > 0.5 && lighting.light_count > 0u) {
-      let raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.spin.xy);
+      let raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot);
       // Lift shadows back toward full sun by shadow_fill, faking scattered fill past the fold.
       sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow);
     }

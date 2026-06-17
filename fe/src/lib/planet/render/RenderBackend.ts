@@ -5,6 +5,7 @@ import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
 import type { LightingUniforms } from './uniformLayouts.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { AtmosphereParameters } from '../params/atmosphereParams.js';
+import type { Quat } from '../scene/types.js';
 
 export interface OrbitScheduleMeta {
 	buckets: Map<number, CubeSpherePatch[]>;
@@ -32,8 +33,8 @@ export interface RenderFrame {
 	lighting: LightingUniforms;
 	materialOverrides: MaterialOverrides;
 	atmosphere: AtmosphereParameters;
-	/** Planet spin about the polar (Y) axis, radians. Rotates terrain; sun/camera stay fixed. */
-	planetSpinAngle: number;
+	/** Planet rotation quaternion: [qx, qy, qz, qw]. Rotates terrain; sun/camera stay fixed. */
+	planetRotation: Quat;
 }
 
 export interface RenderStats {

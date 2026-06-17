@@ -1,6 +1,7 @@
 import type { RenderMode } from '../patches/types.js';
 import type { GeodeticPosition } from '../math/geodetic.js';
 import type { Vec3d } from '../math/vec.js';
+import type { Quat } from '../scene/types.js';
 
 export interface CameraState {
 	mode: RenderMode;
@@ -13,6 +14,7 @@ export interface CameraState {
 	focalLengthPx: number;
 	position: [number, number, number];
 	target: [number, number, number];
+	cameraRotation?: Quat;
 }
 
 export const ORBIT_ENTER_ALTITUDE = 50_000;
