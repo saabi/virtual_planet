@@ -1,7 +1,9 @@
 import { geodeticToEcef } from '../math/geodetic.js';
 import type { Vec3 } from '../math/vec.js';
-import { cross3, dot3, len3, normalize3, sub3 } from '../math/vec.js';
+import { add3, cross3, dot3, len3, normalize3, scale3, sub3 } from '../math/vec.js';
 import type { CameraState } from './cameraModes.js';
+
+export type OrbitLookMode = 'planet-center' | 'horizon';
 
 export interface OrbitCameraInput {
 	distance: number;
@@ -12,18 +14,83 @@ export interface OrbitCameraInput {
 	near: number;
 	far: number;
 	planetRadius: number;
+	lookMode?: OrbitLookMode;
+	/** Sign determines travel direction for horizon look when non-zero. */
+	orbitSpeedRadPerSec?: number;
+}
+
+/** Unit tangent to the azimuth orbit (prograde when speed ≥ 0). */
+export function orbitTravelDirection(
+	azimuth: number,
+	elevation: number,
+	orbitSpeedRadPerSec = 0
+): Vec3 {
+	const cosEl = Math.cos(elevation);
+	let forward: Vec3 = [-cosEl * Math.sin(azimuth), 0, cosEl * Math.cos(azimuth)];
+	if (orbitSpeedRadPerSec < 0) forward = scale3(forward, -1);
+	const l = len3(forward);
+	if (l < 1e-8) return [1, 0, 0];
+	return scale3(forward, 1 / l);
+}
+
+/** Gaze target for low-orbit horizon view along travel, planet below. */
+export function horizonLookTarget(
+	position: Vec3,
+	planetRadius: number,
+	travel: Vec3
+): Vec3 {
+	const outward = normalize3(position);
+	const towardCenter = scale3(outward, -1);
+	const dist = Math.max(len3(position), planetRadius);
+	const dip = Math.acos(Math.min(1, planetRadius / dist));
+
+	let horizontal = sub3(travel, scale3(outward, dot3(travel, outward)));
+	if (len3(horizontal) < 1e-8) {
+		horizontal = cross3(outward, Math.abs(outward[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]);
+	}
+	const forward = normalize3(horizontal);
+	const gaze = normalize3(
+		add3(scale3(forward, Math.cos(dip)), scale3(towardCenter, Math.sin(dip)))
+	);
+	return add3(position, scale3(gaze, dist));
 }
 
 export function createOrbitCamera(input: OrbitCameraInput): CameraState {
-	const { distance, azimuth, elevation, fovDeg, aspect, near, far, planetRadius } = input;
+	const {
+		distance,
+		azimuth,
+		elevation,
+		fovDeg,
+		aspect,
+		near,
+		far,
+		planetRadius,
+		lookMode = 'horizon',
+		orbitSpeedRadPerSec = 0
+	} = input;
 	const cosEl = Math.cos(elevation);
 	const position: Vec3 = [
 		distance * cosEl * Math.cos(azimuth),
 		distance * Math.sin(elevation),
 		distance * cosEl * Math.sin(azimuth)
 	];
-	const target: Vec3 = [0, 0, 0];
-	const view = lookAt(position, target, [0, 1, 0]);
+	const outward = normalize3(position);
+	let target: Vec3 = [0, 0, 0];
+	let viewUp: Vec3 = [0, 1, 0];
+	if (lookMode === 'horizon') {
+		target = horizonLookTarget(
+			position,
+			planetRadius,
+			orbitTravelDirection(azimuth, elevation, orbitSpeedRadPerSec)
+		);
+		// Up = radial outward orthogonalized against the gaze, so up ⟂ gaze at every
+		// altitude. A plain radial up goes (anti)parallel to the gaze as it dips
+		// toward the planet center from afar, collapsing cross(forward, up) ∝
+		// radius/distance and corrupting the view basis used for culling and LOD.
+		const gaze = normalize3(sub3(target, position));
+		viewUp = normalize3(sub3(outward, scale3(gaze, dot3(outward, gaze))));
+	}
+	const view = lookAt(position, target, viewUp);
 	const projection = perspective(fovDeg, aspect, near, far);
 	const viewProjection = multiply4(projection, view);
 	const altitudeMeters = Math.max(len3(position) - planetRadius, 0);
@@ -63,7 +130,13 @@ export function updateOrbitCamera(
 
 function lookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
 	const f = normalize3(sub3(center, eye));
-	const s = normalize3(cross3(f, up));
+	let right = cross3(f, up);
+	if (len3(right) < 1e-6) {
+		// Gaze is (anti)parallel to up — fall back to any axis not parallel to f.
+		const alt: Vec3 = Math.abs(f[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+		right = cross3(f, alt);
+	}
+	const s = normalize3(right);
 	const u = cross3(s, f);
 	return new Float32Array([
 		s[0], u[0], -f[0], 0,

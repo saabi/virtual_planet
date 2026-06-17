@@ -21,6 +21,7 @@
 		elevation: number;
 		altitudeMeters: number;
 		orbitSpeedRadPerSec: number;
+		lookAtHorizon: boolean;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
@@ -41,6 +42,7 @@
 		elevation = $bindable(),
 		altitudeMeters = $bindable(),
 		orbitSpeedRadPerSec = $bindable(),
+		lookAtHorizon = $bindable(),
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
@@ -131,6 +133,7 @@
 				step={0.005}
 				bind:value={orbitSpeedRadPerSec}
 			/>
+			<CheckBox id="look-at-horizon" label="Look at horizon" bind:checked={lookAtHorizon} />
 		</ul>
 	</details>
 

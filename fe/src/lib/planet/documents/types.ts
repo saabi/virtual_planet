@@ -13,6 +13,8 @@ export interface PlanetCameraState {
 	altitudeMeters?: number;
 	/** Auto-orbit azimuth rate in radians per second. */
 	orbitSpeedRadPerSec?: number;
+	/** When true (default), gaze follows the orbital horizon; otherwise look at planet center. */
+	lookAtHorizon?: boolean;
 }
 
 export interface PlanetSnapshot {

@@ -15,7 +15,8 @@ describe('planet document parse', () => {
 				elevation: 0.4,
 				distance: 250,
 				altitudeMeters: 152.89,
-				orbitSpeedRadPerSec: 0
+				orbitSpeedRadPerSec: 0,
+				lookAtHorizon: true
 			}
 		});
 		const parsed = parseSnapshot(source);

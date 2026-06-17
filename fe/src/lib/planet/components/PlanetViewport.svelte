@@ -77,6 +77,7 @@
 	let elevation = $state(0.35);
 	let altitudeMeters = $state(distanceToAltitude(PLANET_PRESETS[DEFAULT_PRESET], 320));
 	let orbitSpeedRadPerSec = $state(0);
+	let lookAtHorizon = $state(true);
 
 	let stats = $state<RenderStats>({ frameMs: 0, patchCount: 0, vertexCount: 0, mode: 'orbit' });
 	let hud = $state({ altitude: 0, sphereAltitude: 0, mode: 'orbit', rebases: 0, fps: 0 });
@@ -124,7 +125,8 @@
 				elevation,
 				distance: cameraDistance,
 				altitudeMeters,
-				orbitSpeedRadPerSec
+				orbitSpeedRadPerSec,
+				lookAtHorizon
 			}
 		};
 	}
@@ -149,6 +151,7 @@
 			applied.camera.altitudeMeters ??
 			distanceToAltitude(applied.params, applied.camera.distance);
 		orbitSpeedRadPerSec = applied.camera.orbitSpeedRadPerSec ?? 0;
+		lookAtHorizon = applied.camera.lookAtHorizon ?? true;
 		activeDocumentId = id;
 		selection = documentSelection(id);
 	}
@@ -226,6 +229,7 @@
 			applied.camera.altitudeMeters ??
 			distanceToAltitude(applied.params, applied.camera.distance);
 		orbitSpeedRadPerSec = applied.camera.orbitSpeedRadPerSec ?? 0;
+		lookAtHorizon = applied.camera.lookAtHorizon ?? true;
 
 		if (session.activeDocumentId && getDocument(session.activeDocumentId)) {
 			activeDocumentId = session.activeDocumentId;
@@ -266,6 +270,7 @@
 		void elevation;
 		void altitudeMeters;
 		void orbitSpeedRadPerSec;
+		void lookAtHorizon;
 		requestRender();
 	});
 
@@ -294,7 +299,9 @@
 			aspect,
 			near: 0.1,
 			far,
-			planetRadius: p.radius
+			planetRadius: p.radius,
+			lookMode: lookAtHorizon ? 'horizon' : 'planet-center',
+			orbitSpeedRadPerSec
 		});
 	}
 
@@ -540,6 +547,7 @@
 		bind:elevation
 		bind:altitudeMeters
 		bind:orbitSpeedRadPerSec
+		bind:lookAtHorizon
 		bind:wireframe
 		bind:faceColors
 		bind:showPatchBorders

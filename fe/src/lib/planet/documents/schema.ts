@@ -103,6 +103,7 @@ function coerceCamera(
 	const azimuth = finiteNumber(src.azimuth, fallback.azimuth);
 	const elevation = finiteNumber(src.elevation, fallback.elevation);
 	const orbitSpeedRadPerSec = finiteNumber(src.orbitSpeedRadPerSec, 0);
+	const lookAtHorizon = typeof src.lookAtHorizon === 'boolean' ? src.lookAtHorizon : fallback.lookAtHorizon ?? true;
 
 	const hasAltitude =
 		typeof src.altitudeMeters === 'number' && Number.isFinite(src.altitudeMeters);
@@ -126,7 +127,8 @@ function coerceCamera(
 		elevation,
 		distance,
 		altitudeMeters,
-		orbitSpeedRadPerSec
+		orbitSpeedRadPerSec,
+		lookAtHorizon
 	};
 }
 
@@ -143,7 +145,8 @@ export function defaultSnapshot(): PlanetSnapshot {
 			elevation: 0.35,
 			distance,
 			altitudeMeters: distanceToAltitude(params, distance),
-			orbitSpeedRadPerSec: 0
+			orbitSpeedRadPerSec: 0,
+			lookAtHorizon: true
 		}
 	};
 }

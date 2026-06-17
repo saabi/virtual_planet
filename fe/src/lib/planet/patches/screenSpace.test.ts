@@ -24,7 +24,8 @@ describe('screenSpace', () => {
 			aspect: 16 / 9,
 			near: 0.1,
 			far: 10_000,
-			planetRadius: 100
+			planetRadius: 100,
+			lookMode: 'planet-center'
 		});
 		const viewport = { width: 1920, height: 1080 };
 		const proj = projectWorldPoint(cam.viewProjectionMatrix, viewport, [0, 0, 0]);
@@ -42,7 +43,8 @@ describe('screenSpace', () => {
 			aspect: 16 / 9,
 			near: 0.1,
 			far: 10_000,
-			planetRadius: 100
+			planetRadius: 100,
+			lookMode: 'planet-center'
 		});
 		const patch: CubeSpherePatch = {
 			kind: 'cubeSphere',
@@ -79,7 +81,8 @@ describe('culling corner frustum', () => {
 			aspect: 1,
 			near: 0.1,
 			far: 10_000,
-			planetRadius: 100
+			planetRadius: 100,
+			lookMode: 'planet-center'
 		});
 		const frustum = extractFrustumPlanes(cam.viewProjectionMatrix);
 		const params = buildCullParams(cam.position, 100);
