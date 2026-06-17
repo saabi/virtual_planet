@@ -1,8 +1,6 @@
-#ifdef GL_FRAGMENT_PRECISION_HIGH
+#extension GL_OES_standard_derivatives : enable
+
 precision highp float;
-#else
-precision mediump float;
-#endif
 
 varying vec3 vor;
 varying float detail;
@@ -277,7 +275,9 @@ void main() {
     n = norm;
   }
   else {
-    n = normalize( cross( dFdx( viewPosition.xyz ), dFdy( viewPosition.xyz ) ) );
+    vec3 dx = dFdx(viewPosition.xyz);
+    vec3 dy = dFdy(viewPosition.xyz);
+    n = normalize(cross(dx, dy));
   }
   if (illumination > 0.0) {
     vec4 sp = viewMatrix * vec4(SUN_POS,1.0);
