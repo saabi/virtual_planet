@@ -101,8 +101,13 @@
 	let spaceflightVelocity = $state<Vec3>([0, 0, 0]);
 	let spaceflightGravity = $state(9.8);
 	let overlayCanvas = $state<HTMLCanvasElement | null>(null);
+	let monitorCanvas = $state<HTMLCanvasElement | null>(null);
 	let predictionHorizonSeconds = $state(600);
-	let predictionAutoPeriod = $state(true);
+	let predictionAutoPeriod = $state(false);
+	let topDownCanvas = $state<HTMLCanvasElement | null>(null);
+	let monitorOrientationMode = $state<'ship' | 'fixed'>('fixed');
+	let hudPeAltitude = $state<number | null>(null);
+	let hudApAltitude = $state<number | null>(null);
 
 	// Derived HUD statistics
 	let sfOrbitalSpeed = $derived(len3(spaceflightVelocity));
@@ -346,6 +351,7 @@
 		void spaceflightGravity;
 		void predictionHorizonSeconds;
 		void predictionAutoPeriod;
+		void monitorOrientationMode;
 		requestRender();
 	});
 
@@ -745,6 +751,9 @@
 			}
 		}
 
+		hudPeAltitude = pePoint ? len3(pePoint) - params.radius : null;
+		hudApAltitude = apPoint ? len3(apPoint) - params.radius : null;
+
 		// Project points to screen coordinates and compute occlusion
 		const projectedPoints: ({ sx: number; sy: number; occluded: boolean } | null)[] = [];
 		const M = camera.viewProjectionMatrix;
@@ -868,13 +877,403 @@
 				ctx.fillText(text, proj.x + 8, proj.y + 4);
 			}
 		}
+
+		// Draw top-down monitor
+		drawOrbitMonitor(pathPoints, crashed, pePoint, apPoint);
+
+		// Draw new floating top-down overlay view
+		drawTopDownOverlay(pathPoints, crashed, pePoint, apPoint);
+	}
+
+	function drawOrbitMonitor(
+		pathPoints: Vec3[],
+		crashed: boolean,
+		pePoint: Vec3 | null,
+		apPoint: Vec3 | null
+	) {
+		if (!monitorCanvas || !spaceflightActive) return;
+
+		const ctx = monitorCanvas.getContext('2d');
+		if (!ctx) return;
+
+		const size = 180;
+		if (monitorCanvas.width !== size || monitorCanvas.height !== size) {
+			monitorCanvas.width = size;
+			monitorCanvas.height = size;
+		}
+
+		ctx.clearRect(0, 0, size, size);
+
+		// Background grid/radar lines
+		ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.arc(size / 2, size / 2, size / 2 - 1, 0, 2 * Math.PI);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(size / 2, size / 2, size / 4, 0, 2 * Math.PI);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(0, size / 2);
+		ctx.lineTo(size, size / 2);
+		ctx.moveTo(size / 2, 0);
+		ctx.lineTo(size / 2, size);
+		ctx.stroke();
+
+		// Calculate orbital plane basis
+		const pos = freeFlyPosition;
+		const vel = spaceflightVelocity;
+
+		const rLen = len3(pos);
+		if (rLen < 1e-3) return;
+
+		// Orbit normal = pos x vel
+		let normal = cross3(pos, vel);
+		let nLen = len3(normal);
+		if (nLen < 1e-4) {
+			const altAxis: Vec3 = Math.abs(pos[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+			normal = cross3(pos, altAxis);
+			nLen = len3(normal);
+		}
+		const normalDir = scale3(normal, 1 / (nLen || 1));
+
+		// Basis x = pos / |pos|
+		const basisX = scale3(pos, 1 / rLen);
+		// Basis y = normal x basisX
+		const basisY = cross3(normalDir, basisX);
+
+		// Find maximum distance in the path to autoscale
+		let maxD = params.radius * 1.5;
+		for (const pt of pathPoints) {
+			const d = len3(pt);
+			if (d > maxD) maxD = d;
+		}
+
+		// Scale so maxD fits in 80% of half-size
+		const padding = 15;
+		const drawRadius = size / 2 - padding;
+		const scale = drawRadius / maxD;
+
+		const cx = size / 2;
+		const cy = size / 2;
+
+		// 1. Draw planet
+		const planetRad = params.radius * scale;
+		ctx.beginPath();
+		ctx.arc(cx, cy, planetRad, 0, 2 * Math.PI);
+		ctx.fillStyle = 'rgba(10, 30, 60, 0.6)';
+		ctx.fill();
+		ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+		ctx.lineWidth = 1.5;
+		ctx.stroke();
+
+		// 2. Draw projected path
+		ctx.strokeStyle = '#00f0ff';
+		ctx.lineWidth = 2;
+		ctx.shadowBlur = 4;
+		ctx.shadowColor = '#00f0ff';
+		ctx.beginPath();
+
+		for (let i = 0; i < pathPoints.length; i++) {
+			const pt = pathPoints[i];
+			const px = dot3(pt, basisX) * scale;
+			const py = dot3(pt, basisY) * scale;
+
+			const sx = cx + px;
+			const sy = cy - py;
+
+			if (i === 0) {
+				ctx.moveTo(sx, sy);
+			} else {
+				ctx.lineTo(sx, sy);
+			}
+		}
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+
+		// 3. Draw spacecraft (always at current position pos, which projects to [rLen, 0])
+		const scX = cx + rLen * scale;
+		const scY = cy;
+
+		ctx.fillStyle = '#ffffff';
+		ctx.shadowBlur = 6;
+		ctx.shadowColor = '#ffffff';
+		ctx.beginPath();
+		ctx.arc(scX, scY, 4, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.shadowBlur = 0;
+
+		// 4. Draw Pe landmark
+		if (pePoint) {
+			const px = dot3(pePoint, basisX) * scale;
+			const py = dot3(pePoint, basisY) * scale;
+			ctx.beginPath();
+			ctx.arc(cx + px, cy - py, 3.5, 0, 2 * Math.PI);
+			ctx.fillStyle = '#00ff66';
+			ctx.fill();
+		}
+
+		// 5. Draw Ap landmark
+		if (apPoint) {
+			const px = dot3(apPoint, basisX) * scale;
+			const py = dot3(apPoint, basisY) * scale;
+			ctx.beginPath();
+			ctx.arc(cx + px, cy - py, 3.5, 0, 2 * Math.PI);
+			ctx.fillStyle = '#ff3366';
+			ctx.fill();
+		}
+
+		// 6. Draw Crash/Impact Site landmark
+		if (crashed) {
+			const crashPt = pathPoints[pathPoints.length - 1];
+			const px = dot3(crashPt, basisX) * scale;
+			const py = dot3(crashPt, basisY) * scale;
+			ctx.strokeStyle = '#ff3333';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.moveTo(cx + px - 4, cy - py - 4);
+			ctx.lineTo(cx + px + 4, cy - py + 4);
+			ctx.moveTo(cx + px + 4, cy - py - 4);
+			ctx.lineTo(cx + px - 4, cy - py + 4);
+			ctx.stroke();
+		}
+	}
+
+	function drawTopDownOverlay(
+		pathPoints: Vec3[],
+		crashed: boolean,
+		pePoint: Vec3 | null,
+		apPoint: Vec3 | null
+	) {
+		if (!topDownCanvas || !spaceflightActive) return;
+
+		const ctx = topDownCanvas.getContext('2d');
+		if (!ctx) return;
+
+		const size = 220;
+		if (topDownCanvas.width !== size || topDownCanvas.height !== size) {
+			topDownCanvas.width = size;
+			topDownCanvas.height = size;
+		}
+
+		ctx.clearRect(0, 0, size, size);
+
+		// Background grid/radar lines
+		ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.arc(size / 2, size / 2, size / 2 - 1, 0, 2 * Math.PI);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(size / 2, size / 2, size / 4, 0, 2 * Math.PI);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(0, size / 2);
+		ctx.lineTo(size, size / 2);
+		ctx.moveTo(size / 2, 0);
+		ctx.lineTo(size / 2, size);
+		ctx.stroke();
+
+		// Calculate orbital plane basis
+		const pos = freeFlyPosition;
+		const vel = spaceflightVelocity;
+
+		const rLen = len3(pos);
+		if (rLen < 1e-3) return;
+
+		// Orbit normal = pos x vel
+		let normal = cross3(pos, vel);
+		let nLen = len3(normal);
+		if (nLen < 1e-4) {
+			const altAxis: Vec3 = Math.abs(pos[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+			normal = cross3(pos, altAxis);
+			nLen = len3(normal);
+		}
+		const normalDir = scale3(normal, 1 / (nLen || 1));
+
+		// Define basis vectors for projection plane
+		let basisX: Vec3;
+		let basisY: Vec3;
+
+		if (monitorOrientationMode === 'ship') {
+			// Spacecraft is always on the right side of the monitor
+			basisX = scale3(pos, 1 / rLen);
+			basisY = cross3(normalDir, basisX);
+		} else {
+			// Fixed / North-Up mode:
+			// Project North Pole [0, 1, 0] onto the orbital plane (basisY).
+			const north = [0, 1, 0] as Vec3;
+			const dotNorth = dot3(north, normalDir);
+			if (Math.abs(dotNorth) > 0.999) {
+				// Purely equatorial orbit
+				basisX = [1, 0, 0] as Vec3;
+				basisY = [0, 0, 1] as Vec3;
+			} else {
+				const projY = [
+					north[0] - dotNorth * normalDir[0],
+					north[1] - dotNorth * normalDir[1],
+					north[2] - dotNorth * normalDir[2]
+				] as Vec3;
+				basisY = normalize3(projY);
+				basisX = cross3(basisY, normalDir);
+			}
+		}
+
+		// Find maximum distance in the path to autoscale
+		let maxD = params.radius * 1.5;
+		for (const pt of pathPoints) {
+			const d = len3(pt);
+			if (d > maxD) maxD = d;
+		}
+
+		// Scale so maxD fits in 80% of half-size
+		const padding = 20;
+		const drawRadius = size / 2 - padding;
+		const scale = drawRadius / maxD;
+
+		const cx = size / 2;
+		const cy = size / 2;
+
+		// 1. Draw planet
+		const planetRad = params.radius * scale;
+		ctx.beginPath();
+		ctx.arc(cx, cy, planetRad, 0, 2 * Math.PI);
+		ctx.fillStyle = 'rgba(10, 30, 60, 0.7)';
+		ctx.fill();
+		ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+		ctx.lineWidth = 1.5;
+		ctx.stroke();
+
+		// Draw equator line on the planet in North-Up mode to give context
+		if (monitorOrientationMode === 'fixed') {
+			ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(cx - planetRad, cy);
+			ctx.lineTo(cx + planetRad, cy);
+			ctx.stroke();
+		}
+
+		// 2. Draw projected path
+		ctx.strokeStyle = '#00f0ff';
+		ctx.lineWidth = 2;
+		ctx.shadowBlur = 4;
+		ctx.shadowColor = '#00f0ff';
+		ctx.beginPath();
+
+		for (let i = 0; i < pathPoints.length; i++) {
+			const pt = pathPoints[i];
+			const px = dot3(pt, basisX) * scale;
+			const py = dot3(pt, basisY) * scale;
+
+			const sx = cx + px;
+			const sy = cy - py;
+
+			if (i === 0) {
+				ctx.moveTo(sx, sy);
+			} else {
+				ctx.lineTo(sx, sy);
+			}
+		}
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+
+		// 3. Draw spacecraft at its actual position
+		const scX = cx + dot3(pos, basisX) * scale;
+		const scY = cy - dot3(pos, basisY) * scale;
+
+		// Draw velocity vector arrow
+		const velX = dot3(vel, basisX);
+		const velY = dot3(vel, basisY);
+		const velLen = Math.sqrt(velX * velX + velY * velY);
+		if (velLen > 0.1) {
+			const arrowLen = 20;
+			const dx = (velX / velLen) * arrowLen;
+			const dy = (velY / velLen) * arrowLen;
+			ctx.strokeStyle = '#ffcc00';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.moveTo(scX, scY);
+			ctx.lineTo(scX + dx, scY - dy);
+			ctx.stroke();
+
+			// Draw arrow head
+			const angle = Math.atan2(-dy, dx);
+			ctx.fillStyle = '#ffcc00';
+			ctx.beginPath();
+			ctx.moveTo(scX + dx, scY - dy);
+			ctx.lineTo(scX + dx - 5 * Math.cos(angle - Math.PI / 6), scY - dy - 5 * Math.sin(angle - Math.PI / 6));
+			ctx.lineTo(scX + dx - 5 * Math.cos(angle + Math.PI / 6), scY - dy - 5 * Math.sin(angle + Math.PI / 6));
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		ctx.fillStyle = '#ffffff';
+		ctx.shadowBlur = 6;
+		ctx.shadowColor = '#ffffff';
+		ctx.beginPath();
+		ctx.arc(scX, scY, 4.5, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.shadowBlur = 0;
+
+		// 4. Draw Pe landmark
+		if (pePoint) {
+			const px = dot3(pePoint, basisX) * scale;
+			const py = dot3(pePoint, basisY) * scale;
+			ctx.beginPath();
+			ctx.arc(cx + px, cy - py, 4, 0, 2 * Math.PI);
+			ctx.fillStyle = '#00ff66';
+			ctx.fill();
+
+			ctx.font = 'bold 9px monospace';
+			ctx.fillStyle = '#00ff66';
+			ctx.fillText('Pe', cx + px + 6, cy - py + 3);
+		}
+
+		// 5. Draw Ap landmark
+		if (apPoint) {
+			const px = dot3(apPoint, basisX) * scale;
+			const py = dot3(apPoint, basisY) * scale;
+			ctx.beginPath();
+			ctx.arc(cx + px, cy - py, 4, 0, 2 * Math.PI);
+			ctx.fillStyle = '#ff3366';
+			ctx.fill();
+
+			ctx.font = 'bold 9px monospace';
+			ctx.fillStyle = '#ff3366';
+			ctx.fillText('Ap', cx + px + 6, cy - py + 3);
+		}
+
+		// 6. Draw Crash/Impact Site landmark
+		if (crashed) {
+			const crashPt = pathPoints[pathPoints.length - 1];
+			const px = dot3(crashPt, basisX) * scale;
+			const py = dot3(crashPt, basisY) * scale;
+			ctx.strokeStyle = '#ff3333';
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.moveTo(cx + px - 5, cy - py - 5);
+			ctx.lineTo(cx + px + 5, cy - py + 5);
+			ctx.moveTo(cx + px + 5, cy - py - 5);
+			ctx.lineTo(cx + px - 5, cy - py + 5);
+			ctx.stroke();
+		}
 	}
 
 	function clearOverlayCanvas() {
-		if (!overlayCanvas) return;
-		const ctx = overlayCanvas.getContext('2d');
-		if (ctx) {
-			ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+		hudPeAltitude = null;
+		hudApAltitude = null;
+		if (overlayCanvas) {
+			const ctx = overlayCanvas.getContext('2d');
+			if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+		}
+		if (monitorCanvas) {
+			const ctx = monitorCanvas.getContext('2d');
+			if (ctx) ctx.clearRect(0, 0, monitorCanvas.width, monitorCanvas.height);
+		}
+		if (topDownCanvas) {
+			const ctx = topDownCanvas.getContext('2d');
+			if (ctx) ctx.clearRect(0, 0, topDownCanvas.width, topDownCanvas.height);
 		}
 	}
 
@@ -1309,54 +1708,78 @@
 	{#if spaceflightActive}
 		<div class="spaceflight-hud" onpointerdown={stopPointerPropagation}>
 			<div class="hud-header">ORBITAL FLIGHT HUD</div>
-			<div class="hud-grid">
-				<div class="hud-stat">
-					<span class="hud-label">Orbital Speed</span>
-					<span class="hud-value">{sfOrbitalSpeed.toFixed(1)} m/s</span>
-				</div>
-				<div class="hud-stat">
-					<span class="hud-label">Radial Speed</span>
-					<span class="hud-value" class:positive={sfRadialSpeed > 0.05} class:negative={sfRadialSpeed < -0.05}>
-						{sfRadialSpeed.toFixed(1)} m/s
-						{#if sfRadialSpeed > 0.05}
-							▲
-						{:else if sfRadialSpeed < -0.05}
-							▼
-						{:else}
-							◀▶
-						{/if}
-					</span>
-				</div>
-				<div class="hud-stat">
-					<span class="hud-label">Horizontal Speed</span>
-					<span class="hud-value">{sfHorizontalSpeed.toFixed(1)} m/s</span>
-				</div>
-				<div class="hud-stat">
-					<span class="hud-label">Gravity Accel</span>
-					<span class="hud-value">{sfGravityAcc.toFixed(2)} m/s²</span>
-				</div>
-			</div>
-			<div class="hud-projection-controls">
-				<div class="hud-control-row">
-					<label class="hud-checkbox-label">
-						<input type="checkbox" bind:checked={predictionAutoPeriod} />
-						Auto-Period Projection
-					</label>
-				</div>
-				{#if !predictionAutoPeriod}
-					<div class="hud-control-row">
-						<span class="hud-label">Lookahead: {predictionHorizonSeconds}s</span>
-						<input
-							type="range"
-							min="10"
-							max="3600"
-							step="10"
-							class="hud-range-slider"
-							bind:value={predictionHorizonSeconds}
-						/>
+			
+			<div class="hud-main-layout">
+				<div class="hud-left-column">
+					<div class="hud-grid">
+						<div class="hud-stat">
+							<span class="hud-label">Orbital Speed</span>
+							<span class="hud-value">{sfOrbitalSpeed.toFixed(1)} m/s</span>
+						</div>
+						<div class="hud-stat">
+							<span class="hud-label">Radial Speed</span>
+							<span class="hud-value" class:positive={sfRadialSpeed > 0.05} class:negative={sfRadialSpeed < -0.05}>
+								{sfRadialSpeed.toFixed(1)} m/s
+								{#if sfRadialSpeed > 0.05}
+									▲
+								{:else if sfRadialSpeed < -0.05}
+									▼
+								{:else}
+									◀▶
+								{/if}
+							</span>
+						</div>
+						<div class="hud-stat">
+							<span class="hud-label">Horizontal Speed</span>
+							<span class="hud-value">{sfHorizontalSpeed.toFixed(1)} m/s</span>
+						</div>
+						<div class="hud-stat">
+							<span class="hud-label">Gravity Accel</span>
+							<span class="hud-value">{sfGravityAcc.toFixed(2)} m/s²</span>
+						</div>
 					</div>
-				{/if}
+					
+					<div class="hud-projection-controls">
+						<div class="hud-control-row">
+							<label class="hud-checkbox-label">
+								<input type="checkbox" bind:checked={predictionAutoPeriod} />
+								Auto-Period Projection
+							</label>
+						</div>
+						{#if !predictionAutoPeriod}
+							<div class="hud-control-row">
+								<span class="hud-label" style="min-width: 95px;">Lookahead: {predictionHorizonSeconds}s</span>
+								<input
+									type="range"
+									min="10"
+									max="3600"
+									step="10"
+									class="hud-range-slider"
+									bind:value={predictionHorizonSeconds}
+								/>
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				<div class="hud-right-column">
+					<div class="hud-monitor-title">ORBIT MONITOR</div>
+					<canvas bind:this={monitorCanvas} class="monitor-canvas"></canvas>
+					<div class="hud-monitor-stats">
+						{#if hudPeAltitude !== null}
+							<div class="monitor-stat pe">Pe: {hudPeAltitude.toFixed(0)}m</div>
+						{:else}
+							<div class="monitor-stat pe disabled">Pe: Collision</div>
+						{/if}
+						{#if hudApAltitude !== null}
+							<div class="monitor-stat ap">Ap: {hudApAltitude.toFixed(0)}m</div>
+						{:else}
+							<div class="monitor-stat ap disabled">Ap: N/A</div>
+						{/if}
+					</div>
+				</div>
 			</div>
+
 			<div class="hud-controls-hint">
 				RCS translation: W/S (Fwd/Bwd), A/D (L/R), Space/Ctrl (Up/Dn) & Q/E roll
 			</div>
@@ -1367,6 +1790,30 @@
 				<button type="button" class="hud-action-btn abort-btn" onclick={killVelocity}>
 					Kill Velocity
 				</button>
+			</div>
+		</div>
+
+		<!-- Floating Top-Down Orbit Monitor overlay in the corner -->
+		<div class="floating-orbit-monitor" onpointerdown={stopPointerPropagation}>
+			<div class="floating-monitor-header">
+				<span>ORBIT PI-P</span>
+				<select class="monitor-mode-select" bind:value={monitorOrientationMode}>
+					<option value="fixed">North-Up</option>
+					<option value="ship">Ship-Centric</option>
+				</select>
+			</div>
+			<canvas bind:this={topDownCanvas} class="floating-monitor-canvas"></canvas>
+			<div class="floating-monitor-stats">
+				{#if hudPeAltitude !== null}
+					<span class="stat-pe">Pe: {hudPeAltitude.toFixed(0)}m</span>
+				{:else}
+					<span class="stat-pe disabled">Pe: Crash</span>
+				{/if}
+				{#if hudApAltitude !== null}
+					<span class="stat-ap">Ap: {hudApAltitude.toFixed(0)}m</span>
+				{:else}
+					<span class="stat-ap disabled">Ap: N/A</span>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -1425,6 +1872,29 @@
 					bind:value={spaceflightGravity}
 				/>
 			</div>
+			{#if spaceflightActive}
+				<div class="gravity-control-container" style="margin-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
+					<div class="gravity-label-row">
+						<span>Auto-Period Projection</span>
+						<input type="checkbox" bind:checked={predictionAutoPeriod} style="accent-color: #00f0ff; cursor: pointer;" />
+					</div>
+					{#if !predictionAutoPeriod}
+						<div class="gravity-label-row" style="margin-top: 8px;">
+							<span>Prediction Horizon</span>
+							<span class="gravity-val">{predictionHorizonSeconds}s</span>
+						</div>
+						<input
+							type="range"
+							min="10"
+							max="3600"
+							step="10"
+							class="gravity-range-slider"
+							style="background: rgba(0, 240, 255, 0.2);"
+							bind:value={predictionHorizonSeconds}
+						/>
+					{/if}
+				</div>
+			{/if}
 		</aside>
 
 		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
@@ -1640,8 +2110,8 @@
 		border: 1.5px solid rgba(0, 240, 255, 0.4);
 		border-radius: 12px;
 		padding: 16px 24px;
-		width: 480px;
-		max-width: 90%;
+		width: 680px;
+		max-width: 95%;
 		box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.15), inset 0 0 12px rgba(0, 240, 255, 0.05);
 		color: #00f0ff;
 		font-family: 'Courier New', Courier, monospace;
@@ -1809,5 +2279,151 @@
 		background: #00f0ff;
 		cursor: pointer;
 		box-shadow: 0 0 6px rgba(0, 240, 255, 0.8);
+	}
+
+	.hud-main-layout {
+		display: flex;
+		gap: 24px;
+		width: 100%;
+		margin-top: 8px;
+	}
+
+	.hud-left-column {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.hud-right-column {
+		width: 200px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		background: rgba(0, 0, 0, 0.2);
+		padding: 10px;
+		border-radius: 8px;
+		border: 1px solid rgba(0, 240, 255, 0.15);
+	}
+
+	.hud-monitor-title {
+		font-size: 10px;
+		color: rgba(0, 240, 255, 0.6);
+		margin-bottom: 6px;
+		letter-spacing: 1px;
+		font-weight: bold;
+		text-align: center;
+	}
+
+	.monitor-canvas {
+		width: 180px;
+		height: 180px;
+		background: #070b14;
+		border-radius: 4px;
+		border: 1px solid rgba(0, 240, 255, 0.1);
+	}
+
+	.hud-monitor-stats {
+		display: flex;
+		justify-content: space-between;
+		width: 100%;
+		margin-top: 6px;
+		font-size: 9px;
+		font-family: 'Courier New', Courier, monospace;
+	}
+
+	.monitor-stat.pe {
+		color: #00ff66;
+		font-weight: bold;
+	}
+
+	.monitor-stat.ap {
+		color: #ff3366;
+		font-weight: bold;
+	}
+
+	.monitor-stat.disabled {
+		color: rgba(255, 255, 255, 0.3);
+		font-weight: normal;
+	}
+
+	.floating-orbit-monitor {
+		position: absolute;
+		top: 20px;
+		right: 20px;
+		background: rgba(10, 15, 30, 0.85);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border: 1.5px solid rgba(0, 240, 255, 0.4);
+		border-radius: 12px;
+		padding: 12px;
+		box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.15), inset 0 0 12px rgba(0, 240, 255, 0.05);
+		color: #00f0ff;
+		font-family: 'Courier New', Courier, monospace;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		pointer-events: auto;
+		width: 240px;
+	}
+
+	.floating-monitor-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		font-size: 11px;
+		font-weight: bold;
+		letter-spacing: 1px;
+		border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+		padding-bottom: 4px;
+	}
+
+	.monitor-mode-select {
+		background: rgba(0, 0, 0, 0.4);
+		border: 1px solid rgba(0, 240, 255, 0.4);
+		border-radius: 4px;
+		color: #00f0ff;
+		font-size: 10px;
+		font-family: 'Courier New', Courier, monospace;
+		padding: 2px 4px;
+		cursor: pointer;
+		outline: none;
+	}
+
+	.monitor-mode-select:hover {
+		background: rgba(0, 240, 255, 0.15);
+		box-shadow: 0 0 6px rgba(0, 240, 255, 0.3);
+	}
+
+	.floating-monitor-canvas {
+		width: 220px;
+		height: 220px;
+		background: #070b14;
+		border-radius: 6px;
+		border: 1px solid rgba(0, 240, 255, 0.15);
+	}
+
+	.floating-monitor-stats {
+		display: flex;
+		justify-content: space-between;
+		width: 100%;
+		font-size: 10px;
+		font-weight: bold;
+		margin-top: 2px;
+	}
+
+	.stat-pe {
+		color: #00ff66;
+	}
+
+	.stat-ap {
+		color: #ff3366;
+	}
+
+	.stat-pe.disabled, .stat-ap.disabled {
+		color: rgba(255, 255, 255, 0.3);
 	}
 </style>
