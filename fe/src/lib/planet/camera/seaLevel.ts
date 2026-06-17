@@ -77,7 +77,7 @@ export function nudgeAltitudeASL(
 	wheelDelta: number,
 	atmosphere?: AtmosphereParameters
 ): number {
-	const factor = 1 + Math.sign(wheelDelta) * 0.08;
+	const factor = 1.08;
 	const next = wheelDelta > 0 ? altitudeASL * factor : altitudeASL / factor;
 	return clampAltitude(params, next, atmosphere);
 }

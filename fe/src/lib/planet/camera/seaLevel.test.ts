@@ -7,7 +7,8 @@ import {
 	mapLogSlider,
 	seaLevelOffsetMeters,
 	seaLevelRadius,
-	unmapLogSlider
+	unmapLogSlider,
+	nudgeAltitudeASL
 } from './seaLevel.js';
 
 describe('seaLevel', () => {
@@ -43,5 +44,14 @@ describe('seaLevel', () => {
 		expect(mapLogSlider(1, min, max)).toBeCloseTo(max);
 		const mid = mapLogSlider(0.5, min, max);
 		expect(unmapLogSlider(mid, min, max)).toBeCloseTo(0.5, 2);
+	});
+
+	it('nudges altitude correctly for zooming in and out', () => {
+		const p = PLANET_PRESETS.starter;
+		const baseAlt = 100;
+		const zoomedOut = nudgeAltitudeASL(p, baseAlt, 100);
+		expect(zoomedOut).toBeGreaterThan(baseAlt);
+		const zoomedIn = nudgeAltitudeASL(p, baseAlt, -100);
+		expect(zoomedIn).toBeLessThan(baseAlt);
 	});
 });
