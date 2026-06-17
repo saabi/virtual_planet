@@ -1,0 +1,70 @@
+#include "../planet/material.wgsl"
+#include "../common/frame.wgsl"
+
+struct ViewUniforms {
+  view_projection: mat4x4f,
+  view: mat4x4f,
+  camera_pos: vec4f,
+  debug: vec4f,
+}
+
+@group(0) @binding(0) var<uniform> view_u: ViewUniforms;
+@group(1) @binding(0) var<uniform> planet: PlanetParams;
+@group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
+@group(2) @binding(1) var<uniform> local_frame: LocalFrame;
+@group(3) @binding(0) var<storage, read> surface_patches: array<SurfacePatchGpu>;
+
+struct VSOut {
+  @builtin(position) position: vec4f,
+  @location(0) world_pos: vec3f,
+  @location(1) unit_dir: vec3f,
+  @location(2) @interpolate(flat) ring: u32,
+  @location(3) patch_uv: vec2f,
+}
+
+@vertex
+fn vs_main(
+  @builtin(vertex_index) vid: u32,
+  @builtin(instance_index) iid: u32,
+) -> VSOut {
+  let patch_desc = surface_patches[iid];
+  let quad_verts = array<vec2f, 6>(
+    vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
+    vec2f(1.0, 0.0), vec2f(1.0, 1.0), vec2f(0.0, 1.0)
+  );
+  let tri = vid / 3u;
+  let corner = vid % 3u;
+  let uv_cell = quad_verts[tri * 3u + corner];
+  let local_xy = vec2f(patch_desc.origin_x, patch_desc.origin_y) + (uv_cell - 0.5) * patch_desc.size_meters;
+  let unit_dir = tangent_offset_to_unit_dir(local_xy, local_frame);
+  let sample = sample_planet(unit_dir, planet, scale_ctx);
+  let local_pos = sample.world_pos;
+  var out: VSOut;
+  out.world_pos = local_pos;
+  out.unit_dir = unit_dir;
+  out.ring = patch_desc.ring;
+  out.patch_uv = uv_cell;
+  out.position = view_u.view_projection * vec4f(local_pos, 1.0);
+  return out;
+}
+
+@fragment
+fn fs_main(in: VSOut) -> @location(0) vec4f {
+  let sample = sample_planet(in.unit_dir, planet, scale_ctx);
+  var col = shade_planet(sample, planet, scale_ctx);
+  if (view_u.debug.w > 0.5) {
+    col = ring_debug_color(in.ring);
+  }
+  if (view_u.debug.z > 0.5) {
+    let border = min(min(in.patch_uv.x, 1.0 - in.patch_uv.x), min(in.patch_uv.y, 1.0 - in.patch_uv.y));
+    if (border < 0.04) {
+      col = mix(col, vec3f(1.0), 0.5);
+    }
+  }
+  if (planet.illumination > 0.5) {
+    let light_dir = normalize(vec3f(1.0, 0.2, 0.1));
+    let n = normalize(sample.world_pos);
+    col *= max(dot(n, light_dir), 0.15);
+  }
+  return vec4f(col, 1.0);
+}

@@ -1,0 +1,59 @@
+#include "types.wgsl"
+#include "params.wgsl"
+#include "../noise/fbm.wgsl"
+#include "../noise/voronoi.wgsl"
+
+fn should_eval_layer(min_mpp: f32, scale: ScaleContext) -> bool {
+  return scale.meters_per_pixel <= min_mpp;
+}
+
+fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> PlanetSample {
+  var p = unit_dir;
+  var r: PlanetSample;
+  r.unit_dir = unit_dir;
+
+  let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
+  let wl = total_amplitude * (params.water_level - 0.5);
+
+  var distortion = 0.0;
+  if (should_eval_layer(500.0, scale) && params.voronoi_distortion_scale > 0.0) {
+    distortion = fbm_4(p * params.voronoi_distortion_scale);
+  }
+  r.distortion = distortion;
+
+  var vor = vec3f(0.5);
+  if (should_eval_layer(1000.0, scale)) {
+    vor = voronoi3(p * params.voronoi_scale + (distortion - 0.5) * params.voronoi_distortion_amplitude);
+  }
+  r.vor = vor;
+
+  var detail = 0.5;
+  if (should_eval_layer(50.0, scale) && params.detail_scale > 0.0) {
+    detail = fbm_4(p * params.detail_scale);
+  }
+  r.detail = detail;
+
+  var height = (vor.x - 0.5) * params.voronoi_amplitude + (detail - 0.5) * params.detail_amplitude;
+  var th = height - wl;
+  var thf: f32;
+  if (th > 0.0) {
+    thf = total_amplitude - wl;
+  } else {
+    thf = wl - params.radius;
+  }
+  th /= thf;
+  th = pow(th, params.erosion);
+  r.erosion_value = th;
+  th *= thf;
+  height = wl + th;
+  r.height_meters = height;
+  r.water_height_meters = wl;
+
+  var radius = params.radius + height;
+  if (params.render_water > 0.5) {
+    radius = params.radius + max(height, wl);
+  }
+  r.world_radius_meters = radius;
+  r.world_pos = p * radius;
+  return r;
+}

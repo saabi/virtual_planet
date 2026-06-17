@@ -2,6 +2,7 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { glslify } from './vite-glslify';
+import { wgsl } from './vite-wgsl';
 
 export default defineConfig({
 	plugins: [
@@ -12,6 +13,7 @@ export default defineConfig({
 			},
 			adapter: adapter()
 		}),
-		glslify()
+		glslify(),
+		wgsl()
 	]
 });

@@ -27,7 +27,7 @@ npm install
 npm run dev
 ```
 
-During migration, the ported planet editor is available at **`/old`** in the SvelteKit app (`fe/`).
+During migration, the ported planet editor is available at **`/old`** in the SvelteKit app (`fe/`). The new WebGPU renderer scaffold lives at **`/planet`** (placeholder viewport).
 
 ## History
 
