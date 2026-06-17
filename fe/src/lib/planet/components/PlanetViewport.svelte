@@ -79,6 +79,8 @@
 	let localFrame = buildLocalFrame([0, 0, 320], 100);
 	let modeState: CameraState['mode'] = 'orbit';
 	let raf = 0;
+	let rafActive = false;
+	let needsRender = true;
 	let lastFpsTime = 0;
 	let frames = 0;
 	let canvasWidth = 0;
@@ -223,6 +225,30 @@
 		return () => window.clearTimeout(timer);
 	});
 
+	/** Re-render when any GPU-visible input changes (not every animation frame). */
+	$effect(() => {
+		if (!hydrated || !backend) return;
+		void backend;
+		void JSON.stringify(params);
+		void JSON.stringify(materialOverrides);
+		void wireframe;
+		void faceColors;
+		void showPatchBorders;
+		void showRingColors;
+		void scene;
+		void azimuth;
+		void elevation;
+		void distance;
+		requestRender();
+	});
+
+	function requestRender() {
+		needsRender = true;
+		if (rafActive || !backend) return;
+		rafActive = true;
+		raf = requestAnimationFrame(tick);
+	}
+
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
 		const aspect = width / Math.max(height, 1);
 		const far = Math.max(p.radius * 20, distance * 4);
@@ -330,12 +356,19 @@
 		distance = Math.max(params.radius * 1.05, Math.min(params.radius * 50, distance + e.deltaY * 0.2));
 	}
 
-	function loop(time: number) {
-		if (!canvas || !backend) return;
+	function tick(time: number) {
+		if (!canvas || !backend) {
+			rafActive = false;
+			return;
+		}
+
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
-		if (width > 0 && height > 0) {
-			if (width !== canvasWidth || height !== canvasHeight) {
+		const resized =
+			width > 0 && height > 0 && (width !== canvasWidth || height !== canvasHeight);
+
+		if ((needsRender || resized) && width > 0 && height > 0) {
+			if (resized) {
 				canvas.width = width;
 				canvas.height = height;
 				backend.resize(width, height);
@@ -357,8 +390,16 @@
 				frames = 0;
 				lastFpsTime = time;
 			}
+			needsRender = false;
 		}
-		raf = requestAnimationFrame(loop);
+
+		if (needsRender) {
+			raf = requestAnimationFrame(tick);
+		} else {
+			rafActive = false;
+			hud = { ...hud, fps: 0 };
+			frames = 0;
+		}
 	}
 
 	onMount(() => {
@@ -389,12 +430,17 @@
 				}
 			}
 			if (backend) {
-				raf = requestAnimationFrame(loop);
+				requestRender();
 			}
 		})();
 
+		const resizeObserver = new ResizeObserver(() => requestRender());
+		resizeObserver.observe(canvas);
+
 		return () => {
+			resizeObserver.disconnect();
 			cancelAnimationFrame(raf);
+			rafActive = false;
 			backend?.destroy();
 			backend = null;
 		};
