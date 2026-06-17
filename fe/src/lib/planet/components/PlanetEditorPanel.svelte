@@ -181,14 +181,24 @@
 			<summary>{section.title}</summary>
 			<ul class="section-body">
 				{#each section.sliders as slider (slider.key)}
-					<Range
-						id={slider.key}
-						label={slider.label}
-						min={slider.min}
-						max={slider.max}
-						step={slider.step}
-						bind:value={params[slider.key]}
-					/>
+					{#if slider.log}
+						<LogRange
+							id={slider.key}
+							label={slider.label}
+							min={slider.min}
+							max={slider.max}
+							bind:value={params[slider.key]}
+						/>
+					{:else}
+						<Range
+							id={slider.key}
+							label={slider.label}
+							min={slider.min}
+							max={slider.max}
+							step={slider.step}
+							bind:value={params[slider.key]}
+						/>
+					{/if}
 				{/each}
 				{#each section.toggles ?? [] as toggle (toggle.key)}
 					<li class="flag-row">

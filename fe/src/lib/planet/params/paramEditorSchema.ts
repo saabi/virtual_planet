@@ -7,6 +7,8 @@ export interface ParamSliderDef {
 	min: number;
 	max: number;
 	step: number;
+	/** Render with a logarithmic slider — for values spanning many orders of magnitude. */
+	log?: boolean;
 }
 
 /** Boolean-style flag backed by a 0/1 numeric planet param. */
@@ -28,7 +30,9 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	{
 		title: 'Planet Body',
 		defaultOpen: true,
-		sliders: [{ key: 'radius', label: 'Radius', min: 0, max: 3000, step: 1 }]
+		// Log scale: 1 m (boulder) → 1e9 m (~star). Meteor ~1e3, Moon ~1.7e6,
+		// Earth ~6.4e6, Jupiter ~7e7, Sun ~7e8.
+		sliders: [{ key: 'radius', label: 'Radius', min: 1, max: 1_000_000_000, step: 1, log: true }]
 	},
 	{
 		title: 'Continents',
