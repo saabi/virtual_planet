@@ -83,6 +83,8 @@
 	let altitudeMeters = $state(distanceToAltitude(PLANET_PRESETS[DEFAULT_PRESET], 320));
 	let orbitSpeedRadPerSec = $state(0);
 	let lookAtHorizon = $state(true);
+	let spinAngle = $state(0);
+	let spinSpeedRadPerSec = $state(0);
 
 	let stats = $state<RenderStats>({ frameMs: 0, patchCount: 0, vertexCount: 0, mode: 'orbit' });
 	let hud = $state({ altitude: 0, sphereAltitude: 0, mode: 'orbit', rebases: 0, fps: 0 });
@@ -277,13 +279,16 @@
 		void altitudeMeters;
 		void orbitSpeedRadPerSec;
 		void lookAtHorizon;
+		void spinAngle;
+		void spinSpeedRadPerSec;
 		requestRender();
 	});
 
 	$effect(() => {
 		if (!hydrated || !backend) return;
 		void orbitSpeedRadPerSec;
-		if (orbitSpeedRadPerSec !== 0) requestRender();
+		void spinSpeedRadPerSec;
+		if (orbitSpeedRadPerSec !== 0 || spinSpeedRadPerSec !== 0) requestRender();
 	});
 
 	function requestRender() {
@@ -375,7 +380,8 @@
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
 			lighting: sceneLighting,
 			materialOverrides,
-			atmosphere
+			atmosphere,
+			planetSpinAngle: spinAngle
 		};
 	}
 
@@ -418,12 +424,15 @@
 		if (orbitSpeedRadPerSec !== 0 && dt > 0) {
 			azimuth += orbitSpeedRadPerSec * dt;
 		}
+		if (spinSpeedRadPerSec !== 0 && dt > 0) {
+			spinAngle += spinSpeedRadPerSec * dt;
+		}
 
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
 		const resized =
 			width > 0 && height > 0 && (width !== canvasWidth || height !== canvasHeight);
-		const animating = orbitSpeedRadPerSec !== 0;
+		const animating = orbitSpeedRadPerSec !== 0 || spinSpeedRadPerSec !== 0;
 
 		if ((needsRender || resized || animating) && width > 0 && height > 0) {
 			if (resized) {
@@ -556,6 +565,8 @@
 		bind:altitudeMeters
 		bind:orbitSpeedRadPerSec
 		bind:lookAtHorizon
+		bind:spinAngle
+		bind:spinSpeedRadPerSec
 		bind:wireframe
 		bind:faceColors
 		bind:showPatchBorders

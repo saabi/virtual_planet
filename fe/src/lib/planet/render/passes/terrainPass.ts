@@ -341,7 +341,8 @@ export class TerrainPass {
 				frame.debug.faceColors ? 1 : 0,
 				frame.debug.showPatchBorders ? 1 : 0,
 				frame.debug.showRingColors ? 1 : 0
-			]
+			],
+			spin: [Math.cos(frame.planetSpinAngle), Math.sin(frame.planetSpinAngle), 0, 0]
 		};
 		writeViewUniforms(viewStaging, viewUniforms);
 		this.device.queue.writeBuffer(this.viewBuffer, 0, viewStaging);

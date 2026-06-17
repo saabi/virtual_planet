@@ -7,6 +7,11 @@ fn should_eval_layer(min_mpp: f32, scale: ScaleContext) -> bool {
   return scale.meters_per_pixel <= min_mpp;
 }
 
+/// Rotate a vector about the +Y axis by the angle whose cosine/sine are (c, s).
+fn rotate_y(v: vec3f, c: f32, s: f32) -> vec3f {
+  return vec3f(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
+}
+
 fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> PlanetSample {
   var p = unit_dir;
   var r: PlanetSample;

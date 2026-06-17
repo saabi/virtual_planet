@@ -17,6 +17,27 @@ export function packSceneLighting(collected: CollectedLighting): LightingUniform
 	};
 }
 
+/**
+ * Rotate light directions/positions about the +Y (polar) axis. Rotating the
+ * camera and the lights together by −angle simulates the planet spinning by
+ * +angle on its axis with the sun fixed (the body terrain stays put in world).
+ */
+export function rotateLightingAroundY(
+	lighting: LightingUniforms,
+	angleRad: number
+): LightingUniforms {
+	if (angleRad === 0) return lighting;
+	const c = Math.cos(angleRad);
+	const s = Math.sin(angleRad);
+	return {
+		...lighting,
+		lights: lighting.lights.map((l) => {
+			const [x, y, z, w] = l.positionOrDir;
+			return { ...l, positionOrDir: [x * c + z * s, y, -x * s + z * c, w] };
+		})
+	};
+}
+
 function packSceneLight(light: SceneLight): GpuLightPacked {
 	if (light.kind === 'directional') {
 		const d = light.directionOrPosition;

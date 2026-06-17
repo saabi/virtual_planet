@@ -32,6 +32,8 @@ export interface RenderFrame {
 	lighting: LightingUniforms;
 	materialOverrides: MaterialOverrides;
 	atmosphere: AtmosphereParameters;
+	/** Planet spin about the polar (Y) axis, radians. Rotates terrain; sun/camera stay fixed. */
+	planetSpinAngle: number;
 }
 
 export interface RenderStats {

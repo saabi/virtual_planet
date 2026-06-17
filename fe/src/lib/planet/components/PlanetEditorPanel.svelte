@@ -23,6 +23,8 @@
 		altitudeMeters: number;
 		orbitSpeedRadPerSec: number;
 		lookAtHorizon: boolean;
+		spinAngle: number;
+		spinSpeedRadPerSec: number;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
@@ -45,6 +47,8 @@
 		altitudeMeters = $bindable(),
 		orbitSpeedRadPerSec = $bindable(),
 		lookAtHorizon = $bindable(),
+		spinAngle = $bindable(),
+		spinSpeedRadPerSec = $bindable(),
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
@@ -137,6 +141,28 @@
 				bind:value={orbitSpeedRadPerSec}
 			/>
 			<CheckBox id="look-at-horizon" label="Look at horizon" bind:checked={lookAtHorizon} />
+		</ul>
+	</details>
+
+	<details class="section">
+		<summary>Rotation</summary>
+		<ul class="section-body">
+			<Range
+				id="spin-angle"
+				label="Angle"
+				min={-3.14159}
+				max={3.14159}
+				step={0.01}
+				bind:value={spinAngle}
+			/>
+			<Range
+				id="spin-speed"
+				label="Speed"
+				min={-0.3}
+				max={0.3}
+				step={0.005}
+				bind:value={spinSpeedRadPerSec}
+			/>
 		</ul>
 	</details>
 

@@ -11,6 +11,7 @@ struct ViewUniforms {
   view: mat4x4f,
   camera_pos: vec4f,
   debug: vec4f,
+  spin: vec4f, // planet spin about +Y: (cos, sin, _, _)
 }
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
@@ -28,6 +29,7 @@ struct VSOut {
   @location(2) @interpolate(flat) face: u32,
   @location(3) patch_uv: vec2f,
   @location(4) bary: vec3f,
+  @location(5) body_dir: vec3f,
 }
 
 @vertex
@@ -51,21 +53,27 @@ fn vs_main(
   let uv_local = (vec2f(f32(cell_x), f32(cell_y)) + uv_cell) / f32(res);
   let uv = mix(vec2f(patch_desc.uv_min_x, patch_desc.uv_min_y), vec2f(patch_desc.uv_max_x, patch_desc.uv_max_y), uv_local);
   let unit_dir = cube_face_uv_to_unit_dir(patch_desc.face, uv.x, uv.y);
-  let sample = sample_planet(unit_dir, planet, scale_ctx);
+  // Sample terrain in the planet's body frame (world dir rotated by -spin), but
+  // place the vertex at the world direction so the camera/sun stay fixed and the
+  // terrain rotates beneath them.
+  let body_dir = rotate_y(unit_dir, view_u.spin.x, -view_u.spin.y);
+  let sample = sample_planet(body_dir, planet, scale_ctx);
+  let world_pos = unit_dir * sample.world_radius_meters;
   var out: VSOut;
-  out.world_pos = sample.world_pos;
+  out.world_pos = world_pos;
   out.unit_dir = unit_dir;
+  out.body_dir = body_dir;
   out.face = patch_desc.face;
   out.patch_uv = uv_local;
   let baries = array<vec3f, 3>(vec3f(1.0, 0.0, 0.0), vec3f(0.0, 1.0, 0.0), vec3f(0.0, 0.0, 1.0));
   out.bary = baries[corner];
-  out.position = view_u.view_projection * vec4f(sample.world_pos, 1.0);
+  out.position = view_u.view_projection * vec4f(world_pos, 1.0);
   return out;
 }
 
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
-  let sample = sample_planet(in.unit_dir, planet, scale_ctx);
+  let sample = sample_planet(in.body_dir, planet, scale_ctx);
   var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.y > 0.5) {
@@ -78,13 +86,15 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     }
   }
   var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
-  var n = normalize(sample.world_pos);
+  var n = normalize(in.world_pos);
   if (planet.illumination > 0.5) {
-    n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
-    let v = view_u.camera_pos.xyz - sample.world_pos;
+    // Normal computed in body space, rotated back to world by +spin.
+    let n_body = planet_surface_normal(in.body_dir, planet, scale_ctx);
+    n = rotate_y(n_body, view_u.spin.x, view_u.spin.y);
+    let v = view_u.camera_pos.xyz - in.world_pos;
     var sun_shadow = 1.0;
     if (mat_overrides.shadows_enabled > 0.5 && lighting.light_count > 0u) {
-      let raw_shadow = terrain_sun_shadow(sample.world_pos, primary_sun_dir(lighting), planet, scale_ctx);
+      let raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.spin.xy);
       // Lift shadows back toward full sun by shadow_fill, faking scattered fill past the fold.
       sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow);
     }
@@ -92,7 +102,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       material,
       n,
       v,
-      sample.world_pos,
+      in.world_pos,
       lighting,
       mat_overrides,
       atmo,
