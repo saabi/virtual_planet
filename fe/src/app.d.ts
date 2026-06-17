@@ -1,7 +1,19 @@
 /// <reference types="@webgpu/types" />
+/// <reference types="@sveltejs/kit" />
+
+import type { HTMLAttributes as SvelteElementHTMLAttributes } from 'svelte/elements';
+import type { SVGAttributes as SvelteElementSVGAttributes } from 'svelte/elements';
+
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 declare global {
+	namespace svelteHTML {
+		interface HTMLAttributes<T extends EventTarget = any>
+			extends SvelteElementHTMLAttributes<T> {}
+		interface SVGAttributes<T extends EventTarget = any>
+			extends SvelteElementSVGAttributes<T> {}
+	}
+
 	namespace App {
 		// interface Error {}
 		// interface Locals {}

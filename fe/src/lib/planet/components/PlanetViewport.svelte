@@ -732,6 +732,10 @@
 		if (!e.shiftKey) keysPressed.shift = false;
 	}
 
+	function stopPointerPropagation(e: PointerEvent) {
+		e.stopPropagation();
+	}
+
 	function onPointerDown(e: PointerEvent) {
 		if (spaceflightActive) {
 			if (document.pointerLockElement !== canvas) {
@@ -1071,7 +1075,7 @@
 	></canvas>
 
 	{#if spaceflightActive}
-		<div class="spaceflight-hud" onpointerdown={(e) => e.stopPropagation()}>
+		<div class="spaceflight-hud" onpointerdown={stopPointerPropagation}>
 			<div class="hud-header">ORBITAL FLIGHT HUD</div>
 			<div class="hud-grid">
 				<div class="hud-stat">

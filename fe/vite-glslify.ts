@@ -1,6 +1,11 @@
-import { compile } from 'glslify';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Plugin } from 'vite';
+
+const require = createRequire(import.meta.url);
+const { compile } = require('glslify') as {
+	compile: (src: string, opts?: { basedir?: string }) => string;
+};
 
 const SHADER_EXT = /\.(vert|frag|glsl)$/;
 
