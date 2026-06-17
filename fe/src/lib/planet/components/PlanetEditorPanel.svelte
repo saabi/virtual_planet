@@ -10,11 +10,17 @@
 		type MaterialOverrides
 	} from '../material/biomes.js';
 	import Range from './controls/Range.svelte';
+	import LogRange from './controls/LogRange.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
+	import { altitudeBounds } from '../camera/seaLevel.js';
 
 	interface Props {
 		params: PlanetParameters;
 		atmosphere: AtmosphereParameters;
+		azimuth: number;
+		elevation: number;
+		altitudeMeters: number;
+		orbitSpeedRadPerSec: number;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
@@ -31,6 +37,10 @@
 	let {
 		params = $bindable(),
 		atmosphere = $bindable(),
+		azimuth = $bindable(),
+		elevation = $bindable(),
+		altitudeMeters = $bindable(),
+		orbitSpeedRadPerSec = $bindable(),
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
@@ -51,6 +61,7 @@
 	let canDeleteDocument = $derived(parsedSelection?.kind === 'document');
 
 	let atmoSliders = $derived(atmosphereSliders(params.radius));
+	let altBounds = $derived(altitudeBounds(params, atmosphere));
 
 	function handleSelectChange(e: Event) {
 		const value = (e.currentTarget as HTMLSelectElement).value;
@@ -85,6 +96,43 @@
 			<button type="button" disabled={!canDeleteDocument} onclick={onDelete}>Delete</button>
 		</div>
 	</div>
+
+	<details class="section" open>
+		<summary>Orbit</summary>
+		<ul class="section-body">
+			<LogRange
+				id="orbit-altitude"
+				label="Altitude"
+				bind:value={altitudeMeters}
+				min={altBounds.min}
+				max={altBounds.max}
+			/>
+			<Range
+				id="orbit-azimuth"
+				label="Azimuth"
+				min={-3.14159}
+				max={3.14159}
+				step={0.01}
+				bind:value={azimuth}
+			/>
+			<Range
+				id="orbit-elevation"
+				label="Elevation"
+				min={-1.4}
+				max={1.4}
+				step={0.01}
+				bind:value={elevation}
+			/>
+			<Range
+				id="orbit-speed"
+				label="Speed"
+				min={0}
+				max={0.3}
+				step={0.005}
+				bind:value={orbitSpeedRadPerSec}
+			/>
+		</ul>
+	</details>
 
 	{#each PARAM_EDITOR_SECTIONS as section (section.title)}
 		<details class="section" open={section.defaultOpen ?? false}>

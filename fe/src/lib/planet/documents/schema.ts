@@ -5,6 +5,10 @@ import {
 } from '../params/atmosphereParams.js';
 import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import {
+	altitudeToDistance,
+	distanceToAltitude
+} from '../camera/seaLevel.js';
+import {
 	CURRENT_SNAPSHOT_VERSION,
 	type PlanetCameraState,
 	type PlanetSnapshot
@@ -90,23 +94,57 @@ function coerceAtmosphere(
 	};
 }
 
-function coerceCamera(raw: unknown, fallback: PlanetCameraState): PlanetCameraState {
+function coerceCamera(
+	raw: unknown,
+	fallback: PlanetCameraState,
+	params: PlanetParameters
+): PlanetCameraState {
 	const src = isRecord(raw) ? raw : {};
+	const azimuth = finiteNumber(src.azimuth, fallback.azimuth);
+	const elevation = finiteNumber(src.elevation, fallback.elevation);
+	const orbitSpeedRadPerSec = finiteNumber(src.orbitSpeedRadPerSec, 0);
+
+	const hasAltitude =
+		typeof src.altitudeMeters === 'number' && Number.isFinite(src.altitudeMeters);
+	const hasDistance = typeof src.distance === 'number' && Number.isFinite(src.distance);
+
+	let altitudeMeters: number;
+	let distance: number;
+	if (hasAltitude) {
+		altitudeMeters = src.altitudeMeters as number;
+		distance = altitudeToDistance(params, altitudeMeters);
+	} else if (hasDistance) {
+		distance = src.distance as number;
+		altitudeMeters = distanceToAltitude(params, distance);
+	} else {
+		distance = fallback.distance;
+		altitudeMeters = distanceToAltitude(params, distance);
+	}
+
 	return {
-		azimuth: finiteNumber(src.azimuth, fallback.azimuth),
-		elevation: finiteNumber(src.elevation, fallback.elevation),
-		distance: finiteNumber(src.distance, fallback.distance)
+		azimuth,
+		elevation,
+		distance,
+		altitudeMeters,
+		orbitSpeedRadPerSec
 	};
 }
 
 export function defaultSnapshot(): PlanetSnapshot {
 	const params = { ...PLANET_PRESETS[DEFAULT_PRESET] };
+	const distance = 320;
 	return {
 		schemaVersion: CURRENT_SNAPSHOT_VERSION,
 		presetName: DEFAULT_PRESET,
 		params,
 		atmosphere: defaultAtmosphereParams(params.radius),
-		camera: { azimuth: 0.6, elevation: 0.35, distance: 320 }
+		camera: {
+			azimuth: 0.6,
+			elevation: 0.35,
+			distance,
+			altitudeMeters: distanceToAltitude(params, distance),
+			orbitSpeedRadPerSec: 0
+		}
 	};
 }
 
@@ -127,6 +165,6 @@ export function coerceSnapshot(raw: unknown): PlanetSnapshot | null {
 		presetName,
 		params,
 		atmosphere: coerceAtmosphere(raw.atmosphere, defaultAtmosphereParams(params.radius)),
-		camera: coerceCamera(cameraSource, defaults.camera)
+		camera: coerceCamera(cameraSource, defaults.camera, params)
 	};
 }

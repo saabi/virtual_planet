@@ -5,6 +5,11 @@
 	import { blendPatchModes, selectRenderMode } from '../camera/cameraModes.js';
 	import { createOrbitCamera } from '../camera/orbitCamera.js';
 	import {
+		altitudeToDistance,
+		distanceToAltitude,
+		nudgeAltitudeASL
+	} from '../camera/seaLevel.js';
+	import {
 		buildLocalFrame,
 		maybeRebaseFrame
 	} from '../math/localFrame.js';
@@ -70,19 +75,21 @@
 
 	let azimuth = $state(0.6);
 	let elevation = $state(0.35);
-	let distance = $state(320);
+	let altitudeMeters = $state(distanceToAltitude(PLANET_PRESETS[DEFAULT_PRESET], 320));
+	let orbitSpeedRadPerSec = $state(0);
 
 	let stats = $state<RenderStats>({ frameMs: 0, patchCount: 0, vertexCount: 0, mode: 'orbit' });
-	let hud = $state({ altitude: 0, mode: 'orbit', rebases: 0, fps: 0 });
+	let hud = $state({ altitude: 0, sphereAltitude: 0, mode: 'orbit', rebases: 0, fps: 0 });
 
 	let dragging = false;
 	let lastX = 0;
 	let lastY = 0;
-	let localFrame = buildLocalFrame([0, 0, 320], 100);
+	let localFrame = buildLocalFrame([0, 0, altitudeToDistance(PLANET_PRESETS[DEFAULT_PRESET], 220)], 100);
 	let modeState: CameraState['mode'] = 'orbit';
 	let raf = 0;
 	let rafActive = false;
 	let needsRender = true;
+	let lastTickTime = 0;
 	let lastFpsTime = 0;
 	let frames = 0;
 	let canvasWidth = 0;
@@ -105,13 +112,20 @@
 			sceneLighting.ambient[1] > 0 ||
 			sceneLighting.ambient[2] > 0
 	);
+	let cameraDistance = $derived(altitudeToDistance(params, altitudeMeters));
 
 	function currentSnapshotInput() {
 		return {
 			presetName,
 			params,
 			atmosphere,
-			camera: { azimuth, elevation, distance }
+			camera: {
+				azimuth,
+				elevation,
+				distance: cameraDistance,
+				altitudeMeters,
+				orbitSpeedRadPerSec
+			}
 		};
 	}
 
@@ -131,7 +145,10 @@
 		atmosphere = applied.atmosphere;
 		azimuth = applied.camera.azimuth;
 		elevation = applied.camera.elevation;
-		distance = applied.camera.distance;
+		altitudeMeters =
+			applied.camera.altitudeMeters ??
+			distanceToAltitude(applied.params, applied.camera.distance);
+		orbitSpeedRadPerSec = applied.camera.orbitSpeedRadPerSec ?? 0;
 		activeDocumentId = id;
 		selection = documentSelection(id);
 	}
@@ -205,7 +222,10 @@
 		atmosphere = applied.atmosphere;
 		azimuth = applied.camera.azimuth;
 		elevation = applied.camera.elevation;
-		distance = applied.camera.distance;
+		altitudeMeters =
+			applied.camera.altitudeMeters ??
+			distanceToAltitude(applied.params, applied.camera.distance);
+		orbitSpeedRadPerSec = applied.camera.orbitSpeedRadPerSec ?? 0;
 
 		if (session.activeDocumentId && getDocument(session.activeDocumentId)) {
 			activeDocumentId = session.activeDocumentId;
@@ -244,8 +264,15 @@
 		void scene;
 		void azimuth;
 		void elevation;
-		void distance;
+		void altitudeMeters;
+		void orbitSpeedRadPerSec;
 		requestRender();
+	});
+
+	$effect(() => {
+		if (!hydrated || !backend) return;
+		void orbitSpeedRadPerSec;
+		if (orbitSpeedRadPerSec !== 0) requestRender();
 	});
 
 	function requestRender() {
@@ -257,9 +284,10 @@
 
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
 		const aspect = width / Math.max(height, 1);
-		const far = Math.max(p.radius * 20, distance * 4);
+		const dist = altitudeToDistance(p, altitudeMeters);
+		const far = Math.max(p.radius * 20, dist * 4);
 		return createOrbitCamera({
-			distance,
+			distance: dist,
 			azimuth,
 			elevation,
 			fovDeg: 60,
@@ -360,7 +388,7 @@
 
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
-		distance = Math.max(params.radius * 1.05, Math.min(params.radius * 50, distance + e.deltaY * 0.2));
+		altitudeMeters = nudgeAltitudeASL(params, altitudeMeters, e.deltaY, atmosphere);
 	}
 
 	function tick(time: number) {
@@ -369,12 +397,20 @@
 			return;
 		}
 
+		const dt = lastTickTime > 0 ? (time - lastTickTime) / 1000 : 0;
+		lastTickTime = time;
+
+		if (orbitSpeedRadPerSec !== 0 && dt > 0) {
+			azimuth += orbitSpeedRadPerSec * dt;
+		}
+
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
 		const resized =
 			width > 0 && height > 0 && (width !== canvasWidth || height !== canvasHeight);
+		const animating = orbitSpeedRadPerSec !== 0;
 
-		if ((needsRender || resized) && width > 0 && height > 0) {
+		if ((needsRender || resized || animating) && width > 0 && height > 0) {
 			if (resized) {
 				canvas.width = width;
 				canvas.height = height;
@@ -386,7 +422,8 @@
 			const frame = buildFrame(time * 0.001, camera, width, height, params);
 			stats = backend.render(frame);
 			hud = {
-				altitude: camera.altitudeMeters,
+				altitude: altitudeMeters,
+				sphereAltitude: camera.altitudeMeters,
 				mode: modeState,
 				rebases: localFrame.rebaseCount,
 				fps: hud.fps
@@ -400,10 +437,11 @@
 			needsRender = false;
 		}
 
-		if (needsRender) {
+		if (needsRender || animating) {
 			raf = requestAnimationFrame(tick);
 		} else {
 			rafActive = false;
+			lastTickTime = 0;
 			hud = { ...hud, fps: 0 };
 			frames = 0;
 		}
@@ -479,14 +517,15 @@
 				<div>FPS: {hud.fps}</div>
 				<div>Frame: {stats.frameMs.toFixed(1)} ms</div>
 				<div>Mode: {hud.mode}</div>
-				<div>Altitude: {hud.altitude.toFixed(0)} m</div>
+				<div>Altitude ASL: {hud.altitude.toFixed(0)} m</div>
+				<div>Sphere alt: {hud.sphereAltitude.toFixed(0)} m</div>
 				<div>Patches: {stats.patchCount}{#if stats.candidatePatches != null} / {stats.candidatePatches} cand{/if}</div>
 				<div>Vertices: {stats.vertexCount.toLocaleString()}{#if stats.vertexBudget != null} / {stats.vertexBudget.toLocaleString()} budget{/if}</div>
 				{#if stats.budgetDropped != null && stats.budgetDropped > 0}
 					<div>Budget dropped: {stats.budgetDropped}</div>
 				{/if}
 				<div>Rebases: {hud.rebases}</div>
-			<div>Distance: {distance.toFixed(0)}</div>
+			<div>Distance: {cameraDistance.toFixed(0)}</div>
 			<div>Lights: {activeLightCount} · Ambient: {ambientActive ? 'on' : 'off'}</div>
 		</div>
 		</aside>
@@ -497,6 +536,10 @@
 	<PlanetEditorPanel
 		bind:params
 		bind:atmosphere
+		bind:azimuth
+		bind:elevation
+		bind:altitudeMeters
+		bind:orbitSpeedRadPerSec
 		bind:wireframe
 		bind:faceColors
 		bind:showPatchBorders

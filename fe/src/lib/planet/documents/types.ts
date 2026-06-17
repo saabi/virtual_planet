@@ -7,7 +7,12 @@ export const CURRENT_SNAPSHOT_VERSION = 2;
 export interface PlanetCameraState {
 	azimuth: number;
 	elevation: number;
+	/** Radial distance from planet center (legacy; derived from altitudeMeters when absent). */
 	distance: number;
+	/** Altitude above sea level in meters — primary zoom control when present. */
+	altitudeMeters?: number;
+	/** Auto-orbit azimuth rate in radians per second. */
+	orbitSpeedRadPerSec?: number;
 }
 
 export interface PlanetSnapshot {
