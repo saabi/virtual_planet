@@ -5,6 +5,7 @@ import {
 	cubeFaceUvToPosition,
 	cubeFaceUvToUnitDir,
 	cubePatchVertexCount,
+	resetOrbitScheduleCache,
 	scheduleOrbitPatches
 } from './cubeSphere.js';
 import { isCubeFaceOnScreen, scheduleAdaptiveOrbitPatches } from './cubeSphereScheduler.js';
@@ -61,6 +62,36 @@ describe('cubeSphere mapping', () => {
 		expect(result.patches.length).toBeLessThanOrEqual(4096);
 		expect(result.estimatedVertices).toBeLessThanOrEqual(DEFAULT_MAX_VERTICES_PER_FRAME);
 		expect(result.buckets.size).toBeGreaterThan(0);
+	});
+
+	it('reuses the schedule for sub-threshold camera motion and refreshes past it', () => {
+		resetOrbitScheduleCache();
+		const viewport = { width: 1280, height: 720 };
+		const make = (distance: number) =>
+			createOrbitCamera({
+				distance,
+				azimuth: 0.6,
+				elevation: 0.35,
+				fovDeg: 60,
+				aspect: viewport.width / viewport.height,
+				near: 0.1,
+				far: 10_000,
+				planetRadius: 100,
+				lookMode: 'planet-center'
+			});
+
+		const first = make(320);
+		const r1 = scheduleOrbitPatches(first.position, 100, first.viewProjectionMatrix, { viewport });
+
+		// Sub-threshold nudge (≈0.1 m « 1% of ~220 m altitude) → same cached result.
+		const nudged = make(320.1);
+		const r2 = scheduleOrbitPatches(nudged.position, 100, nudged.viewProjectionMatrix, { viewport });
+		expect(r2).toBe(r1);
+
+		// Large move → fresh schedule.
+		const moved = make(600);
+		const r3 = scheduleOrbitPatches(moved.position, 100, moved.viewProjectionMatrix, { viewport });
+		expect(r3).not.toBe(r1);
 	});
 
 	it('keeps grazing faces that still intersect the viewport', () => {

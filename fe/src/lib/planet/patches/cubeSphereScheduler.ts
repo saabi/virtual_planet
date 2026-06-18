@@ -21,6 +21,13 @@ export const RESOLUTION_LEVELS = [8, 16, 32, 64, 96] as const;
 /** Cap for near-plane-straddling tiles so they cannot exhaust the vertex budget. */
 const STRADDLE_MAX_RESOLUTION = 32;
 
+/**
+ * Cap the forced subdivision depth of near-plane-straddling tiles. They force
+ * subdivision (diameterPx = ∞), which at full maxDepth produces a deep, expensive
+ * limb band during low-altitude flight; bounding the depth keeps the band cheap.
+ */
+const STRADDLE_MAX_DEPTH = 4;
+
 /** Screen margin for "near viewport" — patches partially off-screen still schedule. */
 export const VIEWPORT_CULL_MARGIN_PX = 96;
 
@@ -182,8 +189,13 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 
 			if (!onOrNearScreen && !inSearchRegion) continue;
 
+			// Straddling tiles force subdivision (diameterPx = ∞); cap their depth so
+			// the limb band can't subdivide all the way to maxDepth.
+			const depthLimit = straddlesNearPlane
+				? Math.min(maxDepth, STRADDLE_MAX_DEPTH)
+				: maxDepth;
 			const shouldSubdivide =
-				node.depth < maxDepth &&
+				node.depth < depthLimit &&
 				(onOrNearScreen
 					? diameterPx > targetVertexSpacingPx * 2
 					: inSearchRegion);

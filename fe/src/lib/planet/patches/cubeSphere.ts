@@ -14,6 +14,45 @@ import { MAX_CUBE_PATCHES } from '../params/gpuBuffers.js';
 /** Reuse last successful spacing so we rarely repeat the coarse-to-fine search loop. */
 let orbitSpacingHint = 6;
 
+// Frame-coherent scheduling cache. The render loop calls scheduleOrbitPatches every
+// frame; the quadtree walk is the main-thread hot spot (esp. in spaceflight, where
+// the camera moves continuously). Reuse the last result while the camera hasn't
+// moved/rotated enough to change tile selection — the shader still renders from the
+// live camera, so only the (stale by ≤ a couple frames) LOD selection is reused.
+const SCHEDULE_POS_FRACTION = 0.01; // re-schedule when the camera moves > 1% of altitude
+const SCHEDULE_VIEWPROJ_REL = 0.001; // …or when the view-projection changes > 0.1% (rotation/zoom)
+const MAX_SCHEDULE_AGE_FRAMES = 8; // hard refresh cap regardless of motion
+/** Cap full quadtree re-walks per call (applyVertexBudget enforces the real caps). */
+const MAX_SPACING_RETRIES = 3;
+
+interface ScheduleCache {
+	cameraPos: Vec3;
+	viewProj: Float32Array;
+	planetRadius: number;
+	vw: number;
+	vh: number;
+	detail: number;
+	maxVertices: number;
+	ageFrames: number;
+	result: OrbitScheduleResult;
+}
+let scheduleCache: ScheduleCache | null = null;
+
+/** Reset the frame-coherent schedule cache (tests). */
+export function resetOrbitScheduleCache(): void {
+	scheduleCache = null;
+}
+
+function viewProjRelDiff(a: Float32Array, b: Float32Array): number {
+	let num = 0;
+	let den = 1e-6;
+	for (let i = 0; i < 16; i++) {
+		num += Math.abs(a[i] - b[i]);
+		den += Math.abs(b[i]);
+	}
+	return num / den;
+}
+
 function estimateInitialOrbitSpacing(
 	cameraPos: Vec3,
 	planetRadius: number,
@@ -134,6 +173,31 @@ export function scheduleOrbitPatches(
 	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
 	const baseSpacing = options.targetVertexSpacingPx ?? 6;
 	const detail = Math.max(options.detail ?? 1, 0.25);
+	const vw = options.viewport.width;
+	const vh = options.viewport.height;
+	const altitude = Math.max(Math.hypot(cameraPos[0], cameraPos[1], cameraPos[2]) - planetRadius, 1);
+
+	// Frame-coherent reuse: same layout inputs + camera within thresholds → cached.
+	const cache = scheduleCache;
+	if (
+		cache &&
+		cache.planetRadius === planetRadius &&
+		cache.vw === vw &&
+		cache.vh === vh &&
+		cache.detail === detail &&
+		cache.maxVertices === maxVertices &&
+		cache.ageFrames < MAX_SCHEDULE_AGE_FRAMES &&
+		Math.hypot(
+			cameraPos[0] - cache.cameraPos[0],
+			cameraPos[1] - cache.cameraPos[1],
+			cameraPos[2] - cache.cameraPos[2]
+		) <= SCHEDULE_POS_FRACTION * altitude &&
+		viewProjRelDiff(viewProj, cache.viewProj) <= SCHEDULE_VIEWPROJ_REL
+	) {
+		cache.ageFrames++;
+		return cache.result;
+	}
+
 	const estimate = estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing);
 	// Start from the altitude-appropriate estimate (eased by the previous frame's
 	// hint), then apply the user detail multiplier. The hint stores the un-scaled
@@ -149,7 +213,7 @@ export function scheduleOrbitPatches(
 	// Coarsen only to protect CPU from a candidate explosion; applyVertexBudget
 	// enforces the real patch-count and vertex caps, so allow finer detail through.
 	let spacingSteps = 0;
-	while (candidates.length > MAX_CUBE_PATCHES * 2 && spacing < 256 && spacingSteps < 12) {
+	while (candidates.length > MAX_CUBE_PATCHES * 2 && spacing < 256 && spacingSteps < MAX_SPACING_RETRIES) {
 		spacing *= 1.6;
 		candidates = scheduleAdaptiveOrbitPatches({
 			cameraPos,
@@ -164,7 +228,7 @@ export function scheduleOrbitPatches(
 	const candidateCount = candidates.length;
 	const budgeted = applyVertexBudget(candidates, maxVertices, MAX_CUBE_PATCHES);
 	const patches = budgeted.patches;
-	return {
+	const result: OrbitScheduleResult = {
 		patches,
 		buckets: groupPatchesByResolution(patches),
 		candidatePatches: candidateCount,
@@ -172,6 +236,18 @@ export function scheduleOrbitPatches(
 		vertexBudget: maxVertices,
 		estimatedVertices: totalVertexCount(patches)
 	};
+	scheduleCache = {
+		cameraPos: [cameraPos[0], cameraPos[1], cameraPos[2]],
+		viewProj: viewProj.slice(),
+		planetRadius,
+		vw,
+		vh,
+		detail,
+		maxVertices,
+		ageFrames: 0,
+		result
+	};
+	return result;
 }
 
 export type { OrbitSchedulerInput };
