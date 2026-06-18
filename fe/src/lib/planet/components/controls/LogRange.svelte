@@ -23,12 +23,15 @@
 		value = mapLogSlider(t, min, max);
 	}
 
+	/** 3 significant figures with adaptive units (m → km → Mm → Gm). */
 	function formatMeters(n: number): string {
-		if (n >= 10_000) return `${(n / 1000).toFixed(1)} km`;
-		if (n >= 1000) return `${(n / 1000).toFixed(2)} km`;
-		if (n >= 100) return `${Math.round(n)} m`;
-		if (n >= 10) return `${n.toFixed(1)} m`;
-		return `${n.toFixed(2)} m`;
+		if (!Number.isFinite(n)) return '—';
+		const sig = (x: number) => Number(x.toPrecision(3));
+		const abs = Math.abs(n);
+		if (abs >= 1e9) return `${sig(n / 1e9)} Gm`;
+		if (abs >= 1e6) return `${sig(n / 1e6)} Mm`;
+		if (abs >= 1e3) return `${sig(n / 1e3)} km`;
+		return `${sig(n)} m`;
 	}
 
 	let formattedValue = $derived(formatMeters(value));

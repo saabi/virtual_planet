@@ -12,16 +12,14 @@
 	let { id, label, value = $bindable(), min, max, step, disabled = false }: Props = $props();
 	const inputId = id ?? label;
 
-	function format(n: number, stepVal: number | string) {
-		const precision = Math.log10(Number(stepVal));
-		if (precision < 0) {
-			const factor = Math.pow(10, -precision);
-			return Math.round(n * factor) / factor;
-		}
-		return n;
+	/** Round to 3 significant figures for display (drops float noise like 3.82000003). */
+	function format(n: number): number {
+		if (!Number.isFinite(n)) return 0;
+		if (n === 0) return 0;
+		return Number(n.toPrecision(3));
 	}
 
-	let formattedValue = $derived(format(value, step));
+	let formattedValue = $derived(format(value));
 </script>
 
 <li class="range-row">
