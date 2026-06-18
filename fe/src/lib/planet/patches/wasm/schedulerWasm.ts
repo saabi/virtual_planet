@@ -5,7 +5,7 @@
 // patch-descriptor buffer out. The JS scheduler stays as the parity oracle and
 // the fallback when WASM is unavailable (WebGL backend, instantiation failure,
 // or before the async load resolves).
-import type { CubeSpherePatch } from '../types.js';
+import type { CubeSpherePatch, PackedBucket } from '../types.js';
 import type { OrbitSchedulerInput, ScheduledPatch } from '../cubeSphereScheduler.js';
 
 // Linear-memory layout (byte offsets). Mirrors the regions scheduler.ts reads.
@@ -14,13 +14,28 @@ const CAM_OFF = 64; // 3 f64 (camera world pos)
 const STACK_OFF = 4096; // DFS scratch (5 f64 per node, ample for depth<=6 DFS)
 const OUT_OFF = 393216; // 7 f64 per emitted patch
 const OUT_MAX = 32768; // > 6 * 4^6 walk ceiling; never clamps
+const OUT_STRIDE = 56; // 7 f64
+
+// Budget+pack scratch + output, appended after the candidate (OUT) region. Each
+// index scratch is sized for OUT_MAX entries; the pack region holds the survivors
+// as GPU records (survivors <= MAX_CUBE_PATCHES = 4096, so 4096 * 32 is ample).
+const OUT_END = OUT_OFF + OUT_MAX * OUT_STRIDE;
+const KEPT_OFF = OUT_END; // i32 * OUT_MAX
+const ORDER_OFF = KEPT_OFF + OUT_MAX * 4; // i32 * OUT_MAX
+const TMP_OFF = ORDER_OFF + OUT_MAX * 4; // i32 * OUT_MAX (merge scratch; reused for counts/cursors)
+const RES_OFF = TMP_OFF + OUT_MAX * 4; // i32 * OUT_MAX
+const KEY_OFF = RES_OFF + OUT_MAX * 4; // f64 * OUT_MAX
+const LIVE_OFF = KEY_OFF + OUT_MAX * 8; // u8 * OUT_MAX
+const PACK_OFF = LIVE_OFF + OUT_MAX; // 4096 * 32 bytes
+const META_OFF = PACK_OFF + 4096 * 32; // header (i32 dropped, i32 survivors, f64 verts) + 3 i32 per bucket
+const META_BYTES = 16 + 8 * 12; // header + up to 8 buckets (only 5 used)
 
 const VP_F32 = VP_OFF / 4;
 const CAM_F64 = CAM_OFF / 8;
 const OUT_F64 = OUT_OFF / 8;
 
-// Bytes the layout needs (OUT region end); grow memory to cover it.
-const NEEDED_BYTES = OUT_OFF + OUT_MAX * 56;
+// Bytes the layout needs (through the meta region); grow memory to cover it.
+const NEEDED_BYTES = META_OFF + META_BYTES;
 const PAGE = 65536;
 const NEEDED_PAGES = Math.ceil(NEEDED_BYTES / PAGE);
 
@@ -36,9 +51,27 @@ type ScheduleExport = (
 	outMax: number
 ) => number;
 
+type BudgetExport = (
+	outPtr: number,
+	count: number,
+	maxVertices: number,
+	maxPatches: number,
+	keptPtr: number,
+	orderPtr: number,
+	tmpPtr: number,
+	keyPtr: number,
+	resPtr: number,
+	livePtr: number,
+	packPtr: number,
+	metaPtr: number
+) => number;
+
 let scheduleFn: ScheduleExport | null = null;
+let budgetFn: BudgetExport | null = null;
 let f32: Float32Array | null = null;
 let f64: Float64Array | null = null;
+let u8: Uint8Array | null = null;
+let i32: Int32Array | null = null;
 
 export function isSchedulerReady(): boolean {
 	return scheduleFn !== null;
@@ -51,7 +84,10 @@ function bindInstance(instance: WebAssembly.Instance): void {
 	// Views must be (re)built after grow — grow detaches the old ArrayBuffer.
 	f32 = new Float32Array(mem.buffer);
 	f64 = new Float64Array(mem.buffer);
+	u8 = new Uint8Array(mem.buffer);
+	i32 = new Int32Array(mem.buffer);
 	scheduleFn = instance.exports.scheduleOrbit as ScheduleExport;
+	budgetFn = instance.exports.budgetAndPack as BudgetExport;
 }
 
 /** Instantiate from raw bytes (tests, or an explicit fetch). Idempotent-ish. */
@@ -116,6 +152,70 @@ export function scheduleCandidatesFlat(input: OrbitSchedulerInput): FlatCandidat
 		OUT_MAX
 	);
 	return { view: dv.subarray(OUT_F64, OUT_F64 + count * CANDIDATE_STRIDE), count };
+}
+
+/** Packed, budgeted result — buckets alias WASM memory until the next call. */
+export interface WasmPackResult {
+	/** GPU-ready byte blocks per resolution; `data` aliases the WASM pack region. */
+	packedBuckets: PackedBucket[];
+	dropped: number;
+	patchCount: number;
+	estimatedVertices: number;
+}
+
+/**
+ * Budget + pack the candidate set the last scheduleCandidatesFlat call left in the
+ * OUT region: count-cap, coarsen-then-drop to the vertex budget, then write GPU
+ * records grouped per resolution — all inside WASM, no JS sort or allocation. The
+ * returned bucket `data` views alias WASM memory and are overwritten by the next
+ * budget/pack or walk — consume them the same frame. Returns null when WASM is not
+ * ready (caller falls back to the TS packer).
+ */
+export function budgetAndPackFlat(
+	count: number,
+	maxVertices: number,
+	maxPatches: number
+): WasmPackResult | null {
+	const fn = budgetFn;
+	const bytes = u8;
+	const ints = i32;
+	const dv = f64;
+	if (!fn || !bytes || !ints || !dv) return null;
+
+	const bucketCount = fn(
+		OUT_OFF,
+		count,
+		maxVertices,
+		maxPatches,
+		KEPT_OFF,
+		ORDER_OFF,
+		TMP_OFF,
+		KEY_OFF,
+		RES_OFF,
+		LIVE_OFF,
+		PACK_OFF,
+		META_OFF
+	);
+
+	const dropped = ints[META_OFF / 4];
+	const patchCount = ints[META_OFF / 4 + 1];
+	const estimatedVertices = dv[META_OFF / 8 + 1];
+
+	const packedBuckets: PackedBucket[] = new Array(bucketCount);
+	for (let k = 0; k < bucketCount; k++) {
+		const m = (META_OFF + 16 + k * 12) / 4;
+		const resolution = ints[m];
+		const instanceCount = ints[m + 1];
+		const byteOffset = ints[m + 2];
+		const start = PACK_OFF + byteOffset;
+		packedBuckets[k] = {
+			resolution,
+			instanceCount,
+			data: bytes.subarray(start, start + instanceCount * 32)
+		};
+	}
+
+	return { packedBuckets, dropped, patchCount, estimatedVertices };
 }
 
 /**

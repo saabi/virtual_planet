@@ -2,17 +2,21 @@ import type { CubeSpherePatch, PackedBucket } from './types.js';
 import { CUBE_SPHERE_PATCH_BYTE_SIZE } from '../params/planetParams.js';
 import { MAX_CUBE_PATCHES, writeCubePatchRecord } from '../params/gpuBuffers.js';
 
-// Flat-buffer vertex budget + grouping/packing. The WASM scheduler emits
-// candidates straight into linear memory (7 f64 per patch:
+// Flat-buffer vertex budget + grouping/packing — the readable TS reference for
+// the in-WASM budget+pack (assembly/scheduler.ts::budgetAndPack). The WASM emits
+// candidates into linear memory (7 f64 per patch:
 // [face, u0, v0, u1, v1, resolution, priority]); this selects the survivors once
 // and exposes them two ways:
-//   - budgetAndGroupFlat   → CubeSpherePatch objects + Map<res, []>  (object path)
-//   - packBudgetedBuckets  → GPU-upload byte blocks per resolution    (flat path)
+//   - budgetAndGroupFlat   → CubeSpherePatch objects + Map<res, []>  (object form)
+//   - packBudgetedBuckets  → GPU-upload byte blocks per resolution    (byte form)
 //
-// Both are faithful mirrors of vertexBudget.ts::applyVertexBudget +
-// cubeSphereScheduler.ts::groupPatchesByResolution (the parity oracle + JS/WebGL
-// fallback); parity is guarded by flatBudget.test.ts (objects) and
-// flatPack.test.ts (bytes).
+// Production no longer calls either — scheduleOrbitPatches budgets+packs inside
+// WASM, and the no-WASM fallback (cubeSphere.ts::scheduleObjects) uses
+// applyVertexBudget + packObjectBuckets. These remain the **parity oracle**:
+// faithful mirrors of vertexBudget.ts::applyVertexBudget +
+// cubeSphereScheduler.ts::groupPatchesByResolution, guarded by flatBudget.test.ts
+// (objects) and flatPack.test.ts (bytes), and the byte oracle the WASM packer is
+// tested against (budgetAndPack.test.ts).
 
 const FIELDS = 7; // f64 per candidate in the flat buffer
 

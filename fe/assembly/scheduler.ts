@@ -322,3 +322,210 @@ export function scheduleOrbit(
 
 	return count;
 }
+
+// ── Budget + pack ────────────────────────────────────────────────────────────
+// Port of flatBudget.ts::selectSurvivorsFlat + packBudgetedBuckets. Consumes the
+// candidate buffer scheduleOrbit wrote (7 f64 each) and emits final GPU-upload
+// records (32 bytes: face:u32, uvMin:vec2f, uvMax:vec2f, resolution:u32, morph:f32,
+// pad:u32) grouped per resolution. Runs entirely in linear memory — no GC, no JS
+// sort. Parity is bit-exact with the TS packer (budgetAndPack.test.ts): the JS
+// oracle sorts with a stable Array.sort, mirrored here by a total-order comparator
+// (priority, then original index), so ties resolve identically.
+
+const PATCH_STRIDE: usize = 32; // GPU record bytes (CUBE_SPHERE_PATCH_BYTE_SIZE)
+
+// @ts-ignore: decorator
+@inline
+function vtxOf(r: i32): f64 { return <f64>r * <f64>r * 6.0; }
+
+// Mirrors vertexBudget.ts::coarsenResolution.
+// @ts-ignore: decorator
+@inline
+function coarsenRes(r: i32): i32 {
+	if (r <= 8) return 8;
+	if (r <= 16) return 8;
+	if (r <= 32) return 16;
+	if (r <= 64) return 32;
+	return 64;
+}
+
+// Resolution → dense bucket index (8,16,32,64,96 are the only values post-coarsen).
+// @ts-ignore: decorator
+@inline
+function resIdx(r: i32): i32 {
+	if (r == 8) return 0;
+	if (r == 16) return 1;
+	if (r == 32) return 2;
+	if (r == 64) return 3;
+	return 4; // 96
+}
+
+// @ts-ignore: decorator
+@inline
+function resByIdx(b: i32): i32 {
+	if (b == 0) return 8;
+	if (b == 1) return 16;
+	if (b == 2) return 32;
+	if (b == 3) return 64;
+	return 96;
+}
+
+// Stable ascending sort of the i32 index array at `arr` (length n) by
+// (key[arr[i]], arr[i]). The value tiebreak makes it a total order, so the result
+// matches JS's stable Array.sort regardless of algorithm. Bottom-up merge sort
+// (O(n log n), no recursion); `tmp` is i32 scratch of length n.
+function sortByKey(arr: usize, n: i32, key: usize, tmp: usize): void {
+	for (let width: i32 = 1; width < n; width *= 2) {
+		let i: i32 = 0;
+		while (i < n) {
+			const lo = i;
+			let mid = i + width; if (mid > n) mid = n;
+			let hi = i + 2 * width; if (hi > n) hi = n;
+			let a = lo, b = mid, k = lo;
+			while (a < mid && b < hi) {
+				const av = load<i32>(arr + (<usize>a) * 4);
+				const bv = load<i32>(arr + (<usize>b) * 4);
+				const ka = load<f64>(key + (<usize>av) * 8);
+				const kb = load<f64>(key + (<usize>bv) * 8);
+				const aWins = ka < kb || (ka == kb && av <= bv);
+				if (aWins) { store<i32>(tmp + (<usize>k) * 4, av); a++; }
+				else { store<i32>(tmp + (<usize>k) * 4, bv); b++; }
+				k++;
+			}
+			while (a < mid) { store<i32>(tmp + (<usize>k) * 4, load<i32>(arr + (<usize>a) * 4)); a++; k++; }
+			while (b < hi) { store<i32>(tmp + (<usize>k) * 4, load<i32>(arr + (<usize>b) * 4)); b++; k++; }
+			for (let x = lo; x < hi; x++) store<i32>(arr + (<usize>x) * 4, load<i32>(tmp + (<usize>x) * 4));
+			i += 2 * width;
+		}
+	}
+}
+
+// Budget the candidates and pack survivors into GPU records.
+// Scratch (all caller-owned, each sized for `count` entries):
+//   keptPtr/orderPtr/tmpPtr/resPtr : i32 ;  keyPtr : f64 ;  livePtr : u8
+//   packPtr  : survivors * 32 bytes (GPU records, grouped per resolution)
+//   metaPtr  : i32 dropped, i32 survivors, (pad), f64 estimatedVertices,
+//              then 3 i32 per bucket [resolution, instanceCount, byteOffset]
+// Returns the bucket count.
+export function budgetAndPack(
+	outPtr: usize,
+	count: i32,
+	maxVertices: f64,
+	maxPatches: i32,
+	keptPtr: usize,
+	orderPtr: usize,
+	tmpPtr: usize,
+	keyPtr: usize,
+	resPtr: usize,
+	livePtr: usize,
+	packPtr: usize,
+	metaPtr: usize
+): i32 {
+	for (let i = 0; i < count; i++) store<i32>(keptPtr + (<usize>i) * 4, i);
+
+	let dropped = 0;
+	let K = count;
+
+	// Patch-count cap: keep the highest-priority candidates. JS sorts `kept`
+	// descending by priority (stable → ascending index on ties); replicate via
+	// ascending sort on -priority with the index tiebreak.
+	if (count > maxPatches) {
+		for (let i = 0; i < count; i++) {
+			const p = load<f64>(outPtr + (<usize>i) * OUT_STRIDE + 48);
+			store<f64>(keyPtr + (<usize>i) * 8, -p);
+		}
+		sortByKey(keptPtr, count, keyPtr, tmpPtr);
+		dropped += count - maxPatches;
+		K = maxPatches;
+	}
+
+	let total: f64 = 0;
+	for (let j = 0; j < K; j++) {
+		const idx = load<i32>(keptPtr + (<usize>j) * 4);
+		const r = <i32>load<f64>(outPtr + (<usize>idx) * OUT_STRIDE + 40);
+		store<i32>(resPtr + (<usize>j) * 4, r);
+		store<u8>(livePtr + (<usize>j), 1);
+		total += vtxOf(r);
+	}
+
+	// Coarsen-then-drop lowest-priority survivors until within the vertex budget.
+	if (total > maxVertices) {
+		for (let j = 0; j < K; j++) {
+			store<i32>(orderPtr + (<usize>j) * 4, j);
+			const idx = load<i32>(keptPtr + (<usize>j) * 4);
+			store<f64>(keyPtr + (<usize>j) * 8, load<f64>(outPtr + (<usize>idx) * OUT_STRIDE + 48));
+		}
+		sortByKey(orderPtr, K, keyPtr, tmpPtr); // ascending by (priority, kept-slot)
+		for (let oi = 0; oi < K; oi++) {
+			if (total <= maxVertices) break;
+			const j = load<i32>(orderPtr + (<usize>oi) * 4);
+			if (load<u8>(livePtr + (<usize>j)) == 0) continue;
+			const r = load<i32>(resPtr + (<usize>j) * 4);
+			const before = vtxOf(r);
+			const coarser = coarsenRes(r);
+			if (coarser < r) {
+				store<i32>(resPtr + (<usize>j) * 4, coarser);
+				total += vtxOf(coarser) - before;
+				continue;
+			}
+			store<u8>(livePtr + (<usize>j), 0);
+			total -= before;
+			dropped++;
+		}
+	}
+
+	// Pass 1: count survivors per resolution bucket (counts/cursors live in tmp).
+	const countsPtr = tmpPtr;
+	const cursorPtr = tmpPtr + 32;
+	for (let b = 0; b < 5; b++) store<i32>(countsPtr + (<usize>b) * 4, 0);
+	let survivors = 0;
+	for (let j = 0; j < K; j++) {
+		if (load<u8>(livePtr + (<usize>j)) == 0) continue;
+		const b = resIdx(load<i32>(resPtr + (<usize>j) * 4));
+		store<i32>(countsPtr + (<usize>b) * 4, load<i32>(countsPtr + (<usize>b) * 4) + 1);
+		survivors++;
+	}
+
+	// Assign each non-empty bucket a contiguous byte block (ascending resolution).
+	let byteOff = 0;
+	let bucketCount = 0;
+	for (let b = 0; b < 5; b++) {
+		store<i32>(cursorPtr + (<usize>b) * 4, byteOff);
+		const n = load<i32>(countsPtr + (<usize>b) * 4);
+		if (n > 0) {
+			const m = metaPtr + 16 + (<usize>bucketCount) * 12;
+			store<i32>(m, resByIdx(b));
+			store<i32>(m + 4, n);
+			store<i32>(m + 8, byteOff);
+			bucketCount++;
+			byteOff += n * <i32>PATCH_STRIDE;
+		}
+	}
+
+	// Pass 2: write GPU records in kept order (within-bucket order matches the TS
+	// packer, so the bytes are identical).
+	for (let j = 0; j < K; j++) {
+		if (load<u8>(livePtr + (<usize>j)) == 0) continue;
+		const idx = load<i32>(keptPtr + (<usize>j) * 4);
+		const r = load<i32>(resPtr + (<usize>j) * 4);
+		const b = resIdx(r);
+		const at = load<i32>(cursorPtr + (<usize>b) * 4);
+		store<i32>(cursorPtr + (<usize>b) * 4, at + <i32>PATCH_STRIDE);
+
+		const cb = outPtr + (<usize>idx) * OUT_STRIDE;
+		const dst = packPtr + (<usize>at);
+		store<u32>(dst, <u32>(<i32>load<f64>(cb)));        // face
+		store<f32>(dst + 4, <f32>load<f64>(cb + 8));        // uvMin.x
+		store<f32>(dst + 8, <f32>load<f64>(cb + 16));       // uvMin.y
+		store<f32>(dst + 12, <f32>load<f64>(cb + 24));      // uvMax.x
+		store<f32>(dst + 16, <f32>load<f64>(cb + 32));      // uvMax.y
+		store<u32>(dst + 20, <u32>r);                       // resolution
+		store<f32>(dst + 24, 0);                            // morph
+		store<u32>(dst + 28, 0);                            // pad
+	}
+
+	store<i32>(metaPtr, dropped);
+	store<i32>(metaPtr + 4, survivors);
+	store<f64>(metaPtr + 8, total);
+	return bucketCount;
+}

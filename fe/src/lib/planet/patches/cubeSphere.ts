@@ -10,8 +10,7 @@ import type { CubeSpherePatch, PackedBucket } from './types.js';
 import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
 import type { ViewportSize } from './screenSpace.js';
 import { MAX_CUBE_PATCHES, encodeCubeSpherePatches } from '../params/gpuBuffers.js';
-import { initSchedulerFromUrl, scheduleCandidatesFlat } from './wasm/schedulerWasm.js';
-import { packBudgetedBuckets } from './flatBudget.js';
+import { budgetAndPackFlat, initSchedulerFromUrl, scheduleCandidatesFlat } from './wasm/schedulerWasm.js';
 
 // Kick off the async WASM scheduler load in the browser. Until it resolves (or
 // if it fails / WebGL fallback / Node tests), scheduleOrbitPatches uses the JS
@@ -28,10 +27,10 @@ interface ScheduleCandidates {
 
 /**
  * WASM path: walk → flat candidate buffer → budget + pack survivors straight into
- * GPU-upload byte blocks (no CubeSpherePatch objects). Coarsens spacing first if
- * the candidate count explodes (the count is read without allocating candidate
- * objects). Returns null when WASM is unavailable so the caller falls back to the
- * JS object path.
+ * GPU-upload byte blocks, all inside WASM (no CubeSpherePatch objects, no JS sort
+ * or typed-array churn). Coarsens spacing first if the candidate count explodes
+ * (the count is read without allocating candidate objects). Returns null when WASM
+ * is unavailable so the caller falls back to the JS object path.
  */
 function scheduleFlat(
 	base: Omit<OrbitSchedulerInput, 'targetVertexSpacingPx'>,
@@ -51,7 +50,8 @@ function scheduleFlat(
 		spacingSteps++;
 	}
 	const candidateCount = flat.count;
-	const budgeted = packBudgetedBuckets(flat.view, flat.count, maxVertices, MAX_CUBE_PATCHES);
+	const budgeted = budgetAndPackFlat(flat.count, maxVertices, MAX_CUBE_PATCHES);
+	if (!budgeted) return null;
 	return {
 		spacing,
 		result: {
