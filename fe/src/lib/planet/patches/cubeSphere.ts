@@ -4,12 +4,27 @@ import {
 	groupPatchesByResolution,
 	scheduleAdaptiveOrbitPatches,
 	totalVertexCount,
-	type OrbitSchedulerInput
+	type OrbitSchedulerInput,
+	type ScheduledPatch
 } from './cubeSphereScheduler.js';
 import type { CubeSpherePatch } from './types.js';
 import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
 import type { ViewportSize } from './screenSpace.js';
 import { MAX_CUBE_PATCHES } from '../params/gpuBuffers.js';
+import {
+	initSchedulerFromUrl,
+	scheduleAdaptiveOrbitPatchesWasm
+} from './wasm/schedulerWasm.js';
+
+// Kick off the async WASM scheduler load in the browser. Until it resolves (or
+// if it fails / WebGL fallback / Node tests), scheduleCandidates uses the JS
+// scheduler — see scheduleAdaptiveOrbitPatchesWasm's null contract.
+if (typeof window !== 'undefined') void initSchedulerFromUrl();
+
+/** Adaptive quadtree walk via WASM when loaded, else the JS oracle/fallback. */
+function scheduleCandidates(input: OrbitSchedulerInput): ScheduledPatch[] {
+	return scheduleAdaptiveOrbitPatchesWasm(input) ?? scheduleAdaptiveOrbitPatches(input);
+}
 
 /** Reuse last successful spacing so we rarely repeat the coarse-to-fine search loop. */
 let orbitSpacingHint = 6;
@@ -209,7 +224,7 @@ export function scheduleOrbitPatches(
 	// hint), then apply the user detail multiplier. The hint stores the un-scaled
 	// spacing so detail does not compound frame to frame.
 	let spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8) / detail;
-	let candidates = scheduleAdaptiveOrbitPatches({
+	let candidates = scheduleCandidates({
 		cameraPos,
 		planetRadius,
 		viewProj,
@@ -221,7 +236,7 @@ export function scheduleOrbitPatches(
 	let spacingSteps = 0;
 	while (candidates.length > MAX_CUBE_PATCHES * 2 && spacing < 256 && spacingSteps < MAX_SPACING_RETRIES) {
 		spacing *= 1.6;
-		candidates = scheduleAdaptiveOrbitPatches({
+		candidates = scheduleCandidates({
 			cameraPos,
 			planetRadius,
 			viewProj,

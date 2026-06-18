@@ -27,7 +27,11 @@ export function dot3d(a: Vec3d, b: Vec3d): number {
 }
 
 export function len3(a: Vec3): number {
-	return Math.hypot(a[0], a[1], a[2]);
+	// sqrt-of-squares (not Math.hypot): deterministic IEEE-754 across JS and WASM
+	// engines, so the AssemblyScript scheduler port stays bit-exact with this path
+	// (see patches/wasm/scheduler.ts). The ULP-level difference vs Math.hypot is
+	// invisible to rendering, and this is also faster.
+	return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 }
 
 export function len3d(a: Vec3d): number {

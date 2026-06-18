@@ -1,5 +1,5 @@
 import type { Vec3 } from '../math/vec.js';
-import { dot3, normalize3 } from '../math/vec.js';
+import { dot3, len3, normalize3 } from '../math/vec.js';
 import {
 	chooseOrbitPatchResolution,
 	cubeFaceUvToUnitDir,
@@ -139,7 +139,7 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 		targetVertexSpacingPx = 6,
 		maxDepth: maxDepthInput
 	} = input;
-	const altitude = Math.max(Math.hypot(cameraPos[0], cameraPos[1], cameraPos[2]) - planetRadius, 0);
+	const altitude = Math.max(len3(cameraPos) - planetRadius, 0);
 	const maxDepth = maxDepthInput ?? chooseMaxDepth(altitude, planetRadius);
 	const maxRes = input.maxPatchResolution ?? chooseOrbitPatchResolution(altitude, planetRadius);
 	const camDir = normalize3(cameraPos);

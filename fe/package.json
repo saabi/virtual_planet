@@ -12,7 +12,7 @@
 		"postinstall": "node scripts/ensure-rolldown-binding.mjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"build:wasm": "asc assembly/projectBatch.ts --outFile src/lib/planet/patches/wasm/projectBatch.wasm --runtime stub --optimize",
+		"build:wasm": "asc assembly/projectBatch.ts --outFile src/lib/planet/patches/wasm/projectBatch.wasm --runtime stub --optimize && asc assembly/scheduler.ts --outFile src/lib/planet/patches/wasm/scheduler.wasm --runtime stub --optimize",
 		"test": "vitest run"
 	},
 	"dependencies": {
