@@ -73,11 +73,25 @@ export async function initSchedulerFromUrl(): Promise<void> {
 	}
 }
 
+/** f64 stride of one emitted candidate: [face, u0, v0, u1, v1, resolution, priority]. */
+export const CANDIDATE_STRIDE = 7;
+
+/** A flat candidate set: a view into WASM linear memory, valid until the next call. */
+export interface FlatCandidates {
+	/** Float64 view of the OUT region: count * CANDIDATE_STRIDE values. */
+	view: Float64Array;
+	count: number;
+}
+
 /**
- * Run the WASM quadtree walk. Returns the candidate patches, or null when WASM
- * is not ready so the caller can fall back to the JS scheduler.
+ * Run the WASM quadtree walk, leaving candidates packed in linear memory. Returns
+ * a view + count (no per-candidate object allocation), or null when WASM is not
+ * ready so the caller can fall back to the JS scheduler.
+ *
+ * The returned view aliases WASM memory and is overwritten by the next call —
+ * consume it before scheduling again.
  */
-export function scheduleAdaptiveOrbitPatchesWasm(input: OrbitSchedulerInput): ScheduledPatch[] | null {
+export function scheduleCandidatesFlat(input: OrbitSchedulerInput): FlatCandidates | null {
 	const fn = scheduleFn;
 	const fv = f32;
 	const dv = f64;
@@ -101,19 +115,30 @@ export function scheduleAdaptiveOrbitPatchesWasm(input: OrbitSchedulerInput): Sc
 		OUT_OFF,
 		OUT_MAX
 	);
+	return { view: dv.subarray(OUT_F64, OUT_F64 + count * CANDIDATE_STRIDE), count };
+}
 
+/**
+ * Object-returning walk: the parity oracle for tests and the materialized form.
+ * Production (scheduleOrbitPatches) uses scheduleCandidatesFlat to avoid building
+ * the full candidate set as objects.
+ */
+export function scheduleAdaptiveOrbitPatchesWasm(input: OrbitSchedulerInput): ScheduledPatch[] | null {
+	const flat = scheduleCandidatesFlat(input);
+	if (!flat) return null;
+	const { view, count } = flat;
 	const patches: ScheduledPatch[] = new Array(count);
 	for (let i = 0; i < count; i++) {
-		const o = OUT_F64 + i * 7;
+		const o = i * CANDIDATE_STRIDE;
 		patches[i] = {
 			kind: 'cubeSphere',
 			id: i,
-			face: (dv[o] | 0) as CubeSpherePatch['face'],
-			uvMin: [dv[o + 1], dv[o + 2]],
-			uvMax: [dv[o + 3], dv[o + 4]],
-			resolution: dv[o + 5] | 0,
+			face: (view[o] | 0) as CubeSpherePatch['face'],
+			uvMin: [view[o + 1], view[o + 2]],
+			uvMax: [view[o + 3], view[o + 4]],
+			resolution: view[o + 5] | 0,
 			morph: 0,
-			priority: dv[o + 6]
+			priority: view[o + 6]
 		};
 	}
 	return patches;

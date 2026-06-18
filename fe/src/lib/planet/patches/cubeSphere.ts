@@ -4,26 +4,95 @@ import {
 	groupPatchesByResolution,
 	scheduleAdaptiveOrbitPatches,
 	totalVertexCount,
-	type OrbitSchedulerInput,
-	type ScheduledPatch
+	type OrbitSchedulerInput
 } from './cubeSphereScheduler.js';
 import type { CubeSpherePatch } from './types.js';
 import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
 import type { ViewportSize } from './screenSpace.js';
 import { MAX_CUBE_PATCHES } from '../params/gpuBuffers.js';
-import {
-	initSchedulerFromUrl,
-	scheduleAdaptiveOrbitPatchesWasm
-} from './wasm/schedulerWasm.js';
+import { initSchedulerFromUrl, scheduleCandidatesFlat } from './wasm/schedulerWasm.js';
+import { budgetAndGroupFlat } from './flatBudget.js';
 
 // Kick off the async WASM scheduler load in the browser. Until it resolves (or
-// if it fails / WebGL fallback / Node tests), scheduleCandidates uses the JS
-// scheduler — see scheduleAdaptiveOrbitPatchesWasm's null contract.
+// if it fails / WebGL fallback / Node tests), scheduleOrbitPatches uses the JS
+// object path — see scheduleCandidatesFlat's null contract.
 if (typeof window !== 'undefined') void initSchedulerFromUrl();
 
-/** Adaptive quadtree walk via WASM when loaded, else the JS oracle/fallback. */
-function scheduleCandidates(input: OrbitSchedulerInput): ScheduledPatch[] {
-	return scheduleAdaptiveOrbitPatchesWasm(input) ?? scheduleAdaptiveOrbitPatches(input);
+interface ScheduleCandidates {
+	patches: CubeSpherePatch[];
+	buckets: Map<number, CubeSpherePatch[]>;
+	candidatePatches: number;
+	budgetDropped: number;
+	estimatedVertices: number;
+}
+
+/**
+ * WASM path: walk → flat candidate buffer → budget + group, materializing only
+ * the survivors. Coarsens spacing first if the candidate count explodes (the
+ * count is read without allocating candidate objects). Returns null when WASM is
+ * unavailable so the caller falls back to the JS object path.
+ */
+function scheduleFlat(
+	base: Omit<OrbitSchedulerInput, 'targetVertexSpacingPx'>,
+	spacing: number,
+	maxVertices: number
+): { result: ScheduleCandidates; spacing: number } | null {
+	let flat = scheduleCandidatesFlat({ ...base, targetVertexSpacingPx: spacing });
+	if (!flat) return null;
+	let spacingSteps = 0;
+	while (
+		flat.count > MAX_CUBE_PATCHES * 2 &&
+		spacing < 256 &&
+		spacingSteps < MAX_SPACING_RETRIES
+	) {
+		spacing *= 1.6;
+		flat = scheduleCandidatesFlat({ ...base, targetVertexSpacingPx: spacing })!;
+		spacingSteps++;
+	}
+	const candidateCount = flat.count;
+	const budgeted = budgetAndGroupFlat(flat.view, flat.count, maxVertices, MAX_CUBE_PATCHES);
+	return {
+		spacing,
+		result: {
+			patches: budgeted.patches,
+			buckets: budgeted.buckets,
+			candidatePatches: candidateCount,
+			budgetDropped: budgeted.dropped,
+			estimatedVertices: budgeted.estimatedVertices
+		}
+	};
+}
+
+/** JS fallback path: object walk → applyVertexBudget → group (oracle parity). */
+function scheduleObjects(
+	base: Omit<OrbitSchedulerInput, 'targetVertexSpacingPx'>,
+	spacing: number,
+	maxVertices: number
+): { result: ScheduleCandidates; spacing: number } {
+	let candidates = scheduleAdaptiveOrbitPatches({ ...base, targetVertexSpacingPx: spacing });
+	let spacingSteps = 0;
+	while (
+		candidates.length > MAX_CUBE_PATCHES * 2 &&
+		spacing < 256 &&
+		spacingSteps < MAX_SPACING_RETRIES
+	) {
+		spacing *= 1.6;
+		candidates = scheduleAdaptiveOrbitPatches({ ...base, targetVertexSpacingPx: spacing });
+		spacingSteps++;
+	}
+	const candidateCount = candidates.length;
+	const budgeted = applyVertexBudget(candidates, maxVertices, MAX_CUBE_PATCHES);
+	const patches = budgeted.patches;
+	return {
+		spacing,
+		result: {
+			patches,
+			buckets: groupPatchesByResolution(patches),
+			candidatePatches: candidateCount,
+			budgetDropped: budgeted.dropped,
+			estimatedVertices: totalVertexCount(patches)
+		}
+	};
 }
 
 /** Reuse last successful spacing so we rarely repeat the coarse-to-fine search loop. */
@@ -223,39 +292,18 @@ export function scheduleOrbitPatches(
 	// Start from the altitude-appropriate estimate (eased by the previous frame's
 	// hint), then apply the user detail multiplier. The hint stores the un-scaled
 	// spacing so detail does not compound frame to frame.
-	let spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8) / detail;
-	let candidates = scheduleCandidates({
-		cameraPos,
-		planetRadius,
-		viewProj,
-		viewport: options.viewport,
-		targetVertexSpacingPx: spacing
-	});
-	// Coarsen only to protect CPU from a candidate explosion; applyVertexBudget
-	// enforces the real patch-count and vertex caps, so allow finer detail through.
-	let spacingSteps = 0;
-	while (candidates.length > MAX_CUBE_PATCHES * 2 && spacing < 256 && spacingSteps < MAX_SPACING_RETRIES) {
-		spacing *= 1.6;
-		candidates = scheduleCandidates({
-			cameraPos,
-			planetRadius,
-			viewProj,
-			viewport: options.viewport,
-			targetVertexSpacingPx: spacing
-		});
-		spacingSteps++;
-	}
-	orbitSpacingHint = spacing * detail;
-	const candidateCount = candidates.length;
-	const budgeted = applyVertexBudget(candidates, maxVertices, MAX_CUBE_PATCHES);
-	const patches = budgeted.patches;
+	const spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8) / detail;
+	const base = { cameraPos, planetRadius, viewProj, viewport: options.viewport };
+	// Coarsen only to protect CPU from a candidate explosion; the budget enforces
+	// the real patch-count and vertex caps, so allow finer detail through. The flat
+	// path (WASM) budgets/groups in place, building objects only for survivors; the
+	// object path is the WebGL / no-WASM fallback.
+	const scheduled =
+		scheduleFlat(base, spacing, maxVertices) ?? scheduleObjects(base, spacing, maxVertices);
+	orbitSpacingHint = scheduled.spacing * detail;
 	const result: OrbitScheduleResult = {
-		patches,
-		buckets: groupPatchesByResolution(patches),
-		candidatePatches: candidateCount,
-		budgetDropped: budgeted.dropped,
-		vertexBudget: maxVertices,
-		estimatedVertices: totalVertexCount(patches)
+		...scheduled.result,
+		vertexBudget: maxVertices
 	};
 	scheduleCache = {
 		cameraPos: [cameraPos[0], cameraPos[1], cameraPos[2]],
