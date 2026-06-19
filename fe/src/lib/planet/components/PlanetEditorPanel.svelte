@@ -281,7 +281,7 @@
 						<Range
 							id="tess-detail"
 							label="Detail"
-							min={0.0005}
+							min={0.05}
 							max={4}
 							step={0.05}
 							bind:value={tessellation.detail}
@@ -289,11 +289,52 @@
 						<Range
 							id="tess-budget"
 							label="Vertex Budget (M)"
-							min={1}
+							min={0.05}
 							max={32}
-							step={1}
+							step={0.05}
 							bind:value={tessellation.vertexBudgetMillions}
 						/>
+						<li class="select-row">
+							<label class="select-label" for="tess-max-res">Max Resolution</label>
+							<select
+								id="tess-max-res"
+								class="select-input"
+								value={tessellation.maxPatchResolution}
+								onchange={(e) =>
+									(tessellation = {
+										...tessellation,
+										maxPatchResolution: Number(
+											e.currentTarget.value
+										) as TessellationSettings['maxPatchResolution']
+									})}
+							>
+								<option value={0}>Auto</option>
+								<option value={8}>8</option>
+								<option value={16}>16</option>
+								<option value={32}>32</option>
+								<option value={64}>64</option>
+								<option value={96}>96</option>
+							</select>
+						</li>
+						<li class="select-row">
+							<label class="select-label" for="tess-max-depth">Max Depth</label>
+							<select
+								id="tess-max-depth"
+								class="select-input"
+								value={tessellation.maxDepth}
+								onchange={(e) =>
+									(tessellation = {
+										...tessellation,
+										maxDepth: Number(e.currentTarget.value) as TessellationSettings['maxDepth']
+									})}
+							>
+								<option value={0}>Auto</option>
+								<option value={3}>3</option>
+								<option value={4}>4</option>
+								<option value={5}>5</option>
+								<option value={6}>6</option>
+							</select>
+						</li>
 					</ul>
 				{:else if superSection.id === 'debug'}
 					<ul class="flat-body">

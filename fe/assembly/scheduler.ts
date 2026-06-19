@@ -211,7 +211,9 @@ export function scheduleOrbit(
 	targetSpacing: f64,
 	stackPtr: usize,
 	outPtr: usize,
-	outMax: i32
+	outMax: i32,
+	maxDepthOverride: i32,
+	maxResOverride: i32
 ): i32 {
 	m0 = <f64>load<f32>(vpPtr); m1 = <f64>load<f32>(vpPtr + 4); m3 = <f64>load<f32>(vpPtr + 12);
 	m4 = <f64>load<f32>(vpPtr + 16); m5 = <f64>load<f32>(vpPtr + 20); m7 = <f64>load<f32>(vpPtr + 28);
@@ -228,8 +230,10 @@ export function scheduleOrbit(
 
 	let altitude = camLen - planetRadius;
 	if (altitude < 0) altitude = 0;
-	const maxDepth = chooseMaxDepth(altitude, planetRadius);
-	const maxRes = chooseOrbitRes(altitude, planetRadius);
+	// Override (>0) caps the auto altitude-based choice; 0 = auto (mirrors the JS
+	// `input.maxDepth ?? chooseMaxDepth` / `?? chooseOrbitPatchResolution`).
+	const maxDepth = maxDepthOverride > 0 ? maxDepthOverride : chooseMaxDepth(altitude, planetRadius);
+	const maxRes = maxResOverride > 0 ? maxResOverride : chooseOrbitRes(altitude, planetRadius);
 	const searchMargin = vw > vh ? vw : vh;
 	const target = targetSpacing;
 

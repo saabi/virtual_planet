@@ -108,6 +108,43 @@ describe('scheduler.wasm parity with JS scheduleAdaptiveOrbitPatches', () => {
 		}
 	});
 
+	it('matches with maxPatchResolution + maxDepth caps applied', () => {
+		const caps: Array<{ maxPatchResolution?: number; maxDepth?: number }> = [
+			{ maxPatchResolution: 16 },
+			{ maxDepth: 4 },
+			{ maxPatchResolution: 16, maxDepth: 4 },
+			{ maxPatchResolution: 32, maxDepth: 5 }
+		];
+		for (const cap of caps) {
+			for (const distance of [105, 140, 240]) {
+				const cam = makeCam(distance, radius);
+				assertParity({
+					cameraPos: cam.position,
+					planetRadius: radius,
+					viewProj: cam.viewProjectionMatrix,
+					viewport,
+					targetVertexSpacingPx: 6,
+					...cap
+				});
+			}
+		}
+	});
+
+	it('caps actually bind (resolution + depth bounded vs auto)', () => {
+		const cam = makeCam(105, radius);
+		const base = {
+			cameraPos: cam.position,
+			planetRadius: radius,
+			viewProj: cam.viewProjectionMatrix,
+			viewport,
+			targetVertexSpacingPx: 6
+		};
+		const auto = scheduleAdaptiveOrbitPatchesWasm(base)!;
+		const capped = scheduleAdaptiveOrbitPatchesWasm({ ...base, maxPatchResolution: 16 })!;
+		expect(auto.some((p) => p.resolution > 16)).toBe(true);
+		expect(capped.every((p) => p.resolution <= 16)).toBe(true);
+	});
+
 	it('matches at star scale (radius 1e6)', () => {
 		const bigRadius = 1_000_000;
 		const cam = makeCam(2_400_000, bigRadius);

@@ -68,6 +68,63 @@ describe('cubeSphere mapping', () => {
 		expect(packedInstances).toBe(result.patchCount);
 	});
 
+	it('lowers vertex count when detail drops below 1', () => {
+		resetOrbitScheduleCache();
+		const viewport = { width: 1920, height: 1080 };
+		const cam = createOrbitCamera({
+			distance: 300,
+			azimuth: 0.6,
+			elevation: 0.35,
+			fovDeg: 60,
+			aspect: viewport.width / viewport.height,
+			near: 0.1,
+			far: 100_000,
+			planetRadius: 100
+		});
+		const full = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport,
+			focalLengthPx: cam.focalLengthPx,
+			detail: 1
+		});
+		// detail well below the old 0.25 floor must now take effect (coarser spacing).
+		const low = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport,
+			focalLengthPx: cam.focalLengthPx,
+			detail: 0.1
+		});
+		expect(low.estimatedVertices).toBeLessThan(full.estimatedVertices);
+	});
+
+	it('caps patch resolution when maxPatchResolution is set', () => {
+		resetOrbitScheduleCache();
+		const viewport = { width: 1920, height: 1080 };
+		const cam = createOrbitCamera({
+			distance: 105,
+			azimuth: 0.6,
+			elevation: 0.35,
+			fovDeg: 60,
+			aspect: viewport.width / viewport.height,
+			near: 0.1,
+			far: 10_000,
+			planetRadius: 100
+		});
+		// Auto (no cap): a close camera selects resolutions above 16.
+		const auto = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport,
+			focalLengthPx: cam.focalLengthPx
+		});
+		expect(auto.packedBuckets.some((b) => b.resolution > 16)).toBe(true);
+
+		// Capped: every bucket must be <= 16.
+		const capped = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport,
+			focalLengthPx: cam.focalLengthPx,
+			maxPatchResolution: 16
+		});
+		expect(capped.packedBuckets.length).toBeGreaterThan(0);
+		expect(capped.packedBuckets.every((b) => b.resolution <= 16)).toBe(true);
+	});
+
 	it('reuses the schedule for orientation/sub-threshold position change, refreshes on a large move', () => {
 		resetOrbitScheduleCache();
 		const viewport = { width: 1280, height: 720 };

@@ -48,7 +48,9 @@ type ScheduleExport = (
 	targetSpacing: number,
 	stackPtr: number,
 	outPtr: number,
-	outMax: number
+	outMax: number,
+	maxDepthOverride: number,
+	maxResOverride: number
 ) => number;
 
 type BudgetExport = (
@@ -149,7 +151,9 @@ export function scheduleCandidatesFlat(input: OrbitSchedulerInput): FlatCandidat
 		target,
 		STACK_OFF,
 		OUT_OFF,
-		OUT_MAX
+		OUT_MAX,
+		input.maxDepth ?? 0,
+		input.maxPatchResolution ?? 0
 	);
 	return { view: dv.subarray(OUT_F64, OUT_F64 + count * CANDIDATE_STRIDE), count };
 }

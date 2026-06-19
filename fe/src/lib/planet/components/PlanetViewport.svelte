@@ -481,7 +481,9 @@
 				viewport: { width, height },
 				focalLengthPx: camera.focalLengthPx,
 				detail: tessellation.detail,
-				maxVertices: tessellation.vertexBudgetMillions * 1_000_000
+				maxVertices: tessellation.vertexBudgetMillions * 1_000_000,
+				maxPatchResolution: tessellation.maxPatchResolution,
+				maxDepth: tessellation.maxDepth
 			});
 			orbitSchedule = {
 				packedBuckets: scheduled.packedBuckets,

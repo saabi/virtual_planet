@@ -137,6 +137,8 @@ interface ScheduleCache {
 	vh: number;
 	detail: number;
 	maxVertices: number;
+	maxPatchResolution: number;
+	maxDepth: number;
 	ageFrames: number;
 	result: OrbitScheduleResult;
 }
@@ -257,6 +259,10 @@ export interface OrbitScheduleOptions {
 	maxVertices?: number;
 	/** Density multiplier: >1 finer (smaller spacing), <1 coarser. */
 	detail?: number;
+	/** Cap on patch resolution; 0/undefined = altitude-based auto. */
+	maxPatchResolution?: number;
+	/** Cap on subdivision depth; 0/undefined = altitude-based auto. */
+	maxDepth?: number;
 }
 
 export interface OrbitScheduleResult {
@@ -281,7 +287,13 @@ export function scheduleOrbitPatches(
 ): OrbitScheduleResult {
 	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
 	const baseSpacing = options.targetVertexSpacingPx ?? 6;
-	const detail = Math.max(options.detail ?? 1, 0.25);
+	// Honor user detail down to a small sanity clamp (the UI exposes values well
+	// below the old 0.25 floor for low-density mobile meshes).
+	const detail = Math.max(options.detail ?? 1, 0.01);
+	// LOD caps: 0 = altitude-based auto. Normalized to numbers for the cache key;
+	// passed to the scheduler only when set (0 must not masquerade as a real cap).
+	const maxPatchResolution = options.maxPatchResolution ?? 0;
+	const maxDepth = options.maxDepth ?? 0;
 	const vw = options.viewport.width;
 	const vh = options.viewport.height;
 	const altitude = Math.max(Math.hypot(cameraPos[0], cameraPos[1], cameraPos[2]) - planetRadius, 1);
@@ -295,6 +307,8 @@ export function scheduleOrbitPatches(
 		cache.vh === vh &&
 		cache.detail === detail &&
 		cache.maxVertices === maxVertices &&
+		cache.maxPatchResolution === maxPatchResolution &&
+		cache.maxDepth === maxDepth &&
 		cache.ageFrames < MAX_SCHEDULE_AGE_FRAMES &&
 		Math.hypot(
 			cameraPos[0] - cache.cameraPos[0],
@@ -313,7 +327,14 @@ export function scheduleOrbitPatches(
 	// hint), then apply the user detail multiplier. The hint stores the un-scaled
 	// spacing so detail does not compound frame to frame.
 	const spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8) / detail;
-	const base = { cameraPos, planetRadius, viewProj, viewport: options.viewport };
+	const base = {
+		cameraPos,
+		planetRadius,
+		viewProj,
+		viewport: options.viewport,
+		...(maxPatchResolution ? { maxPatchResolution } : {}),
+		...(maxDepth ? { maxDepth } : {})
+	};
 	// Coarsen only to protect CPU from a candidate explosion; the budget enforces
 	// the real patch-count and vertex caps, so allow finer detail through. The flat
 	// path (WASM) budgets/groups in place, building objects only for survivors; the
@@ -332,6 +353,8 @@ export function scheduleOrbitPatches(
 		vh,
 		detail,
 		maxVertices,
+		maxPatchResolution,
+		maxDepth,
 		ageFrames: 0,
 		result
 	};

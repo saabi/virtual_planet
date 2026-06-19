@@ -4,9 +4,15 @@ export interface TessellationSettings {
 	detail: number;
 	/** Per-frame vertex budget, in millions. */
 	vertexBudgetMillions: number;
+	/** Cap on patch resolution; 0 = altitude-based auto (current behavior). */
+	maxPatchResolution: 0 | 8 | 16 | 32 | 64 | 96;
+	/** Cap on subdivision depth; 0 = altitude-based auto. */
+	maxDepth: 0 | 3 | 4 | 5 | 6;
 }
 
 export const DEFAULT_TESSELLATION: TessellationSettings = {
 	detail: 1,
-	vertexBudgetMillions: 8
+	vertexBudgetMillions: 8,
+	maxPatchResolution: 0,
+	maxDepth: 0
 };
