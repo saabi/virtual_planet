@@ -123,6 +123,40 @@ multi-body renderer will call this per body each frame: skip point-tier bodies'
 tessellation entirely, and feed `maxTriangles` to the scheduler's budget for
 mesh-tier bodies.
 
+## Orbits — kinematic motion component (`scene/orbit.ts`)
+
+**Decision: an orbit is a motion *component on a scene node* that drives its
+transform — not a separate parallel store, and not baked into geometry.** The scene
+graph stays the single source of spatial truth (`transform.position`); an optional
+`orbit?: OrbitElements` on `SceneNodeBase` says "compute this node's local position
+from time t." This directly answers the "where do orbits go, given future ships"
+question: a ship is just another node with a motion component (orbital, or later
+powered-flight / scripted) — same graph, same advance step, no second hierarchy to
+keep in sync. The "other game elements" concern argues *for* a component model in the
+graph, not for a separate orbit system.
+
+Orbits are **kinematic, not simulated** ("just animated"): `orbitLocalPosition(o, t)`
+is parametric (mean anomaly → position; circular fast-path, Kepler solve for
+eccentric), coplanar in the parent's XZ plane (top-down looks down +Y). `advanceScene(
+scene, t)` returns a new scene with every orbiting node's position and every spinning
+node's rotation (`spinPeriodSeconds` about +Y) set for time t; pausing is just not
+advancing t. The toy preset drives all bodies this way (initial transform = t=0
+position). Orbital ownership stays the hierarchy; the orbit only parameterizes the
+path around the parent.
+
+## Top-down system view (deferred — next increment)
+
+A 2D map looking down +Y that renders, from `advanceScene`'s output:
+- **Orbit paths** (the ellipses) + each body's **current position**.
+- A **play/pause** toggle and time scrubbing for orbits *and* spins (drives the `t`
+  fed to `advanceScene`).
+- **Selection**: click a body to select the scene-tree node (an alternative to the
+  sidebar tree) and **zoom to it**.
+
+This is UI/canvas work in the component layer (a system-scale analog of the existing
+spaceflight top-down projection), reading the kinematic model above — no new data
+model needed. Selection/zoom ties into the camera + scene-tree selection state.
+
 ## Deferred (later increments)
 
 - **Multi-body rendering** — the big one: drawing the star/planets/moons with

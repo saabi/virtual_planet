@@ -8,12 +8,35 @@ export interface Transform {
 	rotation: Quat;
 }
 
+/**
+ * Kinematic orbit — a motion component that drives a node's local position from
+ * time. Coplanar in the parent's XZ plane (top-down looks down +Y); the ellipse is
+ * oriented by `periapsisAngle`. Not a physical simulation, just parametric
+ * animation. See _docs/specs/solar-system-scene.md.
+ */
+export interface OrbitElements {
+	/** Semi-major axis (orbit radius for a circle), meters. */
+	semiMajorAxis: number;
+	/** 0 = circle. */
+	eccentricity: number;
+	/** Orbital period, seconds. Sign sets direction. */
+	periodSeconds: number;
+	/** Mean anomaly at t=0, radians. */
+	phaseAtEpoch: number;
+	/** Ellipse orientation in the XZ plane, radians. */
+	periapsisAngle: number;
+}
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
 	parentId: string | null;
 	transform: Transform;
 	enabled: boolean;
+	/** Optional motion component: drives `transform.position` relative to the parent. */
+	orbit?: OrbitElements;
+	/** Optional axial spin period (s) about +Y: drives `transform.rotation`. */
+	spinPeriodSeconds?: number;
 }
 
 export interface GroupNode extends SceneNodeBase {
