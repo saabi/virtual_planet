@@ -6,6 +6,11 @@
 > 1. **Route.** The editor lives at **`/system`** (its own route), not a `/planet`
 >    sidebar. `/planet` is the legacy per-body editor, left untouched. *(Corrected —
 >    `/system` now hosts the map + `SystemTreePanel`.)*
+> 1b. **Orbit-as-node.** This track shipped orbits as a *component on the body*
+>    (`orbit?` field). [`scene-routing.md`](scene-routing.md) supersedes that: an
+>    orbit/transform is its **own node** between parent and child (so it's a route
+>    segment). Migrating `OrbitElements` off the body onto an orbit node is phase 1
+>    there.
 > 2. **Body model naming.** This track shipped `kind: 'body'` with
 >    `bodyType: star|planet|gas_giant|moon`; the model spec calls for
 >    `celestial_body` with `star|planet|moon|compact` (+ a `barycentre` node) and a
