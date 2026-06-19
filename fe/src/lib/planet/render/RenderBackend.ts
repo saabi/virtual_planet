@@ -63,6 +63,13 @@ export interface PickingResult {
 
 export interface RenderBackend {
 	readonly kind: 'webgpu' | 'webgl';
+	/**
+	 * Set before `init`: called once if the GPU device is lost *unexpectedly*
+	 * (driver crash / TDR / OOM) — not on an intentional `destroy()`. Lets the host
+	 * abandon the current settings and re-initialize. Optional; only the WebGPU
+	 * backend fires it.
+	 */
+	onDeviceLost?: (reason: string) => void;
 	init(canvas: HTMLCanvasElement): Promise<void>;
 	resize(width: number, height: number): void;
 	render(frame: RenderFrame): RenderStats;

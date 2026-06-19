@@ -24,6 +24,7 @@
 	import { scheduleOrbitPatches } from '../patches/cubeSphere.js';
 	import {
 		DEFAULT_TESSELLATION,
+		MOBILE_TESSELLATION,
 		type TessellationSettings
 	} from '../patches/tessellationSettings.js';
 	import { initialTessellationSettings } from '../patches/deviceProfile.js';
@@ -93,6 +94,10 @@
 	let tessellationCommitted = false;
 	let tessellationCommitTimer: number | null = null;
 	let tessellationReducedAfterCrash = $state(false);
+	// GPU device-loss recovery (re-init bounded so a broken GPU can't loop forever).
+	const MAX_DEVICE_RECOVERY = 2;
+	let recoveringDevice = false;
+	let deviceRecoveryAttempts = 0;
 	let atmosphere = $state<AtmosphereParameters>(
 		defaultAtmosphereParams(PLANET_PRESETS[DEFAULT_PRESET].radius)
 	);
@@ -487,7 +492,69 @@
 			if (armedKey !== tessellationArmedKey) return; // changed since scheduling
 			commitDeviceTessellation($state.snapshot(tessellation));
 			tessellationCommitted = true;
+			deviceRecoveryAttempts = 0; // a committed setting means the device is healthy again
 		}, TESSELLATION_COMMIT_GRACE_MS);
+	}
+
+	/** Create the render backend (WebGPU, else WebGL fallback). Reused for recovery. */
+	async function initBackend() {
+		if (!canvas) return;
+		try {
+			if (navigator.gpu) {
+				const webgpu = new WebGPUBackend();
+				webgpu.onDeviceLost = handleDeviceLost;
+				await webgpu.init(canvas);
+				backend = webgpu;
+				backendLabel = 'WebGPU';
+			} else {
+				throw new Error('WebGPU unavailable');
+			}
+		} catch {
+			try {
+				const webgl = new WebGLBackend();
+				await webgl.init(canvas);
+				backend = webgl;
+				backendLabel = 'WebGL fallback';
+			} catch (e) {
+				initError = e instanceof Error ? e.message : 'No GPU backend';
+				backendLabel = 'unavailable';
+			}
+		}
+		if (backend) requestRender();
+	}
+
+	/**
+	 * GPU device lost unexpectedly (TDR / driver crash / OOM). Abandon the current
+	 * setting — don't commit it — drop to the floor, and re-initialize. Bounded
+	 * recovery attempts avoid an init→lose→init loop on a fundamentally broken GPU.
+	 */
+	function handleDeviceLost(_reason: string) {
+		if (recoveringDevice) return;
+		clearTessellationCommit();
+		tessellationCommitted = false;
+		tessellation = { ...MOBILE_TESSELLATION };
+		tessellationReducedAfterCrash = true;
+		armTessellation($state.snapshot(tessellation));
+
+		try {
+			backend?.destroy();
+		} catch {
+			// tearing down a lost device — ignore
+		}
+		backend = null;
+
+		if (deviceRecoveryAttempts >= MAX_DEVICE_RECOVERY) {
+			initError = 'GPU device lost repeatedly';
+			backendLabel = 'unavailable';
+			return;
+		}
+		deviceRecoveryAttempts++;
+		recoveringDevice = true;
+		void (async () => {
+			await initBackend();
+			recoveringDevice = false;
+			requestRender();
+		})();
 	}
 
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
@@ -1850,31 +1917,7 @@
 		hydrateFromSession();
 		hydrated = true;
 
-		void (async () => {
-			try {
-				if (navigator.gpu) {
-					const webgpu = new WebGPUBackend();
-					await webgpu.init(canvas);
-					backend = webgpu;
-					backendLabel = 'WebGPU';
-				} else {
-					throw new Error('WebGPU unavailable');
-				}
-			} catch {
-				try {
-					const webgl = new WebGLBackend();
-					await webgl.init(canvas);
-					backend = webgl;
-					backendLabel = 'WebGL fallback';
-				} catch (e) {
-					initError = e instanceof Error ? e.message : 'No GPU backend';
-					backendLabel = 'unavailable';
-				}
-			}
-			if (backend) {
-				requestRender();
-			}
-		})();
+		void initBackend();
 
 		const resizeObserver = new ResizeObserver(() => requestRender());
 		resizeObserver.observe(canvas);

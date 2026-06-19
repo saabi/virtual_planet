@@ -5,6 +5,7 @@ import { TerrainPass } from './passes/terrainPass.js';
 
 export class WebGPUBackend implements RenderBackend {
 	readonly kind = 'webgpu' as const;
+	onDeviceLost?: (reason: string) => void;
 	private device: GPUDevice | null = null;
 	private context: GPUCanvasContext | null = null;
 	private format: GPUTextureFormat = 'bgra8unorm';
@@ -12,10 +13,18 @@ export class WebGPUBackend implements RenderBackend {
 	private atmosphere: AtmospherePass | null = null;
 	private width = 1;
 	private height = 1;
+	private destroyed = false;
 
 	async init(canvas: HTMLCanvasElement): Promise<void> {
 		const { device } = await requestWebGPUDevice();
 		this.device = device;
+		// device.lost resolves with reason 'destroyed' on our own destroy() (ignore),
+		// or 'unknown' on a driver crash / TDR / OOM (report so the host can recover).
+		void device.lost.then((info) => {
+			if (this.destroyed || info.reason === 'destroyed') return;
+			this.device = null;
+			this.onDeviceLost?.(info.reason ?? 'unknown');
+		});
 		this.format = navigator.gpu!.getPreferredCanvasFormat();
 		this.context = configureWebGPUCanvas(device, canvas, this.format);
 		this.terrain = new TerrainPass(device, this.format);
@@ -49,6 +58,7 @@ export class WebGPUBackend implements RenderBackend {
 	}
 
 	destroy(): void {
+		this.destroyed = true;
 		this.atmosphere?.destroy();
 		this.terrain?.destroy();
 		this.device?.destroy();

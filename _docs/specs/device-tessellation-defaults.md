@@ -1,9 +1,9 @@
 # Device-class tessellation defaults — don't brick mobile on first frame
 
-**Status:** Layers 1–2 landed · **Scope:** `patches/tessellationSettings.ts` (presets),
+**Status:** Layers 1–3 landed · **Scope:** `patches/tessellationSettings.ts` (presets),
 `patches/deviceProfile.ts` (detection), `patches/deviceTessellation.ts` (persistence
-+ boot sentinel), `components/PlanetViewport.svelte` (apply on mount + arm/commit) ·
-**Driver:** the tessellation default is desktop-grade (8M
++ boot sentinel), `render/WebGPUBackend.ts` (`device.lost`), `components/PlanetViewport.svelte`
+(apply on mount + arm/commit + recover) · **Driver:** the tessellation default is desktop-grade (8M
 vertex budget, auto resolution up to 96, depth 6). On a weak mobile GPU the
 **first frame can exceed the frame-time watchdog → TDR → device-lost / tab
 crash** — before the user can reach the sliders to lower it. The setting is a
@@ -134,9 +134,13 @@ persistence requires the safety net from the earlier discussion, layered on top:
    ("Reduced quality after a render problem"); none/corrupt → device-class default.
    Robust to a *hard* tab crash (no commit ever runs). Re-armed on every settings
    change; commit timer cleared on teardown.
-3. ⏳ **`device.lost` handler.** On a clean loss, drop to the floor and re-init.
-   *(Not yet — needs `WebGPUBackend` to surface `device.lost`. Until then the
-   sentinel still catches the crash on the next load.)*
+3. ✅ **`device.lost` handler.** `WebGPUBackend` surfaces an unexpected device loss
+   (reason ≠ `'destroyed'`) via `onDeviceLost`; `PlanetViewport.handleDeviceLost`
+   cancels the pending commit (never commits a setting that just lost the GPU),
+   drops to the floor, shows the notice, and re-initializes the backend. Recovery is
+   bounded (`MAX_DEVICE_RECOVERY`) so a broken GPU can't init→lose→init forever; a
+   later successful commit resets the counter. Closes the one gap the sentinel alone
+   couldn't (a clean loss that doesn't kill the tab).
 4. ⏳ **Watchdog auto-tune.** Start at the floor, sample frame time, step quality up
    only while frames stay under budget; back off + lock on a spike or loss. The real
    answer to "render as best they can," converging empirically where capability
