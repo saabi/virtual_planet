@@ -26,6 +26,7 @@
 		DEFAULT_TESSELLATION,
 		type TessellationSettings
 	} from '../patches/tessellationSettings.js';
+	import { initialTessellationSettings } from '../patches/deviceProfile.js';
 	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
 	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
@@ -1754,6 +1755,11 @@
 
 	onMount(() => {
 		if (!browser || !canvas) return;
+
+		// Pick a safe per-device starting tessellation before the first frame: mobiles
+		// boot at the lowest settings so a weak GPU can't crash on load. Desktop keeps
+		// the full default. See _docs/specs/device-tessellation-defaults.md.
+		tessellation = initialTessellationSettings();
 
 		predictorWorker = new OrbitPredictorWorker();
 		predictorWorker.onmessage = (e) => {
