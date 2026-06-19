@@ -150,30 +150,80 @@ export function writeCubeSpherePatchesToBuffer(
 	return buffer;
 }
 
-export function writeSurfacePatchesToBuffer(
-	patches: SurfacePatch[],
-	device: GPUDevice
-): GPUBuffer {
-	const stride = 32;
-	const data = new ArrayBuffer(patches.length * stride);
-	const view = new DataView(data);
-	for (let i = 0; i < patches.length; i++) {
-		const p = patches[i];
-		const o = i * stride;
-		view.setFloat32(o, p.originLocalMeters[0], true);
-		view.setFloat32(o + 4, p.originLocalMeters[1], true);
-		view.setFloat32(o + 8, p.sizeMeters, true);
-		view.setUint32(o + 12, p.resolution, true);
-		view.setUint32(o + 16, p.ring, true);
-		view.setFloat32(o + 20, p.maxFeatureMeters, true);
-		view.setFloat32(o + 24, p.morph, true);
-	}
-	const buffer = device.createBuffer({
-		size: Math.max(data.byteLength, stride),
+export const SURFACE_PATCH_BYTE_SIZE = 32;
+// Ring capacity: buildSurfacePatchRings caps out near 4*R(R-1)+1 patches for R
+// rings (~225 at the default R=8); 1024 leaves generous headroom.
+export const MAX_SURFACE_PATCHES = 1024;
+export const SURFACE_PATCH_RING_BYTES = MAX_SURFACE_PATCHES * SURFACE_PATCH_BYTE_SIZE;
+
+/**
+ * Write one surface-patch GPU record (SURFACE_PATCH_BYTE_SIZE bytes) at `offset`.
+ * Layout: origin:vec2f, sizeMeters:f32, resolution:u32, ring:u32,
+ * maxFeatureMeters:f32, morph:f32, pad:u32.
+ */
+export function writeSurfacePatchRecord(
+	view: DataView,
+	offset: number,
+	originX: number,
+	originY: number,
+	sizeMeters: number,
+	resolution: number,
+	ring: number,
+	maxFeatureMeters: number,
+	morph: number
+): void {
+	view.setFloat32(offset, originX, true);
+	view.setFloat32(offset + 4, originY, true);
+	view.setFloat32(offset + 8, sizeMeters, true);
+	view.setUint32(offset + 12, resolution, true);
+	view.setUint32(offset + 16, ring, true);
+	view.setFloat32(offset + 20, maxFeatureMeters, true);
+	view.setFloat32(offset + 24, morph, true);
+	view.setUint32(offset + 28, 0, true);
+}
+
+export function createSurfacePatchRingBuffer(device: GPUDevice): GPUBuffer {
+	return device.createBuffer({
+		size: Math.max(SURFACE_PATCH_RING_BYTES, SURFACE_PATCH_BYTE_SIZE),
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
 	});
-	device.queue.writeBuffer(buffer, 0, data);
-	return buffer;
+}
+
+let surfaceUploadStaging: ArrayBuffer | null = null;
+
+/**
+ * Encode surface patches and upload to a persistent ring buffer (no per-frame
+ * GPU buffer allocation). Caps at MAX_SURFACE_PATCHES; returns the uploaded count.
+ */
+export function uploadSurfacePatches(
+	device: GPUDevice,
+	buffer: GPUBuffer,
+	patches: SurfacePatch[],
+	byteOffset = 0
+): number {
+	const count = Math.min(patches.length, MAX_SURFACE_PATCHES);
+	if (count === 0) return 0;
+	const byteLength = count * SURFACE_PATCH_BYTE_SIZE;
+	if (!surfaceUploadStaging || surfaceUploadStaging.byteLength < byteLength) {
+		surfaceUploadStaging = new ArrayBuffer(Math.max(byteLength, SURFACE_PATCH_RING_BYTES));
+	}
+	const view = new DataView(surfaceUploadStaging, 0, byteLength);
+	for (let i = 0; i < count; i++) {
+		const p = patches[i];
+		writeSurfacePatchRecord(
+			view,
+			i * SURFACE_PATCH_BYTE_SIZE,
+			p.originLocalMeters[0],
+			p.originLocalMeters[1],
+			p.sizeMeters,
+			p.resolution,
+			p.ring,
+			p.maxFeatureMeters,
+			p.morph
+		);
+	}
+	device.queue.writeBuffer(buffer, byteOffset, surfaceUploadStaging, 0, byteLength);
+	return count;
 }
 
 export function createPlanetParamsBuffer(device: GPUDevice): GPUBuffer {
