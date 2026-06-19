@@ -52,6 +52,26 @@ export function orbitLocalPosition(o: OrbitElements, t: number): Vec3 {
 }
 
 /**
+ * Sample the orbit's geometric path (one full ellipse) in the parent's local frame,
+ * for drawing the orbit line in the top-down view. `segments` points, evenly spaced
+ * in eccentric anomaly (smooth outline). The time-position from orbitLocalPosition
+ * always lies on this path.
+ */
+export function orbitPathLocal(o: OrbitElements, segments: number): Vec3[] {
+	const c = Math.cos(o.periapsisAngle);
+	const s = Math.sin(o.periapsisAngle);
+	const b = o.semiMajorAxis * Math.sqrt(1 - o.eccentricity * o.eccentricity);
+	const pts: Vec3[] = [];
+	for (let i = 0; i < segments; i++) {
+		const E = (TWO_PI * i) / segments;
+		const xp = o.semiMajorAxis * (Math.cos(E) - o.eccentricity);
+		const yp = b * Math.sin(E);
+		pts.push([xp * c - yp * s, 0, xp * s + yp * c]);
+	}
+	return pts;
+}
+
+/**
  * Advance every orbiting / spinning node to time t (seconds), returning a new scene
  * with their transforms updated. Nodes without an orbit/spin component are left
  * untouched. Returns the same scene reference when nothing animates.

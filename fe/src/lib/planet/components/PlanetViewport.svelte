@@ -39,6 +39,7 @@
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
 	import SceneTreePanel from './SceneTreePanel.svelte';
+	import SystemMapPanel from './SystemMapPanel.svelte';
 	import {
 		builtinSelection,
 		defaultSelection,
@@ -78,6 +79,8 @@
 	let hydrated = $state(false);
 
 	let scene = $state(createDefaultPlanetScene());
+	/** Shared selection between the scene tree and the system map. */
+	let selectedNodeId = $state<string | null>(null);
 
 	let wireframe = $state(false);
 	let faceColors = $state(false);
@@ -2264,7 +2267,12 @@
 			{/if}
 		</aside>
 
-		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
+		<SceneTreePanel
+			bind:scene
+			illuminationOn={params.illumination > 0.5}
+			bind:selectedId={selectedNodeId}
+		/>
+		<SystemMapPanel {scene} bind:selectedId={selectedNodeId} />
 	</div>
 
 	<PlanetEditorPanel

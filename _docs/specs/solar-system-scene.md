@@ -144,18 +144,25 @@ advancing t. The toy preset drives all bodies this way (initial transform = t=0
 position). Orbital ownership stays the hierarchy; the orbit only parameterizes the
 path around the parent.
 
-## Top-down system view (deferred — next increment)
+## Top-down system view ✅ (`SystemMapPanel.svelte`)
 
-A 2D map looking down +Y that renders, from `advanceScene`'s output:
-- **Orbit paths** (the ellipses) + each body's **current position**.
-- A **play/pause** toggle and time scrubbing for orbits *and* spins (drives the `t`
-  fed to `advanceScene`).
-- **Selection**: click a body to select the scene-tree node (an alternative to the
-  sidebar tree) and **zoom to it**.
+A 2D map looking down +Y, rendering from `advanceScene`'s output:
+- **Orbit paths** (`orbitPathLocal`, transformed to world) + each body's **current
+  position**, styled by `bodyType`.
+- **Play/Pause** + a speed control (1×/4×/16×) drive the `t` fed to `advanceScene`,
+  animating orbits *and* spins.
+- **Selection + zoom**: clicking a body selects the scene-tree node (shared
+  `selectedId`, bidirectional with `SceneTreePanel` — clicking a tree name selects
+  + highlights here) and **follows/zooms to it** (the view centers on the body and
+  frames its moons). Clicking empty space fits the whole system.
 
-This is UI/canvas work in the component layer (a system-scale analog of the existing
-spaceflight top-down projection), reading the kinematic model above — no new data
-model needed. Selection/zoom ties into the camera + scene-tree selection state.
+Projection / fit / hit-test math lives in `scene/systemMap.ts` (pure, unit-tested);
+the Svelte component is the thin canvas/animation/interaction shell. Loads via the
+Toy Solar System preset button; empty scenes show a hint.
+
+**Still pending:** *zoom-to-body in the 3D viewport.* Selection currently zooms the
+**map**; framing the body in the main 3D view awaits multi-body rendering (there's
+no body to fly to in 3D yet).
 
 ## Deferred (later increments)
 
