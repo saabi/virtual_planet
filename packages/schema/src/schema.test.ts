@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	annotationsOf,
 	check,
+	create,
 	extent,
 	quantity,
 	ref,
+	Type,
 	withDefault,
 	type Static
 } from './schema.js';
@@ -67,6 +69,16 @@ describe('withDefault', () => {
 		const with500 = withDefault(base)(500);
 		expect(annotationsOf(with500).default).toBe(500);
 		expect(annotationsOf(base).default).toBeUndefined(); // original untouched
+	});
+});
+
+describe('create (node template / spawn)', () => {
+	it('builds a default instance from a schema', () => {
+		const orbit = Type.Object({
+			semiMajorAxis: quantity('km', { default: 10_000 }),
+			eccentricity: quantity('none', { min: 0, max: 1, default: 0 })
+		});
+		expect(create(orbit)).toEqual({ semiMajorAxis: 10_000, eccentricity: 0 });
 	});
 });
 

@@ -117,3 +117,12 @@ export function annotationsOf(schema: TSchema): SchemaAnnotations {
 export function check(schema: TSchema, value: unknown): boolean {
 	return Value.Check(schema, value);
 }
+
+/**
+ * Build a default instance from a schema — the node-template / spawn mechanism
+ * (uses each field's `default`, else a type-appropriate zero value). Needs a live
+ * schema (see {@link check} on the Kind symbol).
+ */
+export function create<T extends TSchema>(schema: T): Static<T> {
+	return Value.Create(schema) as Static<T>;
+}
