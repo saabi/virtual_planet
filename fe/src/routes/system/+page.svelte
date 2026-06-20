@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { createToySolarSystemScene } from '$lib/planet/scene/solarSystem.js';
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
+	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
@@ -8,8 +10,43 @@
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import type { PlanetScene } from '$lib/planet/scene/types.js';
 
-	let scene = $state(createToySolarSystemScene());
+	const SCENE_KEY = 'vp.systemScene';
+
+	function loadScene(): PlanetScene {
+		if (browser) {
+			try {
+				const saved = localStorage.getItem(SCENE_KEY);
+				if (saved) return deserializeScene(saved) ?? createToySolarSystemScene();
+			} catch {
+				/* private mode / quota — fall through to default */
+			}
+		}
+		return createToySolarSystemScene();
+	}
+
+	let scene = $state(loadScene());
 	let selectedId = $state<string | null>(null);
+
+	function saveScene() {
+		if (!browser) return;
+		try {
+			localStorage.setItem(SCENE_KEY, serializeScene(scene));
+		} catch {
+			/* ignore */
+		}
+	}
+
+	function resetScene() {
+		if (browser) {
+			try {
+				localStorage.removeItem(SCENE_KEY);
+			} catch {
+				/* ignore */
+			}
+		}
+		scene = createToySolarSystemScene();
+		selectedId = null;
+	}
 
 	const selectedNode = $derived(selectedId ? (getNode(scene, selectedId) ?? null) : null);
 	// Generated editor for the selected node (bespoke for bodies; schema-driven else).
@@ -37,6 +74,10 @@
 
 <div class="system-page">
 	<aside class="system-sidebar">
+		<div class="doc-controls">
+			<button type="button" onclick={saveScene}>Save</button>
+			<button type="button" onclick={resetScene}>Reset</button>
+		</div>
 		<SystemTreePanel bind:scene bind:selectedId />
 		{#if selectedNode}
 			<div class="node-editor">
@@ -93,6 +134,26 @@
 
 	.system-main :global(.map-canvas) {
 		height: calc(100% - 36px);
+	}
+
+	.doc-controls {
+		display: flex;
+		gap: 6px;
+	}
+
+	.doc-controls button {
+		flex: 1;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 4px 6px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.doc-controls button:hover {
+		background: #252d45;
 	}
 
 	.node-editor {
