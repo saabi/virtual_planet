@@ -25,6 +25,7 @@
 	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
+	import FocusedBodyView from '$lib/planet/components/FocusedBodyView.svelte';
 	import type {
 		BodyAppearance,
 		BodyLod,
@@ -102,6 +103,14 @@
 	const hasAppearance = $derived(
 		bodyNode?.bodyType === 'planet' || bodyNode?.bodyType === 'moon'
 	);
+
+	// Focused procedural body (full-screen overlay via the /planet pipeline).
+	let focusedBodyId = $state<string | null>(null);
+	const focusedBody = $derived.by(() => {
+		if (!focusedBodyId) return null;
+		const n = getNode(scene, focusedBodyId);
+		return n && n.kind === 'body' ? n : null;
+	});
 
 	// Shared animation clock (driven by the map's loop) so the editor's live values
 	// match the animation. The selected node, evaluated at the current time, gives the
@@ -252,6 +261,9 @@
 							onappearance={onAppearanceChange}
 							onlod={onLodChange}
 						/>
+						<button type="button" class="render-btn" onclick={() => (focusedBodyId = bodyNode.id)}>
+							Render procedurally →
+						</button>
 					</div>
 				{/if}
 				{#if selectedNode.kind === 'body'}
@@ -268,6 +280,9 @@
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>
+		{#if focusedBody}
+			<FocusedBodyView body={focusedBody} onclose={() => (focusedBodyId = null)} />
+		{/if}
 	</main>
 </div>
 
@@ -444,6 +459,18 @@
 
 	.appearance-section .section-label {
 		color: #9fcfae;
+	}
+
+	.render-btn {
+		align-self: flex-start;
+		margin-top: 4px;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 10px;
+		border-radius: 4px;
+		border: 1px solid rgba(110, 160, 120, 0.4);
+		background: rgba(110, 160, 120, 0.15);
+		color: #cfedd6;
+		cursor: pointer;
 	}
 
 	.driver-outputs {

@@ -87,8 +87,12 @@ a moon looking up at the primary.
    lighting/tessellation in → `RenderFrame` out (modeState/localFrame passed in and
    returned). `PlanetViewport.buildFrame` delegates to it (logic unchanged); smoke
    test guards it. The backend-driving host (a `PlanetRenderer` class) comes with 4a.
-2. **4a focused body** — render the selected body procedurally full-screen from
-   `resolveBodyParams` + an orbit-about-body camera; back to the system view.
+2. **✅ 4a focused body** — `PlanetRenderer` host (owns a backend + per-frame state,
+   drives `buildRenderFrame → backend.render`; mock-backend test) + `FocusedBodyView`
+   overlay: a "Render procedurally" button on a planet/moon renders it full-screen via
+   `WebGPUBackend`, fed `resolveBodyParams` + an orbit-about-body camera + default
+   scene lighting/atmosphere. Behind an explicit button (no blast radius on the system
+   view). GPU output unverified in CI.
 3. **4b single composited body** — largest on-screen procedural body into scene-3d's
    depth, floating origin. The first true multi-scale frame.
 4. **Phase 5** — N procedural bodies + atmospheres + the unified surface/orbit camera.
