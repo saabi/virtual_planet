@@ -5,6 +5,7 @@
 		nodeKindLabel,
 		setNodeEnabled
 	} from '../scene/sceneTree.js';
+	import { reparent } from '../scene/sceneEdit.js';
 	import type { PlanetScene, SceneNode } from '../scene/types.js';
 
 	interface Props {
@@ -16,6 +17,16 @@
 	let { scene = $bindable(), selectedId = $bindable(null) }: Props = $props();
 
 	const rows = $derived(listSceneTreeRows(scene));
+
+	let draggingId = $state<string | null>(null);
+	let dragOverId = $state<string | null>(null);
+
+	function onDrop(targetId: string) {
+		// reparent is cycle-safe + root-protected: an invalid move returns the same scene.
+		if (draggingId && draggingId !== targetId) scene = reparent(scene, draggingId, targetId);
+		draggingId = null;
+		dragOverId = null;
+	}
 
 	function rowActive(node: SceneNode): boolean {
 		return isNodeEnabled(scene, node.id) && node.enabled;
@@ -43,7 +54,29 @@
 				class="tree-row"
 				class:inactive={!rowActive(node)}
 				class:selected={node.id === selectedId}
+				class:dragging={node.id === draggingId}
+				class:drag-over={node.id === dragOverId && node.id !== draggingId}
 				style:--depth={depth}
+				draggable="true"
+				ondragstart={(e) => {
+					draggingId = node.id;
+					e.dataTransfer?.setData('text/plain', node.id);
+				}}
+				ondragend={() => {
+					draggingId = null;
+					dragOverId = null;
+				}}
+				ondragover={(e) => {
+					e.preventDefault();
+					dragOverId = node.id;
+				}}
+				ondragleave={() => {
+					if (dragOverId === node.id) dragOverId = null;
+				}}
+				ondrop={(e) => {
+					e.preventDefault();
+					onDrop(node.id);
+				}}
 			>
 				<div class="tree-label">
 					<input
@@ -99,6 +132,20 @@
 	.tree-row.selected {
 		background: rgba(107, 159, 255, 0.18);
 		border-radius: 3px;
+	}
+
+	.tree-row.dragging {
+		opacity: 0.4;
+	}
+
+	.tree-row.drag-over {
+		outline: 1px dashed rgba(158, 192, 255, 0.7);
+		outline-offset: -1px;
+		border-radius: 3px;
+	}
+
+	.tree-row {
+		cursor: grab;
 	}
 
 	.tree-label {
