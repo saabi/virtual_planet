@@ -1,5 +1,7 @@
 import { Type, quantity, ref, type TSchema } from '@virtual-planet/schema';
-import type { SceneNode } from './types.js';
+import type { DriverSpec, SceneNode } from './types.js';
+
+const DEG = Math.PI / 180;
 
 // Schema descriptions of scene-node types, built with @virtual-planet/schema. These
 // are the *target* model (forward-looking, authoring-friendly units) for the
@@ -9,17 +11,39 @@ import type { SceneNode } from './types.js';
 // reconciles the live nodes with these. See _docs/specs/scene-routing.md.
 
 /**
- * Orbit driver params (kinematic). Carried by an orbit *group* node; advanceScene
- * turns these + the clock into the group's transform. Eccentricity is a real,
- * validated [0,1) constraint — the schema catches `eccentricity: 44`.
+ * Kepler driver params. Carried by an orbit container node; evaluateScene turns these
+ * + the clock into the driver's outputs (phase/radius/x/z). Units match the runtime:
+ * semiMajorAxis stores metres (shown in km), angles store radians (shown in degrees).
+ * Eccentricity is a real, validated [0,1) constraint — the schema catches
+ * `eccentricity: 44`.
  */
 export const orbitSchema = Type.Object({
-	semiMajorAxis: quantity('km', { min: 0, default: 10_000, description: 'Orbit size' }),
+	semiMajorAxis: quantity('km', { min: 0, default: 10_000_000, scale: 1000, description: 'Orbit size' }),
 	eccentricity: quantity('none', { min: 0, max: 1, default: 0 }),
 	periodSeconds: quantity('s', { min: 0, default: 60, description: 'Orbital period' }),
-	phaseAtEpoch: quantity('rad', { default: 0, description: 'Mean anomaly at t=0' }),
-	periapsisAngle: quantity('rad', { default: 0, description: 'Ellipse orientation' })
+	phaseAtEpoch: quantity('deg', { scale: DEG, default: 0, description: 'Mean anomaly at t=0' }),
+	periapsisAngle: quantity('deg', { scale: DEG, default: 0, description: 'Ellipse orientation' })
 });
+
+/** The editable-params schema for a driver (by type). */
+export function driverSchemaFor(driver: DriverSpec): TSchema {
+	switch (driver.type) {
+		case 'kepler':
+			return orbitSchema;
+		default:
+			return Type.Object({});
+	}
+}
+
+/** The named outputs a driver exposes (bindable via field terms). */
+export function driverOutputs(driver: DriverSpec): string[] {
+	switch (driver.type) {
+		case 'kepler':
+			return ['phase', 'radius', 'x', 'z'];
+		default:
+			return [];
+	}
+}
 
 /**
  * Per-channel transform inheritance: each channel is a scene path (relative or

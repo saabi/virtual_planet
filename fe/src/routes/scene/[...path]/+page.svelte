@@ -14,7 +14,7 @@
 		makeGroup,
 		removeSubtree
 	} from '$lib/planet/scene/sceneEdit.js';
-	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
+	import { driverOutputs, driverSchemaFor, editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
@@ -126,6 +126,18 @@
 		if (selectedId) scene = updateNode(scene, selectedId, { transform: t });
 	}
 
+	// Driver params (kepler etc.), edited via a schema form; `type` is preserved.
+	const driverValue = $derived.by(() => {
+		if (!selectedNode?.driver) return {};
+		const { type: _type, ...params } = selectedNode.driver;
+		return params as Record<string, unknown>;
+	});
+	function onDriverChange(next: Record<string, unknown>) {
+		if (selectedId && selectedNode?.driver) {
+			scene = updateNode(scene, selectedId, { driver: { type: selectedNode.driver.type, ...next } });
+		}
+	}
+
 	function addUnder(kind: 'group' | 'body' | 'orbit') {
 		const parentId = selectedId ?? scene.rootId;
 		if (kind === 'orbit') {
@@ -177,6 +189,19 @@
 					evaluated={evaluatedNode ?? selectedNode}
 					onchange={onTransformChange}
 				/>
+				{#if selectedNode.driver}
+					<div class="driver-section">
+						<span class="section-label">Driver · {selectedNode.driver.type}</span>
+						<SchemaForm
+							schema={driverSchemaFor(selectedNode.driver)}
+							value={driverValue}
+							onchange={onDriverChange}
+						/>
+						<span class="driver-outputs">
+							outputs: {driverOutputs(selectedNode.driver).join(', ')}
+						</span>
+					</div>
+				{/if}
 				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
 				{/if}
@@ -315,6 +340,28 @@
 
 	.edit-name {
 		font-weight: 600;
+	}
+
+	.driver-section {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding: 6px 8px;
+		background: rgba(124, 92, 255, 0.08);
+		border: 1px solid rgba(124, 92, 255, 0.25);
+		border-radius: 6px;
+	}
+
+	.section-label {
+		font-size: 11px;
+		font-weight: 600;
+		color: #c7a6ff;
+	}
+
+	.driver-outputs {
+		font-family: ui-monospace, monospace;
+		font-size: 10px;
+		opacity: 0.6;
 	}
 
 	.edit-link {
