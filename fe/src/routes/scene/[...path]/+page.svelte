@@ -233,7 +233,7 @@
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SceneViewport3D {scene} {selectedId} time={clock} />
+		<SceneViewport3D {scene} bind:selectedId time={clock} />
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>

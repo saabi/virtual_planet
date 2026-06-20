@@ -85,8 +85,9 @@ use of the map-as-HUD idea.
    camera + mat4 math) + `SceneViewport3D`: instanced spheres at world transforms,
    orbit camera (drag/zoom), scene lighting; the 2D map is an inset minimap over it.
    The shared clock is bound, so it already **animates** in lockstep with the map.
-2. **Selection + framing** — CPU projection picking → `selectedId` (and highlight),
-   camera follows the selection / reframes on demand.
+2. **✅ Selection + framing** — CPU projection picking (click vs drag) → shared
+   `selectedId`; a screen-space selection ring; the camera follows the selection (live
+   target) and reframes to it on select, "Frame all" / empty-click fits the system.
 3. **Orbit paths in 3D** — line loops from `orbitPathLocal`; star glow.
 4. **Procedural upgrade (later, gated on `CelestialBody` params)** — swap the sphere
    for the `/planet` pipeline on the selected/near body; multi-body convergence.

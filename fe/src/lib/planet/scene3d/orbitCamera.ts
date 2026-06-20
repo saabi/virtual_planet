@@ -15,6 +15,7 @@ export interface OrbitCamera {
 	target: Vec3;
 }
 
+export const FOVY = Math.PI / 4;
 const EL_LIMIT = Math.PI / 2 - 0.05;
 
 export function clampElevation(e: number): number {
@@ -81,6 +82,24 @@ export function viewProjection(cam: OrbitCamera, aspect: number): Float32Array {
 	const view = lookAt(eye, cam.target);
 	const near = Math.max(1, cam.distance * 0.002);
 	const far = cam.distance * 20;
-	const proj = perspective(Math.PI / 4, aspect, near, far);
+	const proj = perspective(FOVY, aspect, near, far);
 	return multiply4(proj, view);
+}
+
+/**
+ * Project a world point to canvas pixels through a (column-major) view·projection.
+ * Returns null if behind the camera. `depth` is the clip-space w (≈ view distance),
+ * for front-most picking and projected-size estimates.
+ */
+export function projectToScreen(
+	vp: Float32Array,
+	p: Vec3,
+	width: number,
+	height: number
+): { x: number; y: number; depth: number } | null {
+	const cx = vp[0] * p[0] + vp[4] * p[1] + vp[8] * p[2] + vp[12];
+	const cy = vp[1] * p[0] + vp[5] * p[1] + vp[9] * p[2] + vp[13];
+	const cw = vp[3] * p[0] + vp[7] * p[1] + vp[11] * p[2] + vp[15];
+	if (cw <= 1e-6) return null; // behind the camera
+	return { x: (cx / cw * 0.5 + 0.5) * width, y: (1 - (cy / cw * 0.5 + 0.5)) * height, depth: cw };
 }

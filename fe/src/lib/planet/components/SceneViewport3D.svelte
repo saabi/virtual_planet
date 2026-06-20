@@ -1,11 +1,18 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
 	import { SceneRenderer, type BodyInstance, type SceneLighting } from '../scene3d/sceneRenderer.js';
-	import { clampElevation, viewProjection, type OrbitCamera } from '../scene3d/orbitCamera.js';
+	import {
+		clampElevation,
+		FOVY,
+		projectToScreen,
+		viewProjection,
+		type OrbitCamera
+	} from '../scene3d/orbitCamera.js';
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
+	import type { Vec3 } from '../math/vec.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
 
 	interface Props {
@@ -14,12 +21,14 @@
 		/** Shared animation clock; re-renders as it advances (driven by the 2D map loop). */
 		time?: number;
 	}
-	let { scene, selectedId = null, time = 0 }: Props = $props();
+	let { scene, selectedId = $bindable(null), time = 0 }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = $state(1);
 	let h = $state(1);
 	let failed = $state<string | null>(null);
+	/** Selection ring overlay (screen px), null when nothing is selected/visible. */
+	let marker = $state<{ x: number; y: number; r: number } | null>(null);
 
 	let device: GPUDevice | null = null;
 	let context: GPUCanvasContext | null = null;
@@ -33,7 +42,14 @@
 		moon: [0.6, 0.64, 0.72]
 	};
 
+	// Orbit params; the target is computed each frame (follows the selection), so the
+	// camera tracks a body as it orbits. Stored target stays unused.
 	let camera = $state<OrbitCamera>({ azimuth: 0.7, elevation: 0.5, distance: 1.5e8, target: [0, 0, 0] });
+
+	/** Camera target: the selected node's live world position, else the system centre. */
+	function targetOf(animated: PlanetScene): Vec3 {
+		return selectedId ? getWorldTransform(animated, selectedId).position : [0, 0, 0];
+	}
 
 	function buildInstances(animated: PlanetScene): BodyInstance[] {
 		return listBodies(animated).map((b) => ({
@@ -56,40 +72,100 @@
 		};
 	}
 
-	/** Frame the whole system: target the centre, distance from the farthest body. */
-	function frame(animated: PlanetScene) {
+	/** Fit the whole system: distance from the farthest body (target = centre). */
+	function frameAll() {
+		const animated = evaluateScene(scene, time);
 		let max = 1;
 		for (const b of listBodies(animated)) {
 			const p = getWorldTransform(animated, b.id).position;
 			max = Math.max(max, Math.hypot(p[0], p[1], p[2]) + b.radiusMeters);
 		}
-		camera = { ...camera, target: [0, 0, 0], distance: max * 2.2 };
+		camera = { ...camera, distance: max * 2.2 };
 	}
+
+	// Reframe when the selection changes: zoom to the body, else fit the system.
+	$effect(() => {
+		const id = selectedId;
+		untrack(() => {
+			if (!id) {
+				frameAll();
+				return;
+			}
+			const node = scene.nodes.get(id);
+			if (node && node.kind === 'body') camera = { ...camera, distance: node.radiusMeters * 8 };
+		});
+	});
 
 	function render() {
 		if (!device || !context || !renderer) return;
 		const animated = evaluateScene(scene, time);
+		const cam = { ...camera, target: targetOf(animated) };
+		const vp = viewProjection(cam, w / h);
 		renderer.render(
 			context.getCurrentTexture().createView(),
 			w,
 			h,
 			buildInstances(animated),
-			viewProjection(camera, w / h),
+			vp,
 			lighting(animated)
 		);
+		updateMarker(animated, vp);
+	}
+
+	/** Project the selected node to a screen-space ring sized to its body. */
+	function updateMarker(animated: PlanetScene, vp: Float32Array) {
+		const node = selectedId ? animated.nodes.get(selectedId) : null;
+		if (!node) {
+			marker = null;
+			return;
+		}
+		const sp = projectToScreen(vp, getWorldTransform(animated, selectedId!).position, w, h);
+		if (!sp) {
+			marker = null;
+			return;
+		}
+		const radius = node.kind === 'body' ? node.radiusMeters : 0;
+		const screenR = radius > 0 ? (radius / sp.depth) * (1 / Math.tan(FOVY / 2)) * (h / 2) : 0;
+		marker = { x: sp.x, y: sp.y, r: Math.max(screenR, 8) + 5 };
+	}
+
+	/** Pick the front-most body whose projected disc contains the click; else deselect. */
+	function pick(clientX: number, clientY: number) {
+		if (!canvas) return;
+		const rect = canvas.getBoundingClientRect();
+		const px = clientX - rect.left;
+		const py = clientY - rect.top;
+		const animated = evaluateScene(scene, time);
+		const vp = viewProjection({ ...camera, target: targetOf(animated) }, w / h);
+		let best: { id: string; depth: number } | null = null;
+		for (const b of listBodies(animated)) {
+			const sp = projectToScreen(vp, getWorldTransform(animated, b.id).position, w, h);
+			if (!sp) continue;
+			const screenR = (b.radiusMeters / sp.depth) * (1 / Math.tan(FOVY / 2)) * (h / 2);
+			const hitR = Math.max(screenR, 8);
+			if (Math.hypot(px - sp.x, py - sp.y) > hitR) continue;
+			if (!best || sp.depth < best.depth) best = { id: b.id, depth: sp.depth };
+		}
+		selectedId = best ? best.id : null;
 	}
 
 	let dragging = false;
+	let moved = false;
 	let lastX = 0;
 	let lastY = 0;
+	let downX = 0;
+	let downY = 0;
 	function onPointerDown(e: PointerEvent) {
 		dragging = true;
-		lastX = e.clientX;
-		lastY = e.clientY;
+		moved = false;
+		lastX = downX = e.clientX;
+		lastY = downY = e.clientY;
 		canvas?.setPointerCapture(e.pointerId);
 	}
 	function onPointerMove(e: PointerEvent) {
 		if (!dragging) return;
+		if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) moved = true; // drag, not a click
+		if (!moved) return;
 		const dx = e.clientX - lastX;
 		const dy = e.clientY - lastY;
 		lastX = e.clientX;
@@ -103,6 +179,7 @@
 	function onPointerUp(e: PointerEvent) {
 		dragging = false;
 		canvas?.releasePointerCapture?.(e.pointerId);
+		if (!moved) pick(e.clientX, e.clientY); // a click → select
 	}
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
@@ -117,6 +194,7 @@
 		void w;
 		void h;
 		void ready;
+		void selectedId;
 		render();
 	});
 
@@ -132,7 +210,7 @@
 				const format = navigator.gpu.getPreferredCanvasFormat();
 				context = configureWebGPUCanvas(device, el, format);
 				renderer = new SceneRenderer(device, format);
-				frame(evaluateScene(scene, time));
+				frameAll();
 				ready = true; // triggers the render effect
 			} catch (err) {
 				failed = err instanceof Error ? err.message : 'WebGPU unavailable';
@@ -167,6 +245,13 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
+	{#if marker}
+		<div
+			class="sel-ring"
+			style="left:{marker.x}px; top:{marker.y}px; width:{marker.r * 2}px; height:{marker.r * 2}px;"
+		></div>
+	{/if}
+	<button type="button" class="frame-btn" onclick={() => (selectedId = null)}>Frame all</button>
 	{#if failed}
 		<div class="overlay">3D unavailable: {failed} — use the 2D map.</div>
 	{/if}
@@ -192,6 +277,28 @@
 
 	.canvas3d:active {
 		cursor: grabbing;
+	}
+
+	.sel-ring {
+		position: absolute;
+		transform: translate(-50%, -50%);
+		border: 2px solid #9ec0ff;
+		border-radius: 50%;
+		box-shadow: 0 0 8px rgba(158, 192, 255, 0.7);
+		pointer-events: none;
+	}
+
+	.frame-btn {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		background: rgba(26, 31, 48, 0.85);
+		color: #e8ecf8;
+		cursor: pointer;
 	}
 
 	.overlay {
