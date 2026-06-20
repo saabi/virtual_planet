@@ -214,8 +214,9 @@ emissive body model with no new machinery.
    becomes a system editor; still simple rendering for non-focused bodies.
 3. **Full multi-body rendering** — angular-size LOD, star emissive + as the real
    light source, per-body local-frame precision for AU scales.
-4. **Rings on bodies; moon-rings; eclipses** (ring/planet/moon shadows already
-   analytic — see [planetary-rings.md](planetary-rings.md)).
+4. **Rings on bodies; moon-rings; eclipses** — analytic occlusion, no shadow maps;
+   see [planetary-rings.md](planetary-rings.md) (ring↔planet) and
+   [eclipse-shadows.md](eclipse-shadows.md) (body umbra/penumbra).
 
 Start with (1): it's the targeted slice that unblocks tide authoring without
 committing to the full multi-body renderer.

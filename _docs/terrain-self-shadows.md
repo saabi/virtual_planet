@@ -51,3 +51,9 @@ rendered into a shadow map.
 1. Soft penumbra (one-line change to the marcher).
 2. Surface-patch coordinate mapping + wiring.
 3. Performance: altitude-adaptive step budget.
+
+## Related
+
+- [specs/eclipse-shadows.md](specs/eclipse-shadows.md) — body-to-body eclipses (moon
+  transits, planetary umbra/penumbra). Composes with terrain self-shadow as
+  `body_eclipse × terrain_self`; also analytic, no shadow maps.
