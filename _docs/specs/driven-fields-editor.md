@@ -164,15 +164,14 @@ edits its slice and calls the existing `updateNode`.
 
 ## Phasing
 
-1. **Term fold + read-only legibility** — extend `applyBindings` to fold terms
-   (`op` + `const`/`ref` source); `fieldViews` + binding-aware `TransformEditor`
-   showing driven channels as the folded expression `= value`. *This is the direct fix
-   for "we can't see the expressions," and it makes composition real.* (Needs the
-   shared clock from decision 1.)
-2. **Driver section** — edit kepler params (eccentricity/period authorable; the
-   practical payoff).
-3. **Term + constraint editors** — add/remove/reorder terms (op + ref/const source),
-   detach; limit_rotation toggles.
+1. **✅ Term fold + read-only legibility** — `applyBindings` folds terms (`op` +
+   `const`/`ref` source); `fieldViews` + binding-aware `TransformEditor` show driven
+   channels as the folded expression `= live value`; shared clock lifted to the route.
+2. **✅ Driver section** — edit kepler params (eccentricity/period/axis authorable;
+   the ellipse reshapes live).
+3. **✅ Term + constraint editors** — `BindingsEditor` (add/remove/reorder terms; op +
+   ref/const source; per-channel) + `ConstraintsEditor` (limit_rotation X/Y/Z toggles
+   + ranges).
 4. **Driver-node composition (B)** — sum/scale drivers + topological eval (barycenter,
    reflex, binaries); path picker + authoring-time ref/cycle validation.
 

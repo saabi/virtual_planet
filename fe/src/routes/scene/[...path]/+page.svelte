@@ -21,7 +21,9 @@
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
-	import type { PlanetScene, Transform } from '$lib/planet/scene/types.js';
+	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
+	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
+	import type { Constraint, FieldTerm, PlanetScene, Transform } from '$lib/planet/scene/types.js';
 
 	const SCENE_KEY = 'vp.systemScene';
 
@@ -138,6 +140,13 @@
 		}
 	}
 
+	function onBindingsChange(next: FieldTerm[]) {
+		if (selectedId) scene = updateNode(scene, selectedId, { bindings: next });
+	}
+	function onConstraintsChange(next: Constraint[]) {
+		if (selectedId) scene = updateNode(scene, selectedId, { constraints: next });
+	}
+
 	function addUnder(kind: 'group' | 'body' | 'orbit') {
 		const parentId = selectedId ?? scene.rootId;
 		if (kind === 'orbit') {
@@ -202,6 +211,14 @@
 						</span>
 					</div>
 				{/if}
+				<div class="dataflow-section">
+					<span class="section-label">Bindings</span>
+					<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
+				</div>
+				<div class="dataflow-section">
+					<span class="section-label">Constraints</span>
+					<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
+				</div>
 				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
 				{/if}
@@ -356,6 +373,20 @@
 		font-size: 11px;
 		font-weight: 600;
 		color: #c7a6ff;
+	}
+
+	.dataflow-section {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding: 6px 8px;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 6px;
+	}
+
+	.dataflow-section .section-label {
+		color: #aab2c8;
 	}
 
 	.driver-outputs {
