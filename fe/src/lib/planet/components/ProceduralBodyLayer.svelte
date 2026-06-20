@@ -44,8 +44,12 @@
 		if (renderer && ready && w > 0 && h > 0) {
 			const params = resolveBodyParams(body);
 			const camera = createOrbitCamera({
+				// Match the scene camera: look at the body centre (not the horizon), and
+				// remap azimuth — scene-3d's dir is [cos·sin az, sin, cos·cos az] vs this
+				// camera's [cos·cos az, sin, cos·sin az], so az' = π/2 − az aligns them.
+				lookMode: 'planet-center',
 				distance: Math.max(params.radius * 1.02, distance),
-				azimuth,
+				azimuth: Math.PI / 2 - azimuth,
 				elevation,
 				fovDeg: (FOVY * 180) / Math.PI, // match the scene camera's fov
 				aspect: w / Math.max(h, 1),
