@@ -81,11 +81,12 @@ use of the map-as-HUD idea.
 
 ## Phasing
 
-1. **Static 3D** — `scene3d/` renderer + `SceneViewport3D`: instanced spheres at world
-   transforms, orbit camera (drag/zoom), basic scene lighting. No animation/picking
-   yet; proves the pipeline next to the 2D map.
-2. **Live + selection** — bind the shared clock (animate), CPU projection picking →
-   `selectedId`, camera follows selection.
+1. **✅ 3D pipeline** — `scene3d/` renderer (sphere mesh, instanced pipeline, orbit
+   camera + mat4 math) + `SceneViewport3D`: instanced spheres at world transforms,
+   orbit camera (drag/zoom), scene lighting; the 2D map is an inset minimap over it.
+   The shared clock is bound, so it already **animates** in lockstep with the map.
+2. **Selection + framing** — CPU projection picking → `selectedId` (and highlight),
+   camera follows the selection / reframes on demand.
 3. **Orbit paths in 3D** — line loops from `orbitPathLocal`; star glow.
 4. **Procedural upgrade (later, gated on `CelestialBody` params)** — swap the sphere
    for the `/planet` pipeline on the selected/near body; multi-body convergence.

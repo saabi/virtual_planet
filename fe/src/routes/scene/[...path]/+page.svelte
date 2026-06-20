@@ -18,6 +18,7 @@
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
+	import SceneViewport3D from '$lib/planet/components/SceneViewport3D.svelte';
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
@@ -232,7 +233,10 @@
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
+		<SceneViewport3D {scene} {selectedId} time={clock} />
+		<div class="map-inset">
+			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
+		</div>
 	</main>
 </div>
 
@@ -260,18 +264,26 @@
 	}
 
 	.system-main {
+		position: relative;
 		flex: 1;
 		min-width: 0;
 		padding: 12px;
 		box-sizing: border-box;
 	}
 
-	.system-main :global(.system-map) {
-		height: 100%;
+	/* 2D map as an inset minimap over the 3D view (doubles as the HUD-element use). */
+	.map-inset {
+		position: absolute;
+		right: 18px;
+		bottom: 18px;
+		width: 300px;
+		max-width: 40%;
+		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+		border-radius: 8px;
 	}
 
-	.system-main :global(.map-canvas) {
-		height: calc(100% - 36px);
+	.map-inset :global(.map-canvas) {
+		height: 180px;
 	}
 
 	.doc-controls {
