@@ -45,7 +45,6 @@
 	let device: GPUDevice | null = null;
 	let context: GPUCanvasContext | null = null;
 	let renderer: SceneRenderer | null = null;
-	let ready = $state(false);
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
 		star: [1.0, 0.82, 0.5],
@@ -282,17 +281,15 @@
 		camera = { ...camera, distance: Math.max(1e5, camera.distance * (1 + Math.sign(e.deltaY) * 0.12)) };
 	}
 
-	// Re-render whenever the scene, clock, camera, or size changes.
-	$effect(() => {
-		void scene;
-		void time;
-		void camera;
-		void w;
-		void h;
-		void ready;
-		void selectedId;
+	// Continuous render loop — the sphere scene AND the procedural mask update every
+	// frame, in lockstep with the clock and the procedural layer. (A reactive $effect
+	// stalled once the heavy procedural layer mounted, freezing the mask while the
+	// planet kept moving.) render() no-ops until the device is ready.
+	let raf = 0;
+	function loop() {
 		render();
-	});
+		raf = requestAnimationFrame(loop);
+	}
 
 	onMount(() => {
 		const el = canvas;
@@ -307,7 +304,6 @@
 				context = configureWebGPUCanvas(device, el, format);
 				renderer = new SceneRenderer(device, format);
 				frameAll();
-				ready = true; // triggers the render effect
 			} catch (err) {
 				failed = err instanceof Error ? err.message : 'WebGPU unavailable';
 			}
@@ -323,8 +319,10 @@
 		h = el.clientHeight || 1;
 		el.width = w;
 		el.height = h;
+		raf = requestAnimationFrame(loop);
 		return () => {
 			disposed = true;
+			cancelAnimationFrame(raf);
 			ro.disconnect();
 			renderer?.destroy();
 		};
