@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveBodyParams, selectLod } from './bodyParams.js';
+import { proceduralBlend, resolveBodyParams, selectLod } from './bodyParams.js';
 import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import type { BodyNode } from './types.js';
 
@@ -50,5 +50,16 @@ describe('selectLod', () => {
 		expect(selectLod(b, 5)).toBe('dot');
 		expect(selectLod(b, 50)).toBe('sphere');
 		expect(selectLod(b, 150)).toBe('procedural');
+	});
+});
+
+describe('proceduralBlend', () => {
+	it('ramps 0→1 over the fade band above the procedural threshold', () => {
+		const b = body({ lod: { proceduralAbovePx: 100 } }); // band = 50px → full at 150
+		expect(proceduralBlend(b, 80)).toBe(0); // below threshold: sphere only
+		expect(proceduralBlend(b, 100)).toBe(0); // at threshold: just starting
+		expect(proceduralBlend(b, 125)).toBeCloseTo(0.5, 6); // mid-fade
+		expect(proceduralBlend(b, 150)).toBe(1); // fully procedural
+		expect(proceduralBlend(b, 400)).toBe(1); // clamped
 	});
 });

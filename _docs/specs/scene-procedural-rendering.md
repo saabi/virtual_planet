@@ -57,6 +57,12 @@ gas giant they must share a depth buffer in a **comparable depth space**. Two ro
   pass composites it into scene-3d's color+depth (depth-test the two). Lower-risk,
   reuses 4a almost verbatim; the cost is reconciling the two depth spaces.
 
+  **(B) also enables LOD cross-fade** (decisive for it): composite the procedural
+  target over the sphere scene with `alpha = proceduralBlend(body, px)` (in
+  `bodyParams.ts`), so the planet *dissolves in over its sphere* across a band above
+  the threshold instead of popping. The sphere stays underneath; (A)'s single pass
+  can't do this cleanly. Sphere can stay drawn under a fully-faded body (cheap).
+
 **Prerequisite for either (the real keystone): the backend renders to an external
 target.** Today `WebGPUBackend.init(canvas)` is swapchain-bound (`getCurrentTexture`).
 Add a "render into a provided color+depth texture" mode (or extract the passes). Step

@@ -35,3 +35,15 @@ export function selectLod(body: BodyNode, projectedPx: number): LodLevel {
 	if (projectedPx >= sphereAbove) return 'sphere';
 	return 'dot';
 }
+
+/** Fraction (0..1) the procedural body is fade-composited over its sphere across the
+ *  band starting at `proceduralAbovePx`. 0 below the threshold; ramps to 1 over the
+ *  next `PROCEDURAL_FADE_BAND` of growth. Lets the planet dissolve in over the sphere
+ *  instead of popping. */
+const PROCEDURAL_FADE_BAND = 0.5; // fade over the next +50% of projected size
+
+export function proceduralBlend(body: BodyNode, projectedPx: number): number {
+	const procAbove = body.lod?.proceduralAbovePx ?? DEFAULT_PROCEDURAL_ABOVE_PX;
+	const band = Math.max(1, procAbove * PROCEDURAL_FADE_BAND);
+	return Math.max(0, Math.min(1, (projectedPx - procAbove) / band));
+}
