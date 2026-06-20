@@ -45,16 +45,35 @@ Recommend **4a first** (a real procedural planet from the scene, low risk), then
 
 ## 4b — compositing + floating origin
 
-- **Lift the passes.** Drive the terrain (+ later atmosphere) passes into scene-3d's
-  render pass — shared **depth buffer** with the sphere instances, so a near moon
-  occludes a far gas giant correctly. Either extract `passes/terrainPass` to accept an
-  external target, or run the backend into an offscreen color+depth and composite by
-  depth.
-- **Floating origin.** Render origin = camera each frame. The body's patches are
-  generated about its centre, then placed at `bodyWorldPos − cameraPos`; reuse
-  `buildLocalFrame` / `createLocalViewProjection` / `maybeRebaseFrame` (already the
-  `/planet` precision path) so Float32 holds cm-at-surface and ~1e8 m to the gas giant.
-- **One body first**, the largest on screen at procedural LOD; then N (a budget).
+The crux: scene-3d (spheres) and the planet backend each render to their own
+color+**depth** with their own camera/projection. To make a near moon occlude a far
+gas giant they must share a depth buffer in a **comparable depth space**. Two routes:
+
+- **(A) Unified single pass** — render spheres *and* procedural bodies into one pass
+  with one camera/projection. Cleanest occlusion, but a big refactor: the planet
+  passes are wired to the backend's own camera/localFrame/bind-groups.
+- **(B) Offscreen render → depth composite** *(recommended, incremental)* — render the
+  body via the backend into an **offscreen color+depth** target, then a fullscreen
+  pass composites it into scene-3d's color+depth (depth-test the two). Lower-risk,
+  reuses 4a almost verbatim; the cost is reconciling the two depth spaces.
+
+**Prerequisite for either (the real keystone): the backend renders to an external
+target.** Today `WebGPUBackend.init(canvas)` is swapchain-bound (`getCurrentTexture`).
+Add a "render into a provided color+depth texture" mode (or extract the passes). Step
+1 of 4b, verifiable by routing `FocusedBodyView` through an offscreen texture + blit
+and checking it matches 4a.
+
+**Camera + floating origin.** For depths to align, the body's passes must render in
+**scene-3d's camera**, with the body placed at `bodyWorldPos − cameraPos` (floating
+origin, reusing `buildLocalFrame` / `createLocalViewProjection` / `maybeRebaseFrame`)
+and scene-3d's projection (so its depth matches the spheres). This is where physical
+`radiusMeters` finally drives the render scale. The subtle part — and the only way to
+get cm-at-surface *and* ~1e8 m to the gas giant in Float32.
+
+**Sequence (each step user-verifiable):** ① backend render-to-target (parity with 4a)
+→ ② composite one body over the spheres (coarse depth = body centre) → ③ true
+per-pixel depth + the scene camera/floating origin → ④ N bodies (a budget) + their
+atmospheres. "One body first, the largest on screen at procedural LOD."
 
 ## Camera unification
 
