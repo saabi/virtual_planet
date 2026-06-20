@@ -3,7 +3,8 @@
 **Status:** proposal · **Scope:** converge the two render paths (scene-3d spheres +
 the planet backend) into **one engine** — one device, one pass (color + **shared
 depth**), one camera — drawing each body at its LOD, depth-composited, floating-origin.
-**Supersedes** the CSS cross-fade layer (the deferred composite). **Related:**
+**Evolves** the CSS cross-fade into a GPU render-to-texture composite (kept, not
+retired). **Related:**
 [scene-procedural-rendering.md](scene-procedural-rendering.md),
 [scene-3d-viewport.md](scene-3d-viewport.md),
 [celestial-body-params.md](celestial-body-params.md).
@@ -28,17 +29,23 @@ hacks the interim needed.
 In the **scene camera** (system space), **floating origin** (render origin rebased to
 the camera each frame):
 
-1. **Draw list.** Per visible body: `selectLod(px)` → `dot | sphere | procedural`;
-   cull off-screen. Cap procedural bodies at a **budget** (rest fall back to sphere).
-2. **Solids pass → shared color + depth.** Instanced spheres (dot/sphere bodies) **and**
-   procedural terrain (procedural bodies) all write the **same depth** in the **scene
-   projection** — so occlusion is per-pixel for free. Procedural bodies: the terrain
-   pass driven by the scene view-projection + the body's **camera-relative offset**
-   (`bodyEcef − cameraEcef`), scheduling patches per body.
-3. **Atmospheres pass.** Per procedural body, the atmosphere pass reads the shared
-   color+depth and adds scattering (depth-aware → sits correctly over near occluders).
-   Coverage alpha falls out — no mask.
-4. **Tone-map / present.**
+1. **Draw list.** Per visible body: `selectLod(px)` → `dot | sphere | procedural`, with
+   `proceduralBlend`; cull off-screen. Cap procedural bodies at a **budget**.
+2. **Spheres → shared color + depth.** Instanced dot/sphere bodies.
+3. **Procedural bodies — two modes by `proceduralBlend`:**
+   - **Fading (0 < blend < 1): render-to-texture + composite.** Render the body to an
+     offscreen color(+depth) texture (matched camera) and composite over the shared
+     scene with `alpha = blend`; coverage comes from the texture (its depth, later its
+     atmosphere) → **real alpha, no CSS mask**. Keeps `renderToTexture` first-class.
+   - **Close (blend = 1): single-pass.** Render the terrain directly into the shared
+     pass + **shared depth**, in the scene view-projection at the body's
+     camera-relative offset (`bodyEcef − cameraEcef`) — per-pixel occlusion. The
+     GPU-deep mode, only for the dominant body (and, later, co-dominant ones).
+4. **Atmospheres + tone-map / present.** For single-pass bodies, scattering reads the
+   shared depth; for fading bodies it's baked in the offscreen texture.
+
+The common case (a fade) uses the **tractable, alpha-correct offscreen path**; the hard
+shared-depth single-pass work is deferred to the close/dominant body.
 
 Key unifications:
 - **One** device + canvas + **depth** buffer (today: two devices, two depths).
@@ -60,11 +67,12 @@ it needs on-device verification at each step (see "Working method").
 1. **Frame skeleton (no GPU change)** — a `SceneEngine` owning the device, the shared
    color+depth, and a draw list; move the existing sphere draw into it. Behaviour
    identical to today's sphere view.
-2. **One procedural body in the shared pass** — terrain pass driven by the scene camera
-   + the body offset, into the shared depth (replaces the CSS layer for one body, with
-   *true* depth + alpha). **The keystone — GPU-deep.**
-3. **Atmosphere in the shared pass** — per-body scattering over the shared depth.
-4. **Multi-body + budget; floating-origin polish; unified surface/orbit camera** —
+2. **Offscreen-composite fade (alpha-correct)** — render the body to a texture and
+   composite into the shared scene with `alpha = blend` + texture coverage. Replaces
+   the CSS layer + radial mask with real alpha. Tractable, verify-loop friendly.
+3. **Single-pass for the close body** — terrain into the shared pass + shared depth at
+   the scene camera/offset, when `blend = 1`. **The keystone — GPU-deep.**
+4. **Atmospheres in-pass; multi-body + budget; floating origin; surface camera** —
    the "gas giant from a moon's surface" payoff.
 
 ## Decisions
