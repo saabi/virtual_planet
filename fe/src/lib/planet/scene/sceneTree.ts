@@ -152,18 +152,25 @@ export function listBodies(scene: PlanetScene): BodyNode[] {
 }
 
 /**
- * The body that owns a node's orbit: its nearest ancestor of kind 'body'. For a
- * moon → its planet; for a planet → its star. null if there is no ancestor body.
- * (Starts at the node's parent, so a body's owner is its parent body, not itself.)
+ * The body that owns a node's orbit. In the phase→radius→body structure the orbit's
+ * central body is a *sibling* at the system center (a moon's planet), or an *ancestor*
+ * (a planet's star). Walking up, the owner is the first body sibling (a body child of
+ * an ancestor, off our path) or ancestor body encountered. null if none.
  */
 export function findOwnerBody(scene: PlanetScene, nodeId: string): BodyNode | null {
-	const start = scene.nodes.get(nodeId);
-	let id: string | null = start ? start.parentId : null;
-	while (id != null) {
-		const node = scene.nodes.get(id);
-		if (!node) return null;
-		if (node.kind === 'body') return node;
-		id = node.parentId;
+	let childId = nodeId;
+	let parentId = scene.nodes.get(nodeId)?.parentId ?? null;
+	while (parentId != null) {
+		const parent = scene.nodes.get(parentId);
+		if (!parent) return null;
+		// A primary body at this center: a body child other than the one we came from.
+		for (const child of getChildren(scene, parentId)) {
+			if (child.id !== childId && child.kind === 'body') return child;
+		}
+		// Or this ancestor itself is a body (e.g. the star a planet orbits).
+		if (parent.kind === 'body') return parent;
+		childId = parentId;
+		parentId = parent.parentId;
 	}
 	return null;
 }

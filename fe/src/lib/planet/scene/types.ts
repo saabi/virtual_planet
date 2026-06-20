@@ -44,14 +44,31 @@ export interface TransformInheritance {
 	scale: string;
 }
 
+/**
+ * Orbit phase driver — drives a group node's `transform.rotation` about +Y. With a
+ * child "radius" node offset by [R,0,0], the rotation sweeps the offset around a
+ * circle: that is the orbit (phase node = center of rotation, radius node = the
+ * distance). The orbiting body sits below the radius node and only spins, so spin
+ * and orbit stay independent. Circular for now; eccentricity = a future driver on
+ * the radius node + the central body offset to a focus. See
+ * _docs/specs/solar-system-scene.md.
+ */
+export interface OrbitPhase {
+	periodSeconds: number;
+	/** Phase angle at t=0, radians. */
+	phaseAtEpoch: number;
+}
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
 	parentId: string | null;
 	transform: Transform;
 	enabled: boolean;
-	/** Optional motion component: drives `transform.position` relative to the parent. */
+	/** Optional kinematic position driver (position-model orbit). */
 	orbit?: OrbitElements;
+	/** Optional orbit-phase driver: rotates this node about +Y (a center of rotation). */
+	orbitPhase?: OrbitPhase;
 	/** Optional axial spin period (s) about +Y: drives `transform.rotation`. */
 	spinPeriodSeconds?: number;
 	/** Optional per-channel transform inheritance; absent = all channels inherit from the parent. */

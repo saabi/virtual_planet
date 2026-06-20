@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { advanceScene, orbitLocalPosition } from './orbit.js';
+import { getWorldTransform } from './sceneTree.js';
+import { IDENTITY_QUAT } from './transform.js';
 import type { OrbitElements, PlanetScene, SceneNode } from './types.js';
 import { len3 } from '../math/vec.js';
 
@@ -86,6 +88,35 @@ describe('advanceScene', () => {
 		expect(s.nodes.get('static')!.transform.position).toEqual([7, 8, 9]);
 		// Immutability: the input scene's orbiter is still at the origin.
 		expect(s0.nodes.get('orbiter')!.transform.position).toEqual([0, 0, 0]);
+	});
+
+	it('phase→radius→body: the phase rotation sweeps the body around a circle', () => {
+		// star → phase(orbitPhase, period 4) → radius([10,0,0]) → body
+		const nodes = new Map<string, SceneNode>();
+		const g = (id: string, parentId: string | null, extra: Partial<SceneNode> = {}): SceneNode =>
+			({
+				id,
+				name: id,
+				parentId,
+				kind: 'group',
+				enabled: true,
+				transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT },
+				...extra
+			}) as SceneNode;
+		nodes.set('star', g('star', null));
+		nodes.set('phase', g('phase', 'star', { orbitPhase: { periodSeconds: 4, phaseAtEpoch: 0 } }));
+		nodes.set('radius', g('radius', 'phase', { transform: { position: [10, 0, 0], rotation: IDENTITY_QUAT } }));
+		nodes.set('body', g('body', 'radius'));
+		const s0: PlanetScene = { rootId: 'star', nodes };
+
+		// t=0: body at [10,0,0].
+		const a0 = getWorldTransform(advanceScene(s0, 0), 'body').position;
+		expect(a0[0]).toBeCloseTo(10, 6);
+		expect(a0[2]).toBeCloseTo(0, 6);
+		// t=1 (quarter period): phase = 90° about Y → [10,0,0] swept to [0,0,-10].
+		const a1 = getWorldTransform(advanceScene(s0, 1), 'body').position;
+		expect(a1[0]).toBeCloseTo(0, 6);
+		expect(a1[2]).toBeCloseTo(-10, 6);
 	});
 
 	it('returns the same scene reference when nothing animates', () => {

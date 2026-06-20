@@ -88,7 +88,16 @@ export function advanceScene(scene: PlanetScene, t: number): PlanetScene {
 			};
 			changed = true;
 		}
-		if (node.spinPeriodSeconds && node.spinPeriodSeconds !== 0) {
+		// Orbit-phase and spin both drive rotation about +Y; a node carries at most one.
+		if (node.orbitPhase) {
+			const { periodSeconds, phaseAtEpoch } = node.orbitPhase;
+			const angle = phaseAtEpoch + (periodSeconds !== 0 ? (TWO_PI * t) / periodSeconds : 0);
+			next = {
+				...next,
+				transform: { ...next.transform, rotation: quatFromAxisAngle([0, 1, 0], angle) }
+			};
+			changed = true;
+		} else if (node.spinPeriodSeconds && node.spinPeriodSeconds !== 0) {
 			const angle = (TWO_PI * t) / node.spinPeriodSeconds;
 			next = {
 				...next,

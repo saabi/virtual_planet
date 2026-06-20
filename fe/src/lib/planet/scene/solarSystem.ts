@@ -1,71 +1,86 @@
-import type { BodyType, OrbitElements, PlanetScene, SceneNode } from './types.js';
+import type { BodyType, PlanetScene, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
-import { orbitLocalPosition } from './orbit.js';
 import { DEFAULT_AMBIENT } from './defaults.js';
 
 // Toy solar system preset. Small bodies: rocky planets 400-600 km radius (~1/12
-// Earth), everything else sized to match. Orbit ownership is the hierarchy (moons
-// are children of their planet, planets children of the star). Bodies carry
-// kinematic orbit + spin components (advanceScene animates them); their initial
-// transform is the t=0 orbit position. Periods are short and scaled by distance so
-// the animation is visible. The moon reflection lights are disabled placeholders
-// scoped to their parent planet, proving the selective-illumination model without
-// simulating reflection yet. See _docs/specs/solar-system-scene.md.
+// Earth). Each orbit is built from single-purpose nodes (no per-channel inheritance):
+//
+//   <body>-phase   group, orbitPhase driver → rotation about +Y (center of rotation)
+//     <body>-radius  group, transform.position = [R,0,0] (the orbital distance)
+//       <body>       the body — spins only, sits at the orbital position
+//
+// The phase rotation sweeps the radius offset around a circle = the orbit. A planet's
+// radius node is the "system center": the planet sits there and its moons' phase
+// nodes are children of it, so moon-orbit and planet-spin are independent (siblings).
+// Orbits are circular for now. See _docs/specs/solar-system-scene.md.
 
 const KM = 1000; // meters per kilometer
 
 export const TOY_SOLAR_SYSTEM_ROOT_ID = 'solar-system';
 
-function orbit(
-	semiMajorKm: number,
-	periodSeconds: number,
-	phaseAtEpoch: number,
-	eccentricity = 0,
-	periapsisAngle = 0
-): OrbitElements {
-	return { semiMajorAxis: semiMajorKm * KM, periodSeconds, phaseAtEpoch, eccentricity, periapsisAngle };
-}
-
 export function createToySolarSystemScene(): PlanetScene {
 	const nodes = new Map<string, SceneNode>();
 	const add = (node: SceneNode) => nodes.set(node.id, node);
+	const id = (rotation = IDENTITY_QUAT) => ({ position: [0, 0, 0] as [number, number, number], rotation });
 
-	const body = (
-		id: string,
+	/**
+	 * Build an orbiting body: phase (rotation) → radius (distance) → body (spin),
+	 * orbiting `centerId`. Returns the radius node id — the body's system center,
+	 * where its moons attach. The body node keeps `id` (so ids stay stable).
+	 */
+	const orbiting = (
+		bodyId: string,
 		name: string,
-		parentId: string,
+		centerId: string,
 		bodyType: BodyType,
 		radiusKm: number,
-		orbitEl: OrbitElements | null,
-		spinPeriodSeconds: number | undefined,
+		orbitRadiusKm: number,
+		periodSeconds: number,
+		phaseAtEpoch: number,
+		spinPeriodSeconds: number,
 		standIn = false
-	) =>
+	): string => {
 		add({
-			id,
+			id: `${bodyId}-phase`,
+			name: `${name} orbit`,
+			parentId: centerId,
+			kind: 'group',
+			enabled: true,
+			transform: id(),
+			orbitPhase: { periodSeconds, phaseAtEpoch }
+		});
+		add({
+			id: `${bodyId}-radius`,
+			name: `${name} radius`,
+			parentId: `${bodyId}-phase`,
+			kind: 'group',
+			enabled: true,
+			transform: { position: [orbitRadiusKm * KM, 0, 0], rotation: IDENTITY_QUAT }
+		});
+		add({
+			id: bodyId,
 			name,
-			parentId,
+			parentId: `${bodyId}-radius`,
 			kind: 'body',
 			enabled: true,
-			transform: {
-				position: orbitEl ? orbitLocalPosition(orbitEl, 0) : [0, 0, 0],
-				rotation: IDENTITY_QUAT
-			},
+			transform: id(),
 			bodyType,
 			radiusMeters: radiusKm * KM,
 			standIn,
-			...(orbitEl ? { orbit: orbitEl } : {}),
-			...(spinPeriodSeconds ? { spinPeriodSeconds } : {})
+			spinPeriodSeconds
 		});
+		return `${bodyId}-radius`;
+	};
 
 	/** Disabled placeholder for a moon's future reflected light, scoped to its planet. */
-	const reflection = (id: string, name: string, moonId: string, planetId: string) =>
+	const reflection = (id_: string, name: string, moonId: string, planetId: string) =>
 		add({
-			id,
+			id: id_,
 			name,
 			parentId: moonId,
 			kind: 'directional_light',
 			enabled: false,
-			transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT },
+			transform: id(),
 			color: [0.7, 0.72, 0.8],
 			intensity: 0.1,
 			affects: planetId
@@ -77,52 +92,57 @@ export function createToySolarSystemScene(): PlanetScene {
 		parentId: null,
 		kind: 'group',
 		enabled: true,
-		transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT }
+		transform: id()
 	});
-
 	add({
 		id: 'ss-ambient',
 		name: 'Ambient',
 		parentId: TOY_SOLAR_SYSTEM_ROOT_ID,
 		kind: 'ambient_light',
 		enabled: true,
-		transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT },
+		transform: id(),
 		color: [...DEFAULT_AMBIENT],
 		intensity: 1
 	});
-
-	// Global starlight (directional for now; a point source at the star is a later
-	// refinement once multi-body rendering needs per-body light directions).
 	add({
 		id: 'ss-starlight',
 		name: 'Starlight',
 		parentId: TOY_SOLAR_SYSTEM_ROOT_ID,
 		kind: 'directional_light',
 		enabled: true,
-		transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT },
+		transform: id(),
 		color: [1.0, 0.95, 0.85],
 		intensity: 3.5,
 		affects: null
 	});
 
-	// Star (stand-in — no star designer facilities yet). Sits at the system center.
-	body('ss-sol', 'Sol', TOY_SOLAR_SYSTEM_ROOT_ID, 'star', 50_000, null, undefined, true);
+	// Star at the system center (stand-in — no star designer facilities yet).
+	add({
+		id: 'ss-sol',
+		name: 'Sol',
+		parentId: TOY_SOLAR_SYSTEM_ROOT_ID,
+		kind: 'body',
+		enabled: true,
+		transform: id(),
+		bodyType: 'star',
+		radiusMeters: 50_000 * KM,
+		standIn: true
+	});
 
-	// Rocky planets orbit the star (owns their orbit). Periods scale ~a^1.5.
-	body('ss-ferro', 'Ferro', 'ss-sol', 'planet', 500, orbit(10_000, 60, 0), 12);
-	body('ss-luna-f', 'Luna-F', 'ss-ferro', 'moon', 120, orbit(600, 9, 0.5), 9); // tidally locked
+	// Planets orbit Sol; moons orbit their planet's radius node (the system center).
+	orbiting('ss-ferro', 'Ferro', 'ss-sol', 'planet', 500, 10_000, 60, 0, 12);
+	orbiting('ss-luna-f', 'Luna-F', 'ss-ferro-radius', 'moon', 120, 600, 9, 0.5, 9);
 	reflection('ss-luna-f-reflect', 'Luna-F reflection', 'ss-luna-f', 'ss-ferro');
 
-	body('ss-cerule', 'Cerule', 'ss-sol', 'planet', 450, orbit(20_000, 170, 2.1), 18);
+	orbiting('ss-cerule', 'Cerule', 'ss-sol', 'planet', 450, 20_000, 170, 2.1, 18);
 
-	body('ss-ochre', 'Ochre', 'ss-sol', 'planet', 600, orbit(35_000, 393, 4.2, 0.15, 0.7), 24);
-	body('ss-pebble', 'Pebble', 'ss-ochre', 'moon', 90, orbit(700, 11, 0), 11);
+	orbiting('ss-ochre', 'Ochre', 'ss-sol', 'planet', 600, 35_000, 393, 4.2, 24);
+	orbiting('ss-pebble', 'Pebble', 'ss-ochre-radius', 'moon', 90, 700, 11, 0, 11);
 	reflection('ss-pebble-reflect', 'Pebble reflection', 'ss-pebble', 'ss-ochre');
-	body('ss-cobble', 'Cobble', 'ss-ochre', 'moon', 70, orbit(1_100, 20, 3.1), 20);
+	orbiting('ss-cobble', 'Cobble', 'ss-ochre-radius', 'moon', 70, 1_100, 20, 3.1, 20);
 
-	// Gas giant (stand-in) with a moon.
-	body('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 7_000, orbit(60_000, 882, 1.0, 0.05), 30, true);
-	body('ss-gale', 'Gale', 'ss-tempest', 'moon', 200, orbit(9_000, 40, 0), 40);
+	orbiting('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 7_000, 60_000, 882, 1.0, 30, true);
+	orbiting('ss-gale', 'Gale', 'ss-tempest-radius', 'moon', 200, 9_000, 40, 0, 40);
 	reflection('ss-gale-reflect', 'Gale reflection', 'ss-gale', 'ss-tempest');
 
 	return { rootId: TOY_SOLAR_SYSTEM_ROOT_ID, nodes };
