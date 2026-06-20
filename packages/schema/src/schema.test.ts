@@ -4,6 +4,7 @@ import {
 	check,
 	create,
 	extent,
+	fields,
 	quantity,
 	ref,
 	Type,
@@ -69,6 +70,32 @@ describe('withDefault', () => {
 		const with500 = withDefault(base)(500);
 		expect(annotationsOf(with500).default).toBe(500);
 		expect(annotationsOf(base).default).toBeUndefined(); // original untouched
+	});
+});
+
+describe('fields (form-generation introspection)', () => {
+	it('classifies properties and exposes annotations + enum options', () => {
+		const schema = Type.Object({
+			radius: quantity('km', { min: 1, default: 500 }),
+			count: quantity('none', { integer: true, min: 0 }),
+			active: Type.Boolean({ default: true }),
+			label: Type.String(),
+			kind: Type.Union([Type.Literal('star'), Type.Literal('planet')], { default: 'planet' })
+		});
+		const f = Object.fromEntries(fields(schema).map((x) => [x.key, x]));
+
+		expect(f.radius.kind).toBe('number');
+		expect(f.radius.annotations.unit).toBe('km');
+		expect(f.radius.annotations.extent).toEqual([1, null]);
+		expect(f.count.kind).toBe('integer');
+		expect(f.active.kind).toBe('boolean');
+		expect(f.label.kind).toBe('string');
+		expect(f.kind.kind).toBe('enum');
+		expect(f.kind.options).toEqual(['star', 'planet']);
+	});
+
+	it('returns no fields for a non-object schema', () => {
+		expect(fields(quantity('km'))).toEqual([]);
 	});
 });
 

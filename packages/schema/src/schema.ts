@@ -104,6 +104,62 @@ export function annotationsOf(schema: TSchema): SchemaAnnotations {
 	return out;
 }
 
+// --- Introspection for form generation (the getEditor / TypedField pattern) ---
+
+export type FieldKind =
+	| 'number'
+	| 'integer'
+	| 'boolean'
+	| 'string'
+	| 'enum'
+	| 'object'
+	| 'array'
+	| 'unknown';
+
+export interface SchemaField {
+	key: string;
+	schema: TSchema;
+	kind: FieldKind;
+	annotations: SchemaAnnotations;
+	/** Allowed literal values, for `enum` kind. */
+	options?: (string | number)[];
+}
+
+/** Literal-union options (`Type.Union([Type.Literal(...)])`), or undefined. */
+export function enumOptions(schema: TSchema): (string | number)[] | undefined {
+	const variants = (schema as { anyOf?: { const?: string | number }[] }).anyOf;
+	if (Array.isArray(variants) && variants.every((v) => 'const' in v)) {
+		return variants.map((v) => v.const as string | number);
+	}
+	return undefined;
+}
+
+/** Classify a schema into a widget kind for the form generator. */
+export function fieldKind(schema: TSchema): FieldKind {
+	const t = (schema as { type?: string }).type;
+	if (t === 'boolean') return 'boolean';
+	if (t === 'integer') return 'integer';
+	if (t === 'number') return 'number';
+	if (t === 'object') return 'object';
+	if (t === 'array') return 'array';
+	if (enumOptions(schema)) return 'enum';
+	if (t === 'string') return 'string';
+	return 'unknown';
+}
+
+/** Per-property field descriptors of an object schema — what a form generator walks. */
+export function fields(schema: TSchema): SchemaField[] {
+	const obj = schema as { type?: string; properties?: Record<string, TSchema> };
+	if (obj.type !== 'object' || !obj.properties) return [];
+	return Object.entries(obj.properties).map(([key, propSchema]) => ({
+		key,
+		schema: propSchema,
+		kind: fieldKind(propSchema),
+		annotations: annotationsOf(propSchema),
+		options: enumOptions(propSchema)
+	}));
+}
+
 /**
  * Runtime validation against a *live* (in-memory) schema built with these factories.
  *
