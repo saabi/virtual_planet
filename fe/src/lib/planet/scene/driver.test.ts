@@ -94,6 +94,60 @@ describe('composable field terms (fold)', () => {
 		expect(x).toBeCloseTo(1300, 6);
 	});
 
+	it('sum driver: barycenter of two opposite orbits stays at the center', () => {
+		// Two equal "stars" 180° out of phase about the origin; the equal-weight sum of
+		// their orbit drivers is the (fixed) barycenter — a binary's center of mass.
+		const a = { semiMajorAxis: 1000, eccentricity: 0, periodSeconds: 100, periapsisAngle: 0 };
+		const scene: PlanetScene = {
+			rootId: 'root',
+			nodes: new Map(
+				[
+					node('root', null),
+					node('a', 'root', { driver: { type: 'kepler', phaseAtEpoch: 0, ...a } }),
+					node('b', 'root', { driver: { type: 'kepler', phaseAtEpoch: Math.PI, ...a } }),
+					node('bary', 'root', {
+						driver: {
+							type: 'sum',
+							inputs: [
+								{ ref: '/a', weight: 0.5 },
+								{ ref: '/b', weight: 0.5 }
+							]
+						}
+					}),
+					node('marker', 'root', {
+						bindings: [
+							{ field: 'positionX', source: { ref: '/bary', output: 'x' } },
+							{ field: 'positionZ', source: { ref: '/bary', output: 'z' } }
+						]
+					})
+				].map((n) => [n.id, n])
+			)
+		};
+		for (const t of [0, 25, 60]) {
+			const p = getWorldTransform(evaluateScene(scene, t), 'marker').position;
+			expect(p[0]).toBeCloseTo(0, 6);
+			expect(p[2]).toBeCloseTo(0, 6);
+		}
+	});
+
+	it('sum driver: a cyclic reference resolves to empty (no infinite loop)', () => {
+		const scene: PlanetScene = {
+			rootId: 'root',
+			nodes: new Map(
+				[
+					node('root', null),
+					node('s', 'root', { driver: { type: 'sum', inputs: [{ ref: '/s' }] } }),
+					node('m', 'root', {
+						transform: { position: [9, 0, 0], rotation: [0, 0, 0, 1] },
+						bindings: [{ field: 'positionX', op: 'add', source: { ref: '/s', output: 'x' } }]
+					})
+				].map((n) => [n.id, n])
+			)
+		};
+		// Cycle → no output → the add term contributes nothing; literal 9 survives.
+		expect(evaluateScene(scene, 0).nodes.get('m')!.transform.position[0]).toBe(9);
+	});
+
 	it('add terms seed from the stored literal (no set term)', () => {
 		// positionY literal 5, + add const 3 → 8.
 		const scene: PlanetScene = {

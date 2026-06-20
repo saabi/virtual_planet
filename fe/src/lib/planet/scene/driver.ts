@@ -12,8 +12,26 @@ import { applyConstraints } from './constraints.js';
 // driver wired into a rotate node (phase) + a translate node (radius), not a baked
 // primitive. See _docs/specs/scene-routing.md.
 
-/** Evaluate a driver's named outputs at time t. */
-export function evaluateDriver(spec: DriverSpec, t: number): Record<string, number> {
+/** Resolves a referenced driver's outputs (for drivers that consume other drivers). */
+export interface DriverContext {
+	input(ref: string): Record<string, number>;
+}
+
+/** Evaluate a driver's named outputs at time t. `ctx` resolves input refs (sum). */
+export function evaluateDriver(
+	spec: DriverSpec,
+	t: number,
+	ctx?: DriverContext
+): Record<string, number> {
+	if (spec.type === 'sum') {
+		const acc: Record<string, number> = {};
+		for (const inp of spec.inputs) {
+			const w = inp.weight ?? 1;
+			const out = ctx?.input(inp.ref) ?? {};
+			for (const k in out) acc[k] = (acc[k] ?? 0) + w * out[k];
+		}
+		return acc;
+	}
 	if (spec.type === 'kepler') {
 		// Kepler ellipse, focus at the origin. Output the polar (phase, radius) so a
 		// rotate(phase)→translate(radius) chain reconstructs the position — and the
@@ -99,13 +117,39 @@ function applyBindings(
  * only on t, so no ordering is needed; driver→driver/node refs (sum/reflex) will add
  * topological evaluation later.
  */
+/**
+ * Every driver node's outputs, in dependency order: a sum driver reads the drivers it
+ * references, so they are computed first (lazy DFS + memo). A cyclic reference resolves
+ * to empty outputs (the visiting guard), never an infinite loop.
+ */
+function driverOutputs(scene: PlanetScene, t: number): Map<string, Record<string, number>> {
+	const memo = new Map<string, Record<string, number>>();
+	const visiting = new Set<string>();
+	function compute(nodeId: string): Record<string, number> {
+		const cached = memo.get(nodeId);
+		if (cached) return cached;
+		const node = scene.nodes.get(nodeId);
+		if (!node?.driver) return {};
+		if (visiting.has(nodeId)) return {}; // cycle → empty
+		visiting.add(nodeId);
+		const out = evaluateDriver(node.driver, t, {
+			input: (ref) => {
+				const id = resolvePath(scene, nodeId, ref);
+				return id != null ? compute(id) : {};
+			}
+		});
+		visiting.delete(nodeId);
+		memo.set(nodeId, out);
+		return out;
+	}
+	for (const node of scene.nodes.values()) if (node.driver) compute(node.id);
+	return memo;
+}
+
 export function evaluateScene(scene: PlanetScene, t: number): PlanetScene {
 	const s = advanceScene(scene, t);
 
-	const outputs = new Map<string, Record<string, number>>();
-	for (const node of s.nodes.values()) {
-		if (node.driver) outputs.set(node.id, evaluateDriver(node.driver, t));
-	}
+	const outputs = driverOutputs(s, t);
 
 	let changed = false;
 	const nodes = new Map(s.nodes);

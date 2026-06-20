@@ -55,7 +55,7 @@ describe('addOrbitingBody', () => {
 		const orbit = scene.nodes.get(`${bodyId}-orbit`)!;
 		expect(orbit.parentId).toBe('a'); // orbit centered on 'a'
 		expect(orbit.driver?.type).toBe('kepler');
-		expect(orbit.driver?.periodSeconds).toBe(4);
+		if (orbit.driver?.type === 'kepler') expect(orbit.driver.periodSeconds).toBe(4);
 		expect(scene.nodes.get(bodyId)!.kind).toBe('body');
 
 		// 'a' is at the origin → body orbits a circle of the orbit radius about it.

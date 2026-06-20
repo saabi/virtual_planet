@@ -75,7 +75,26 @@ export interface KeplerDriver {
 	phaseAtEpoch: number;
 	periapsisAngle: number;
 }
-export type DriverSpec = KeplerDriver;
+
+/** One weighted input of a sum driver: a path to another driver. */
+export interface SumInput {
+	ref: string;
+	/** Default 1. Negative for reflex/subtraction. */
+	weight?: number;
+}
+
+/**
+ * Combine other drivers' outputs: each output key is the weighted sum across inputs.
+ * Summing orbit drivers' x/z gives a barycenter (equal weights) or a reflex wobble
+ * (negative weights ∝ mass) — i.e. binaries and the "central star oscillates" case.
+ * Needs topological evaluation (it reads other drivers); cycles resolve to empty.
+ */
+export interface SumDriver {
+	type: 'sum';
+	inputs: SumInput[];
+}
+
+export type DriverSpec = KeplerDriver | SumDriver;
 
 export type TransformField =
 	| 'positionX'

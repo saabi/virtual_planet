@@ -25,7 +25,7 @@ export const orbitSchema = Type.Object({
 	periapsisAngle: quantity('deg', { scale: DEG, default: 0, description: 'Ellipse orientation' })
 });
 
-/** The editable-params schema for a driver (by type). */
+/** The editable-params schema for a driver (by type). Sum inputs aren't scalar params. */
 export function driverSchemaFor(driver: DriverSpec): TSchema {
 	switch (driver.type) {
 		case 'kepler':
@@ -40,6 +40,8 @@ export function driverOutputs(driver: DriverSpec): string[] {
 	switch (driver.type) {
 		case 'kepler':
 			return ['phase', 'radius', 'x', 'z'];
+		case 'sum':
+			return ['x', 'z']; // the summable position components of its inputs
 		default:
 			return [];
 	}
