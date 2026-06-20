@@ -76,7 +76,10 @@ and scene-3d's projection (so its depth matches the spheres). This is where phys
 `radiusMeters` finally drives the render scale. The subtle part — and the only way to
 get cm-at-surface *and* ~1e8 m to the gas giant in Float32.
 
-**Sequence (each step user-verifiable):** ① backend render-to-target (parity with 4a)
+**Sequence (each step user-verifiable):** **① ✅ backend render-to-target** —
+`WebGPUBackend.renderInto(target)` shared by `render()` + a public `renderToTexture`;
+a `useOffscreen` flag routes `render()` through an offscreen color target then copies
+to the swapchain. `FocusedBodyView` has an "offscreen" toggle to check parity with 4a.
 → ② composite one body over the spheres (coarse depth = body centre) → ③ true
 per-pixel depth + the scene camera/floating origin → ④ N bodies (a budget) + their
 atmospheres. "One body first, the largest on screen at procedural LOD."

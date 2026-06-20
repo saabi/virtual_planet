@@ -6,6 +6,9 @@ import { TerrainPass } from './passes/terrainPass.js';
 export class WebGPUBackend implements RenderBackend {
 	readonly kind = 'webgpu' as const;
 	onDeviceLost?: (reason: string) => void;
+	/** When true, render() draws into an offscreen target then copies to the swapchain
+	 *  (exercises the render-to-target path used for scene compositing). */
+	useOffscreen = false;
 	private device: GPUDevice | null = null;
 	private context: GPUCanvasContext | null = null;
 	private format: GPUTextureFormat = 'bgra8unorm';
@@ -13,6 +16,9 @@ export class WebGPUBackend implements RenderBackend {
 	private atmosphere: AtmospherePass | null = null;
 	private width = 1;
 	private height = 1;
+	private offscreen: GPUTexture | null = null;
+	private offscreenW = 0;
+	private offscreenH = 0;
 	private destroyed = false;
 
 	async init(canvas: HTMLCanvasElement): Promise<void> {
@@ -40,13 +46,56 @@ export class WebGPUBackend implements RenderBackend {
 		if (!this.device || !this.context || !this.terrain || !this.atmosphere) {
 			return { frameMs: 0, patchCount: 0, vertexCount: 0, mode: frame.camera.mode };
 		}
-		this.terrain.updateSurfacePatches(frame);
-		const texture = this.context.getCurrentTexture();
-		const encoder = this.device.createCommandEncoder();
-		const stats = this.terrain.render(encoder, frame, this.width, this.height);
-		this.atmosphere.render(encoder, texture, this.terrain, frame, this.width, this.height);
-		this.device.queue.submit([encoder.finish()]);
+		if (this.useOffscreen) {
+			const target = this.ensureOffscreen();
+			const stats = this.renderInto(target, frame);
+			this.present(target);
+			return stats;
+		}
+		return this.renderInto(this.context.getCurrentTexture(), frame);
+	}
+
+	/** Render into an external color target (this.format, RENDER_ATTACHMENT) — for
+	 *  scene compositing (4b). No swapchain involved. */
+	renderToTexture(target: GPUTexture, frame: RenderFrame): RenderStats {
+		if (!this.device || !this.terrain || !this.atmosphere) {
+			return { frameMs: 0, patchCount: 0, vertexCount: 0, mode: frame.camera.mode };
+		}
+		return this.renderInto(target, frame);
+	}
+
+	private renderInto(target: GPUTexture, frame: RenderFrame): RenderStats {
+		this.terrain!.updateSurfacePatches(frame);
+		const encoder = this.device!.createCommandEncoder();
+		const stats = this.terrain!.render(encoder, frame, this.width, this.height);
+		this.atmosphere!.render(encoder, target, this.terrain!, frame, this.width, this.height);
+		this.device!.queue.submit([encoder.finish()]);
 		return stats;
+	}
+
+	private ensureOffscreen(): GPUTexture {
+		if (this.offscreen && this.offscreenW === this.width && this.offscreenH === this.height) {
+			return this.offscreen;
+		}
+		this.offscreen?.destroy();
+		this.offscreen = this.device!.createTexture({
+			size: { width: this.width, height: this.height },
+			format: this.format,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
+		this.offscreenW = this.width;
+		this.offscreenH = this.height;
+		return this.offscreen;
+	}
+
+	private present(source: GPUTexture): void {
+		const encoder = this.device!.createCommandEncoder();
+		encoder.copyTextureToTexture(
+			{ texture: source },
+			{ texture: this.context!.getCurrentTexture() },
+			{ width: this.width, height: this.height }
+		);
+		this.device!.queue.submit([encoder.finish()]);
 	}
 
 	renderPickingPass(): PickingResult {
@@ -59,6 +108,8 @@ export class WebGPUBackend implements RenderBackend {
 
 	destroy(): void {
 		this.destroyed = true;
+		this.offscreen?.destroy();
+		this.offscreen = null;
 		this.atmosphere?.destroy();
 		this.terrain?.destroy();
 		this.device?.destroy();

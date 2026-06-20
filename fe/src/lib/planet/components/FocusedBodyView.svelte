@@ -26,6 +26,9 @@
 	let ready = false;
 
 	let renderer: PlanetRenderer | null = null;
+	let backend: WebGPUBackend | null = null;
+	/** Route render through an offscreen target + copy (the 4b compositing path). */
+	let offscreen = $state(false);
 	let raf = 0;
 	// Default starlight (same as /planet's initial), packed once.
 	const lighting: LightingUniforms = packSceneLighting(
@@ -102,7 +105,8 @@
 		if (!el) return;
 		let disposed = false;
 		distance = resolveBodyParams(body).radius * 3;
-		const backend = new WebGPUBackend();
+		backend = new WebGPUBackend();
+		backend.useOffscreen = offscreen;
 		backend.onDeviceLost = (reason) => (failed = `device lost: ${reason}`);
 		renderer = new PlanetRenderer(backend);
 		(async () => {
@@ -149,6 +153,17 @@
 	></canvas>
 	<div class="fb-bar">
 		<span class="fb-name">{body.name} · procedural</span>
+		<label class="fb-toggle">
+			<input
+				type="checkbox"
+				checked={offscreen}
+				onchange={(e) => {
+					offscreen = e.currentTarget.checked;
+					if (backend) backend.useOffscreen = offscreen;
+				}}
+			/>
+			offscreen
+		</label>
 		<button type="button" onclick={() => onclose?.()}>Close</button>
 	</div>
 	{#if failed}
@@ -186,6 +201,15 @@
 		justify-content: space-between;
 		font: 12px/1.2 system-ui, sans-serif;
 		color: #e8ecf8;
+	}
+
+	.fb-toggle {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font: 11px/1.2 system-ui, sans-serif;
+		color: #e8ecf8;
+		opacity: 0.85;
 	}
 
 	.fb-bar button {
