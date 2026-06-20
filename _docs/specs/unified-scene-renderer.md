@@ -64,9 +64,10 @@ it needs on-device verification at each step (see "Working method").
 
 ## Migration (each step user-verifiable)
 
-1. **Frame skeleton (no GPU change)** — a `SceneEngine` owning the device, the shared
-   color+depth, and a draw list; move the existing sphere draw into it. Behaviour
-   identical to today's sphere view.
+1. **Frame skeleton** — *(in progress)* `scene3d/drawList.ts`: a pure `buildDrawList`
+   (per-body projection + LOD + blend, hysteresis), tested; `SceneViewport3D` renders
+   spheres + the fade from it (no behaviour change). Next: a `SceneEngine` owning the
+   device + shared color+depth + the pass.
 2. **Offscreen-composite fade (alpha-correct)** — render the body to a texture and
    composite into the shared scene with `alpha = blend` + texture coverage. Replaces
    the CSS layer + radial mask with real alpha. Tractable, verify-loop friendly.

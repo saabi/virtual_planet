@@ -13,7 +13,8 @@
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
-	import { proceduralBlend, resolveBodyParams, selectLod, type LodLevel } from '../scene/bodyParams.js';
+	import { resolveBodyParams, type LodLevel } from '../scene/bodyParams.js';
+	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
@@ -68,41 +69,24 @@
 		procBody ? (resolveBodyParams(procBody).radius * camera.distance) / procBody.radiusMeters : 1
 	);
 
-	// Screen-size LOD. A body's projected pixel diameter picks dot / sphere / procedural
-	// (selectLod); a sub-threshold body renders as a fixed-size point so it stays
-	// visible, larger ones as their true-size sphere. (Procedural is drawn as a sphere
-	// until the procedural pipeline lands — Phase 4.) Per-body hysteresis (±15%) avoids
-	// flicker at the boundary; lodState persists across frames.
+	// Screen-size LOD lives in buildDrawList (dot/sphere/procedural by projected px, with
+	// ±15% hysteresis via lodState). A dot renders as a fixed-size point so distant
+	// bodies stay visible; sphere/procedural use the true radius (procedural is drawn as
+	// a sphere here — the engine swaps it for the real render). lodState persists frames.
 	const DOT_RADIUS_PX = 2.5;
-	const RANK: Record<LodLevel, number> = { dot: 0, sphere: 1, procedural: 2 };
 	const lodState = new Map<string, LodLevel>();
 
-	function lodFor(b: BodyNode, px: number): LodLevel {
-		const prev = lodState.get(b.id);
-		let level = selectLod(b, px);
-		if (prev && level !== prev) {
-			if (RANK[level] > RANK[prev] && RANK[selectLod(b, px / 1.15)] <= RANK[prev]) level = prev;
-			else if (RANK[level] < RANK[prev] && RANK[selectLod(b, px * 1.15)] >= RANK[prev]) level = prev;
-		}
-		lodState.set(b.id, level);
-		return level;
-	}
-
-	function buildInstances(animated: PlanetScene, vp: Float32Array): BodyInstance[] {
+	function instancesFromDrawList(drawList: DrawItem[]): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
 		const out: BodyInstance[] = [];
-		for (const b of listBodies(animated)) {
-			const position = getWorldTransform(animated, b.id).position;
-			const sp = projectToScreen(vp, position, w, h);
-			if (!sp) continue; // behind the camera → cull
-			const pxDiameter = 2 * (b.radiusMeters / sp.depth) * screenScale;
-			const level = lodFor(b, pxDiameter);
-			const radius = level === 'dot' ? (DOT_RADIUS_PX * sp.depth) / screenScale : b.radiusMeters;
+		for (const it of drawList) {
+			if (!it.screen) continue; // off-screen → cull
+			const radius = it.lod === 'dot' ? (DOT_RADIUS_PX * it.screen.depth) / screenScale : it.radiusMeters;
 			out.push({
-				position,
+				position: it.worldPos,
 				radius,
-				color: BODY_COLOR[b.bodyType],
-				emissive: b.bodyType === 'star'
+				color: BODY_COLOR[it.bodyType],
+				emissive: it.bodyType === 'star'
 			});
 		}
 		return out;
@@ -149,16 +133,17 @@
 		const animated = evaluateScene(scene, time);
 		const cam = { ...camera, target: targetOf(animated) };
 		const vp = viewProjection(cam, w / h);
+		const drawList = buildDrawList(animated, vp, w, h, lodState);
 		renderer.render(
 			context.getCurrentTexture().createView(),
 			w,
 			h,
-			buildInstances(animated, vp),
+			instancesFromDrawList(drawList),
 			vp,
 			lighting(animated)
 		);
 		updateMarker(animated, vp);
-		updateProcedural(animated, vp);
+		updateProcedural(animated, drawList);
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
@@ -178,40 +163,40 @@
 		marker = { x: sp.x, y: sp.y, r: Math.max(screenR, 8) + 5 };
 	}
 
-	/** Fade factor for the procedural layer of the selected planet/moon (uses the
-	 *  stable scene node so the layer's body prop doesn't churn each frame). */
-	function updateProcedural(animated: PlanetScene, vp: Float32Array) {
+	/** Procedural cross-fade for the selected planet/moon, from its draw-list item (uses
+	 *  the stable scene node so the layer's body prop doesn't churn each frame). */
+	function updateProcedural(animated: PlanetScene, drawList: DrawItem[]) {
+		const item = selectedId ? drawList.find((d) => d.id === selectedId) : undefined;
 		const node = selectedId ? scene.nodes.get(selectedId) : null;
-		if (node && node.kind === 'body' && (node.bodyType === 'planet' || node.bodyType === 'moon')) {
-			const bodyPos = getWorldTransform(animated, node.id).position;
-			const sp = projectToScreen(vp, bodyPos, w, h);
-			if (sp) {
-				const px = 2 * (node.radiusMeters / sp.depth) * ((1 / Math.tan(FOVY / 2)) * (h / 2));
-				procBlend = proceduralBlend(node, px);
-				procBody = procBlend > 0 ? node : null;
-				// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
-				const r = px / 2;
-				procMask = procBody ? { x: sp.x, y: sp.y, r0: r, r1: r * 1.35 } : null;
-				if (procBody) {
-					// Sun as a directional light toward Sol, in the body's (untilted) frame.
-					const col = collectSceneLights(animated);
-					const sun = col.lights.find((l) => l.kind === 'point') ?? col.lights[0];
-					const sunDir: Vec3 = sun ? normalize3(sub3(sun.directionOrPosition, bodyPos)) : [0, 1, 0];
-					procLighting = packSceneLighting({
-						ambient: col.ambient,
-						lights: [
-							{
-								kind: 'directional',
-								directionOrPosition: sunDir,
-								color: sun?.color ?? [1, 1, 1],
-								intensity: sun?.intensity ?? 3,
-								range: 0
-							}
-						]
-					});
-				}
-				return;
+		if (
+			item?.screen &&
+			node?.kind === 'body' &&
+			(node.bodyType === 'planet' || node.bodyType === 'moon')
+		) {
+			procBlend = item.blend;
+			procBody = item.blend > 0 ? node : null;
+			// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
+			const r = item.screenPx / 2;
+			procMask = procBody ? { x: item.screen.x, y: item.screen.y, r0: r, r1: r * 1.35 } : null;
+			if (procBody) {
+				// Sun as a directional light toward Sol, in the body's (untilted) frame.
+				const col = collectSceneLights(animated);
+				const sun = col.lights.find((l) => l.kind === 'point') ?? col.lights[0];
+				const sunDir: Vec3 = sun ? normalize3(sub3(sun.directionOrPosition, item.worldPos)) : [0, 1, 0];
+				procLighting = packSceneLighting({
+					ambient: col.ambient,
+					lights: [
+						{
+							kind: 'directional',
+							directionOrPosition: sunDir,
+							color: sun?.color ?? [1, 1, 1],
+							intensity: sun?.intensity ?? 3,
+							range: 0
+						}
+					]
+				});
 			}
+			return;
 		}
 		procBlend = 0;
 		procBody = null;
