@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePath } from './scenePath.js';
+import { pathNodeIds, pathOf, resolvePath } from './scenePath.js';
 import { IDENTITY_QUAT } from './transform.js';
 import type { PlanetScene, SceneNode } from './types.js';
 
@@ -49,5 +49,20 @@ describe('resolvePath', () => {
 	it('returns null for the world frame (above root) or a missing segment', () => {
 		expect(resolvePath(scene, 'sol', '../../')).toBeNull(); // above root → world
 		expect(resolvePath(scene, 'sol', 'nope')).toBeNull();
+	});
+});
+
+describe('pathOf / pathNodeIds', () => {
+	it('builds the absolute slug path (root excluded)', () => {
+		expect(pathNodeIds(scene, 'luna')).toEqual(['sol', 'ferro', 'luna']);
+		expect(pathOf(scene, 'luna')).toEqual(['sol', 'ferro', 'luna-f']); // "Luna F" → luna-f
+		expect(pathOf(scene, 'root')).toEqual([]); // root = /
+	});
+
+	it('round-trips with resolvePath', () => {
+		for (const id of ['sol', 'ferro', 'luna', 'cerule']) {
+			const path = '/' + pathOf(scene, id)!.join('/');
+			expect(resolvePath(scene, 'root', path)).toBe(id);
+		}
 	});
 });

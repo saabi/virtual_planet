@@ -10,17 +10,39 @@ import type { PlanetScene } from './types.js';
 /** Path that means "the immediate parent" — the default inheritance for a channel. */
 export const PARENT_PATH = '../';
 
-/** Case/space-normalized segment for matching against node names. */
-function normalizeSegment(s: string): string {
-	return s.trim().toLowerCase().replace(/\s+/g, '-');
+/** Path-segment slug for a node name (lowercase, spaces → `-`). */
+export function slugify(name: string): string {
+	return name.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
 function childByName(scene: PlanetScene, parentId: string | null, name: string): string | null {
-	const target = normalizeSegment(name);
+	const target = slugify(name);
 	for (const node of scene.nodes.values()) {
-		if (node.parentId === parentId && normalizeSegment(node.name) === target) return node.id;
+		if (node.parentId === parentId && slugify(node.name) === target) return node.id;
 	}
 	return null;
+}
+
+/**
+ * Node ids from the root's child down to `nodeId` (root excluded — it's `/`). null
+ * if `nodeId` isn't under the root. The inverse direction of {@link resolvePath}.
+ */
+export function pathNodeIds(scene: PlanetScene, nodeId: string): string[] | null {
+	const ids: string[] = [];
+	let id: string | null = nodeId;
+	while (id != null && id !== scene.rootId) {
+		const node = scene.nodes.get(id);
+		if (!node) return null;
+		ids.unshift(id);
+		id = node.parentId;
+	}
+	return id === scene.rootId ? ids : null;
+}
+
+/** Absolute scene path (name slugs) to a node — `resolvePath(scene, root, '/' + pathOf(…).join('/'))` returns it back. */
+export function pathOf(scene: PlanetScene, nodeId: string): string[] | null {
+	const ids = pathNodeIds(scene, nodeId);
+	return ids ? ids.map((id) => slugify(scene.nodes.get(id)!.name)) : null;
 }
 
 /**

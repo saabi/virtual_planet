@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { createToySolarSystemScene } from '$lib/planet/scene/solarSystem.js';
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
+	import { pathNodeIds } from '$lib/planet/scene/scenePath.js';
 	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { fields } from '@virtual-planet/schema';
@@ -49,6 +50,15 @@
 	}
 
 	const selectedNode = $derived(selectedId ? (getNode(scene, selectedId) ?? null) : null);
+	// Breadcrumb: the selected node's path from root (the future /scene/... URL).
+	const breadcrumb = $derived(
+		selectedId
+			? (pathNodeIds(scene, selectedId) ?? []).map((nid) => ({
+					id: nid,
+					name: getNode(scene, nid)?.name ?? nid
+				}))
+			: []
+	);
 	// Generated editor for the selected node (bespoke for bodies; schema-driven else).
 	const editor = $derived(selectedNode ? editorForKind(selectedNode.kind) : null);
 	const schemaValue = $derived.by(() => {
@@ -80,6 +90,15 @@
 		</div>
 		<SystemTreePanel bind:scene bind:selectedId />
 		{#if selectedNode}
+			<nav class="breadcrumb" aria-label="Scene path">
+				<button type="button" class="crumb" onclick={() => (selectedId = null)}>/</button>
+				{#each breadcrumb as crumb (crumb.id)}
+					<span class="crumb-sep">/</span>
+					<button type="button" class="crumb" onclick={() => (selectedId = crumb.id)}>
+						{crumb.name}
+					</button>
+				{/each}
+			</nav>
 			<div class="node-editor">
 				<span class="edit-name">{selectedNode.name}</span>
 				{#if editor?.mode === 'bespoke'}
@@ -154,6 +173,32 @@
 
 	.doc-controls button:hover {
 		background: #252d45;
+	}
+
+	.breadcrumb {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 2px;
+		font-size: 11px;
+		opacity: 0.85;
+	}
+
+	.crumb {
+		background: none;
+		border: none;
+		padding: 0 1px;
+		color: #9ec0ff;
+		cursor: pointer;
+		font: inherit;
+	}
+
+	.crumb:hover {
+		text-decoration: underline;
+	}
+
+	.crumb-sep {
+		opacity: 0.4;
 	}
 
 	.node-editor {
