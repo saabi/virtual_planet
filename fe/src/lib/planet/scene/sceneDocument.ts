@@ -11,8 +11,9 @@ import type { PlanetScene, SceneNode } from './types.js';
 // v2: driver/binding orbits (kepler driver replaces the phase→radius / orbitPhase nodes).
 // v3: composable orbit primitives (driver container → rotate(phase) → translate(radius)).
 // v4: field terms — bindings are { field, op?, source: ref#output | const }, folded.
+// v5: sum drivers — Sol reflex-wobble demo (driver/binding shape unchanged, preset content).
 
-const SCENE_DOC_VERSION = 4;
+const SCENE_DOC_VERSION = 5;
 
 export interface SceneDocument {
 	version: number;

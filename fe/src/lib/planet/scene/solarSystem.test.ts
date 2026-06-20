@@ -56,10 +56,12 @@ describe('toy solar system preset', () => {
 		};
 		for (const t of [0, 7, 23]) {
 			const ev = evaluateScene(live, t);
+			// Sol reflex-wobbles, so a planet's orbit is measured relative to the star.
+			const sw = getWorldTransform(ev, 'ss-sol').position;
 			const fw = getWorldTransform(ev, 'ss-ferro').position;
 			const fWant = orbitLocalPosition(ferro, t);
-			expect(fw[0]).toBeCloseTo(fWant[0], 2);
-			expect(fw[2]).toBeCloseTo(fWant[2], 2);
+			expect(fw[0] - sw[0]).toBeCloseTo(fWant[0], 2);
+			expect(fw[2] - sw[2]).toBeCloseTo(fWant[2], 2);
 
 			// The moon's offset from its planet matches its own ellipse — inertial nesting
 			// (the rotate/inheritance chain isn't dragged by the planet's orbital phase).

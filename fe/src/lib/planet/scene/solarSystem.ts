@@ -150,7 +150,12 @@ export function createToySolarSystemScene(): PlanetScene {
 		affects: null
 	});
 
-	// Star at the system center (stand-in — no star designer facilities yet).
+	// Star at the system center (stand-in — no star designer facilities yet). Its
+	// position is a reflex wobble: a sum driver over its planets' orbit drivers (the
+	// star oscillates about the barycenter as the planets orbit). Weights are
+	// exaggerated mass ratios (no real masses yet), dominated by the gas giant, so the
+	// drift is visible. Demonstrates the sum driver + topological evaluation; the
+	// planet orbits (children of Sol) ride the wobble. See driver.ts.
 	add({
 		id: 'ss-sol',
 		name: 'Sol',
@@ -160,7 +165,20 @@ export function createToySolarSystemScene(): PlanetScene {
 		transform: id(),
 		bodyType: 'star',
 		radiusMeters: 50_000 * KM,
-		standIn: true
+		standIn: true,
+		driver: {
+			type: 'sum',
+			inputs: [
+				{ ref: 'tempest-orbit', weight: -0.08 },
+				{ ref: 'ochre-orbit', weight: -0.02 },
+				{ ref: 'cerule-orbit', weight: -0.01 },
+				{ ref: 'ferro-orbit', weight: -0.006 }
+			]
+		},
+		bindings: [
+			{ field: 'positionX', source: { ref: '.', output: 'x' } },
+			{ field: 'positionZ', source: { ref: '.', output: 'z' } }
+		]
 	});
 
 	// Planets orbit Sol; moons orbit their planet's translate node (the system center).
