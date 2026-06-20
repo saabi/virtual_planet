@@ -40,10 +40,43 @@ path-based — not a node-graph canvas):
 ### Non-goals (defer)
 
 - A visual node-graph canvas. We surface wiring per-node, by path.
-- Freeform math expressions. A binding is `ref#output` (a named driver output), not a
-  formula — for now.
+- A freeform expression parser (parentheses, functions, `sin(...)`). Composition is a
+  **linear fold of terms** (below); anything needing precedence/parens or vector math
+  is expressed with **driver nodes**, not field syntax.
 
 ## Design
+
+### 0. Field value model — composable terms
+
+A field is not "literal xor one binding" — that can't add/multiply two sources. A
+field is the stored literal plus an **ordered list of terms**, folded left-to-right:
+
+```ts
+type Source = { ref: string; output: string } | { const: number };
+type Op = 'set' | 'add' | 'mul';
+interface FieldTerm { field: TransformField; op?: Op; source: Source } // op default 'set'
+
+// value(channel) = fold(literal, terms targeting channel):
+//   set → source, add → acc + source, mul → acc * source
+```
+
+This generalizes today's `FieldBinding` (`{field, ref, output}` ≡ a single `set` term
+with a `ref` source). `[set ../#radius, mul 2, add /bary#x]` ⇒ `radius·2 + bary.x`.
+Plain data, serializable, no parser. **Linear only** — `(a+b)·c` needs ordering or a
+driver node (the parens case is what (B) below is for). Stored on the node as
+`bindings: FieldTerm[]` (rename-compatible: existing single-`set` bindings still fold).
+
+**Runtime impact** (prerequisite, small): `driver.ts::applyBindings` changes from
+per-channel last-write-wins to a per-channel **fold** by `op`; `source` resolves a
+`const` or a `ref#output`. A scene-doc version bump covers the field shape. Existing
+toy bindings (one `set`/channel) are unchanged by the fold.
+
+**(B) Composition in the graph — driver nodes that consume refs.** For vector ops and
+shared results (a barycenter summed once, a star's reflex wobble), a `sum`/`scale`
+driver takes input *refs* and exposes an output; fields bind that one output. This is
+the deferred sum/reflex driver work; it needs topological evaluation (driver→node
+refs) via the path cycle guard. (A) handles per-field scalar composition in the
+editor; (B) handles graph-level/vector composition.
 
 ### 1. Field-view resolution (`scene/fieldViews.ts`, pure + tested)
 
@@ -54,31 +87,30 @@ view per transform channel:
 type Channel = TransformField; // 'positionX' | … | 'scaleZ'
 interface FieldView {
   channel: Channel;
-  driven: boolean;
-  binding?: FieldBinding;     // when driven: { ref, output }
+  terms: FieldTerm[];         // [] = pure literal; else the composed expression
   value: number;              // the LIVE evaluated value (for display)
-  literal: number;            // the stored base value (what a literal edit writes)
+  literal: number;            // the stored base value (the fold's seed; literal edits write it)
 }
 fieldViews(node, evaluatedNode): FieldView[]
 ```
 
-`driven` = some `node.bindings` targets the channel. `value` comes from the evaluated
-node (the post-driver transform), `literal` from the stored node. Pure → unit-tested
-like the rest of `scene/`.
+`terms` = the channel's terms from `node.bindings`. `value` comes from the evaluated
+node (post-fold transform), `literal` from the stored node. Pure → unit-tested like
+the rest of `scene/`.
 
 ### 2. Binding-aware `TransformEditor`
 
 Props change from `{ transform }` to `{ node, evaluated, onchange, … }` (it needs the
-bindings + the live value). Per channel:
+terms + the live value). Per channel:
 
-- **Literal** → number input, as today (writes `transform.<channel>`).
-- **Driven** → a non-editable **expression chip**: `ƒ ../#phase = 1.23` (the ref, the
-  output, the live value in display units). A "driven" affordance (color/icon, à la
-  Blender's purple). Row actions: **Detach** (drop the binding → channel becomes a
-  literal at its current value) and **Bind…** (open the binding editor).
+- **No terms** → number input, as today (writes `transform.<channel>`).
+- **Driven** (≥1 term) → a non-editable **expression**, the live value plus the folded
+  terms read out, e.g. `ƒ ../#radius · 2 + /bary#x = 1.23`. A "driven" affordance
+  (color/icon, à la Blender's purple). Row actions: **Edit terms…** (the term editor),
+  **Detach** (drop terms → channel becomes a literal at its current value).
 
-The "value you see" for a driven channel is read-only and live; literal edits never
-silently fight the driver.
+The value shown for a driven channel is read-only and live; literal edits never
+silently fight the fold.
 
 ### 3. Driver section
 
@@ -94,13 +126,14 @@ This is the practical win — eccentricity/period become editable and the ellips
 reshapes live. It needs nested editing, but **scoped**: a dedicated sub-form for the
 driver object, not a generic flatten of the whole node.
 
-### 4. Binding editor
+### 4. Term editor
 
-Edit/add a binding for a channel: a **ref** (scene path, free-text now using the
-existing `resolvePath`; a picker later) + an **output** (chosen from the referenced
-driver's known outputs). Authoring-time validation: resolve the ref, warn if it
-doesn't reach a node with a driver exposing that output (the path/cycle validation
-previously noted as pending).
+Edit a channel's **term stack**: add/remove/reorder terms; each term is an **op**
+(set/add/mul) + a **source** — either a **ref** (scene path, free-text via the existing
+`resolvePath`; a picker later) + **output** (from the referenced driver's known
+outputs), or a **constant**. The first term is conventionally `set`. Authoring-time
+validation: resolve each ref, warn if it doesn't reach a node with a driver exposing
+that output (the path/cycle validation previously noted as pending).
 
 ### 5. Constraint section
 
@@ -131,13 +164,17 @@ edits its slice and calls the existing `updateNode`.
 
 ## Phasing
 
-1. **Read-only legibility** — `fieldViews` + binding-aware `TransformEditor` showing
-   driven channels as `ref#output = value`. *This is the direct fix for "we can't see
-   the expressions."* (Needs the shared clock from decision 1.)
+1. **Term fold + read-only legibility** — extend `applyBindings` to fold terms
+   (`op` + `const`/`ref` source); `fieldViews` + binding-aware `TransformEditor`
+   showing driven channels as the folded expression `= value`. *This is the direct fix
+   for "we can't see the expressions," and it makes composition real.* (Needs the
+   shared clock from decision 1.)
 2. **Driver section** — edit kepler params (eccentricity/period authorable; the
    practical payoff).
-3. **Binding + constraint editors** — bind/detach, limit_rotation toggles.
-4. **Path picker + authoring-time ref/cycle validation.**
+3. **Term + constraint editors** — add/remove/reorder terms (op + ref/const source),
+   detach; limit_rotation toggles.
+4. **Driver-node composition (B)** — sum/scale drivers + topological eval (barycenter,
+   reflex, binaries); path picker + authoring-time ref/cycle validation.
 
 Start with (1): it's pure-`lib/` (`fieldViews`) + a focused `TransformEditor` change,
 and it answers the question that prompted this.
