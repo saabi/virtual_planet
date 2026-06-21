@@ -3,8 +3,12 @@
 #include "../noise/fbm.wgsl"
 #include "../noise/voronoi.wgsl"
 
-fn should_eval_layer(min_mpp: f32, scale: ScaleContext) -> bool {
-  return scale.meters_per_pixel <= min_mpp;
+// Whether to evaluate a noise layer at the current LOD. The threshold is a RATIO of
+// the planet radius (scale-invariant) so it works at any radius — at radius 100 (the
+// presets) ratio·radius reproduces the old absolute m/px thresholds exactly; at world
+// scale it scales up so macro relief isn't culled (which left planets pure water).
+fn should_eval_layer(min_mpp_ratio: f32, scale: ScaleContext, radius: f32) -> bool {
+  return scale.meters_per_pixel <= min_mpp_ratio * radius;
 }
 
 /// Rotate a vector about the +Y axis by the angle whose cosine/sine are (c, s).
@@ -36,19 +40,19 @@ fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> 
   let wl = total_amplitude * (params.water_level - 0.5);
 
   var distortion = 0.0;
-  if (should_eval_layer(500.0, scale) && params.voronoi_distortion_scale > 0.0) {
+  if (should_eval_layer(5.0, scale, params.radius) && params.voronoi_distortion_scale > 0.0) {
     distortion = fbm_4(p * params.voronoi_distortion_scale);
   }
   r.distortion = distortion;
 
   var vor = vec3f(0.5);
-  if (should_eval_layer(1000.0, scale)) {
+  if (should_eval_layer(10.0, scale, params.radius)) {
     vor = voronoi3(p * params.voronoi_scale + (distortion - 0.5) * params.voronoi_distortion_amplitude);
   }
   r.vor = vor;
 
   var detail = 0.5;
-  if (should_eval_layer(50.0, scale) && params.detail_scale > 0.0) {
+  if (should_eval_layer(0.5, scale, params.radius) && params.detail_scale > 0.0) {
     detail = fbm_4(p * params.detail_scale);
   }
   r.detail = detail;

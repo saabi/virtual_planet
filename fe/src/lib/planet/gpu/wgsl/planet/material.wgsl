@@ -76,11 +76,11 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
   let total_amplitude = (params.voronoi_amplitude + params.detail_amplitude) * params.radius;
 
   var tn = 0.0;
-  if (should_eval_layer(5.0, scale) && params.texture_noise_scale > 0.0) {
+  if (should_eval_layer(0.05, scale, params.radius) && params.texture_noise_scale > 0.0) {
     tn = (fbm_4(sample.world_pos * sqrt(params.texture_noise_scale)) - 0.5) * tex_amp;
   }
   var polar = 0.0;
-  if (should_eval_layer(200.0, scale)) {
+  if (should_eval_layer(2.0, scale, params.radius)) {
     polar = ((abs(sample.world_pos.y) / params.radius) - params.polar_scale) * polar_amp;
   }
   let h = sample.height_meters + tn + polar;
@@ -110,7 +110,7 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
 
   let props = biome_props(biome_id);
   var roughness = props.roughness;
-  if (should_eval_layer(5.0, scale)) {
+  if (should_eval_layer(0.05, scale, params.radius)) {
     let micro = (sample.detail - 0.5) * 0.25 + (tn / max(tex_amp, 0.001)) * 0.1;
     roughness = clamp(roughness + micro, 0.02, 1.0);
   }
