@@ -127,7 +127,8 @@ in their local frame. This is the standard large-world approach and reuses
 - **Persistence** — the document becomes a *system* (tree of bodies + orbits +
   clock), not a single planet. Migration: an existing single-planet doc becomes a
   one-body system (a star can be synthesized from the current manual sun, or left
-  as a manual light).
+  as a manual light). Camera and view prefs are **not** part of the body — see
+  [body-vs-viewport-state.md](body-vs-viewport-state.md).
 
 ## Where it lives: a parallel route (decided)
 

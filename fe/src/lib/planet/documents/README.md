@@ -35,6 +35,12 @@ toSnapshot(live state) → coerceSnapshot (defensive) → localStorage
 | `storage.ts` | Session + registry CRUD |
 | `selection.ts` | `builtin:*` / `doc:*` select values |
 
+## Body vs viewport (design)
+
+Named saves should eventually hold **body design only** (appearance, atmosphere,
+spin) — not camera pose or `lookAtHorizon`. See
+[_docs/specs/body-vs-viewport-state.md](../../../_docs/specs/body-vs-viewport-state.md).
+
 ## Adding a persisted field
 
 1. Add to `PlanetParameters` in `params/planetParams.ts`

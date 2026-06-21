@@ -64,10 +64,11 @@ it needs on-device verification at each step (see "Working method").
 
 ## Migration (each step user-verifiable)
 
-1. **Frame skeleton** — *(in progress)* `scene3d/drawList.ts`: a pure `buildDrawList`
-   (per-body projection + LOD + blend, hysteresis), tested; `SceneViewport3D` renders
-   spheres + the fade from it (no behaviour change). Next: a `SceneEngine` owning the
-   device + shared color+depth + the pass.
+1. **✅ Frame skeleton** — `scene3d/drawList.ts` (`buildDrawList`, pure+tested) is the
+   one source the engine renders from; `scene3d/sceneEngine.ts` (`SceneEngine`) owns the
+   device + shared depth + the render pass; `scene3d/spherePass.ts` (`SpherePass`)
+   records the sphere draw into it. `SceneViewport3D` uses engine + sphere pass. No
+   behaviour change — the seam where the fade composite + single-pass terrain plug in.
 2. **Offscreen-composite fade (alpha-correct)** — render the body to a texture and
    composite into the shared scene with `alpha = blend` + texture coverage. Replaces
    the CSS layer + radial mask with real alpha. Tractable, verify-loop friendly.

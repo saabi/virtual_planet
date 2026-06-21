@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
-	import { SceneRenderer, type BodyInstance, type SceneLighting } from '../scene3d/sceneRenderer.js';
+	import { SceneEngine } from '../scene3d/sceneEngine.js';
+	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
 	import {
 		clampElevation,
 		FOVY,
@@ -45,7 +46,8 @@
 
 	let device: GPUDevice | null = null;
 	let context: GPUCanvasContext | null = null;
-	let renderer: SceneRenderer | null = null;
+	let engine: SceneEngine | null = null;
+	let spheres: SpherePass | null = null;
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
 		star: [1.0, 0.82, 0.5],
@@ -129,19 +131,16 @@
 	});
 
 	function render() {
-		if (!device || !context || !renderer) return;
+		if (!device || !context || !engine || !spheres) return;
 		const animated = evaluateScene(scene, time);
 		const cam = { ...camera, target: targetOf(animated) };
 		const vp = viewProjection(cam, w / h);
 		const drawList = buildDrawList(animated, vp, w, h, lodState);
-		renderer.render(
-			context.getCurrentTexture().createView(),
-			w,
-			h,
-			instancesFromDrawList(drawList),
-			vp,
-			lighting(animated)
-		);
+		const instances = instancesFromDrawList(drawList);
+		const light = lighting(animated);
+		engine.render(context.getCurrentTexture().createView(), w, h, (pass) => {
+			spheres!.record(pass, instances, vp, light);
+		});
 		updateMarker(animated, vp);
 		updateProcedural(animated, drawList);
 	}
@@ -287,7 +286,8 @@
 				device = r.device;
 				const format = navigator.gpu.getPreferredCanvasFormat();
 				context = configureWebGPUCanvas(device, el, format);
-				renderer = new SceneRenderer(device, format);
+				engine = new SceneEngine(device, format);
+				spheres = new SpherePass(device, format);
 				frameAll();
 			} catch (err) {
 				failed = err instanceof Error ? err.message : 'WebGPU unavailable';
@@ -309,7 +309,8 @@
 			disposed = true;
 			cancelAnimationFrame(raf);
 			ro.disconnect();
-			renderer?.destroy();
+			spheres?.destroy();
+			engine?.destroy();
 		};
 	});
 </script>

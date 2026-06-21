@@ -5,7 +5,8 @@
 `scene/bodyParams.ts` resolver + a body schema + the editor wiring; later, the
 procedural render path. **Related:** [scene-routing.md](scene-routing.md) (phasing
 item 4, "per-body params + body-editor view"), [scene-3d-viewport.md](scene-3d-viewport.md)
-(Phase 4 procedural upgrade), the `/planet` renderer + `params/`.
+(Phase 4 procedural upgrade), [body-vs-viewport-state.md](body-vs-viewport-state.md)
+(what is body data vs camera/session), the `/planet` renderer + `params/`.
 
 ## Problem
 
