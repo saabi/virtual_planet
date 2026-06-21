@@ -9,6 +9,7 @@ with terrain params; the solar-system renderer already stores appearance on
 [solar-system-model.md](solar-system-model.md),
 [scene-routing.md](scene-routing.md),
 [scene-procedural-rendering.md](scene-procedural-rendering.md),
+[device-tessellation-defaults.md](device-tessellation-defaults.md),
 [../fe/src/lib/planet/documents/README.md](../../fe/src/lib/planet/documents/README.md).
 
 ## Problem
@@ -18,7 +19,8 @@ Two parallel persistence models disagree about what a "planet" is:
 | Concern | `/planet` (`PlanetSnapshot`) | `/scene` (`PlanetScene`) |
 |---------|------------------------------|---------------------------|
 | Terrain / materials | `params` + `presetName` | `BodyNode.appearance` |
-| Atmosphere | `atmosphere` block | **Not on body yet** — defaults in procedural layers |
+| Atmosphere (design) | `atmosphere` block (incl. `integrateSteps` — misplaced) | **Not on body yet** — defaults in procedural layers |
+| Atmosphere march quality | `atmosphere.integrateSteps` in snapshot | Not exposed — hardcoded default (12) |
 | Physical size | `params.radius` (render-space) | `radiusMeters` (SI) |
 | Spin / axial tilt | Ephemeral UI (`spinAngle`, `axialTilt`) | `spinPeriodSeconds` on orbit chain |
 | Camera | **`camera` saved in documents** | Ephemeral in `SceneViewport3D` |
@@ -57,6 +59,7 @@ flowchart TB
 
   subgraph persist_prefs [Persist: user or device prefs]
     tess["TessellationSettings"]
+    atmoQuality["RenderQuality: atmosphereIntegrateSteps, …"]
     shade["MaterialOverrides, debug toggles"]
   end
 
@@ -88,13 +91,46 @@ a per-body export; travels when the body is duplicated or shared.
 Target body payload (conceptual — not all fields exist yet):
 
 ```ts
+/** Intrinsic atmosphere look — saved on the body / scene document. */
+interface BodyAtmosphere {
+  enabled: boolean;
+  shellHeightMeters: number;
+  scaleHeightMeters: number;
+  rayleighStrength: number;
+  mieStrength: number;
+  mieG: number;
+  groundFogDensity: number;
+  sunDiskIntensity: number;
+}
+
 interface CelestialBodyData {
   appearance: BodyAppearance;
-  atmosphere?: AtmosphereParameters;
+  atmosphere?: BodyAtmosphere;
   // spin: spinPeriodSeconds + axial tilt on transform / rotation spec
   lod?: BodyLod;
 }
 ```
+
+**Atmosphere design vs march quality:** today’s [`AtmosphereParameters`](../../fe/src/lib/planet/params/atmosphereParams.ts)
+also carries `integrateSteps` (UI label **Quality** — ray-march step count in
+[`integrate.wgsl`](../../fe/src/lib/planet/gpu/wgsl/atmosphere/integrate.wgsl)). That
+field is **not** part of what the body *is*; it is a **performance / sampling quality**
+knob in the same category as tessellation vertex budget. More steps reduce banding in
+the volume integral; they do not change shell height, sky colour, or haze character.
+
+Split it into **`RenderQualitySettings`** (device or user prefs, not on the node):
+
+```ts
+interface RenderQualitySettings {
+  /** Ray-march steps for the atmosphere volume integral (today: integrateSteps, default 12). */
+  atmosphereIntegrateSteps: number;
+  // future: terrain shadow steps (SHADOW_STEPS), etc.
+}
+```
+
+At upload time, `toGpuAtmosphereParams(bodyAtmosphere, radius, center, integrateSteps)`
+already accepts an external override for the last argument — the renderer should pass
+`renderQuality.atmosphereIntegrateSteps`, not a value stored on the body.
 
 **Two radii stay separate:** `radiusMeters` (SI, orbits, spheres) vs
 `PlanetParameters.radius` (render-space noise relations). The resolver does not merge
@@ -131,8 +167,13 @@ Never body data:
 | Field | Target home |
 |-------|-------------|
 | `TessellationSettings` | Device / user prefs ([device-tessellation-defaults.md](device-tessellation-defaults.md)) |
+| **`atmosphere.integrateSteps`** | **`RenderQualitySettings.atmosphereIntegrateSteps`** — global/device pref; mobile/desktop defaults like tessellation |
 | `MaterialOverrides` (exposure, shadow fill, …) | View prefs or session |
 | Wireframe, patch borders, face colors, material debug | Session / debug prefs |
+
+Move the **Quality** slider out of the Atmosphere super-section into **View / Renderer**
+(next to Tessellation). Persist with device profile or `virtual-planet:render-quality:v1`,
+not in named planet saves or `BodyAtmosphere`.
 
 ### Editor and registry metadata
 
@@ -146,6 +187,16 @@ Never body data:
 | Field | Issue | Target |
 |-------|-------|--------|
 | `illumination` | Toggles scene light collection — render mode, not terrain shape | View pref or scene-level lighting flag |
+
+### Misplaced inside `AtmosphereParameters`
+
+| Field | Issue | Target |
+|-------|-------|--------|
+| `integrateSteps` | Volume ray-march count — GPU cost, not sky design | `RenderQualitySettings.atmosphereIntegrateSteps` |
+
+When migrating atmosphere onto `BodyNode`, **do not** copy `integrateSteps` onto the
+node. One-time migration: read the old saved value into render-quality prefs if present,
+then drop the field from body atmosphere schema.
 
 ## Rotation: editor vs model mismatch
 
@@ -183,18 +234,19 @@ Today’s [`PlanetSnapshot`](../../fe/src/lib/planet/documents/types.ts):
 interface PlanetSnapshot {
   presetName: PlanetPresetName;
   params: PlanetParameters;
-  atmosphere: AtmosphereParameters;
+  atmosphere: AtmosphereParameters;  // includes integrateSteps today — split on migrate
   camera: PlanetCameraState;  // ← remove from named saves
 }
 ```
 
 **Target:**
 
-1. **Body fields** → scene node: `appearance`, `atmosphere`, spin/tilt on node.
-2. **Camera fields** → session `ViewportState` only.
-3. **Single-planet documents** → one-body scene (synthetic star or manual sun) per
+1. **Body fields** → scene node: `appearance`, `BodyAtmosphere` (without `integrateSteps`), spin/tilt on node.
+2. **`integrateSteps`** → `RenderQualitySettings` (device/session pref).
+3. **Camera fields** → session `ViewportState` only.
+4. **Single-planet documents** → one-body scene (synthetic star or manual sun) per
    [solar-system-model.md](solar-system-model.md) persistence section.
-4. **`/planet`** becomes a **focused-body view** of a scene path; shared `lib/` gains
+5. **`/planet`** becomes a **focused-body view** of a scene path; shared `lib/` gains
    body fields; snapshot format deprecates after migration + version bump in
    [`migrate.ts`](../../fe/src/lib/planet/documents/migrate.ts).
 
@@ -211,31 +263,40 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
    `viewport` sub-object.
 4. UI: document Save does not claim to persist camera (tooltip or section label).
 
-### Phase B — Body node completeness
+### Phase B — Body node completeness + render quality split
 
-5. Add `atmosphere?: AtmosphereParameters` to `BodyNode`; bump `SCENE_DOC_VERSION`.
-6. Atmosphere editor on `/scene` for planet/moon bodies (today: `/planet` panel only).
-7. Wire `ProceduralBodyLayer`, `FocusedBodyView` to body atmosphere + evaluated spin
-   from scene (not identity quaternion).
+5. Split `AtmosphereParameters` → `BodyAtmosphere` + `RenderQualitySettings`; remove
+   `integrateSteps` from body type.
+6. Add `atmosphere?: BodyAtmosphere` to `BodyNode`; bump `SCENE_DOC_VERSION`.
+7. Introduce `RenderQualitySettings` + device/session persist (mirror
+   [device-tessellation-defaults.md](device-tessellation-defaults.md) pattern); wire
+   `terrainPass` / `atmospherePass` to pass external step count into
+   `toGpuAtmosphereParams`.
+8. Atmosphere editor on `/scene` for planet/moon bodies (design fields only); move
+   **Quality** slider to View / Renderer section.
+9. Wire `ProceduralBodyLayer`, `FocusedBodyView` to body atmosphere + render quality +
+   evaluated spin from scene (not identity quaternion).
 
 ### Phase C — Document → scene migration
 
-8. `migratePlanetDocToScene(snapshot)` → minimal `PlanetScene` with one body node.
-9. Document registry optionally stores scene subgraph or `{ systemId, bodyPath }`.
-10. Bump `CURRENT_SNAPSHOT_VERSION`; migration copies params/atmosphere to appearance;
-    drops camera from stored documents (camera stays in session if present).
+10. `migratePlanetDocToScene(snapshot)` → minimal `PlanetScene` with one body node.
+11. Document registry optionally stores scene subgraph or `{ systemId, bodyPath }`.
+12. Bump `CURRENT_SNAPSHOT_VERSION`; migration copies params/atmosphere to appearance
+    (strip `integrateSteps` → render-quality pref); drops camera from stored documents
+    (camera stays in session if present).
 
 ### Phase D — Editor reorganization
 
-11. **Camera** super-section: viewport only; **Rotation** → body section on `/scene`.
-12. **Shading / Tessellation / Debug** → "View" or "Renderer" (not saved with body).
-13. Move `illumination` out of `PlanetParameters` into view/scene lighting toggle.
+13. **Camera** super-section: viewport only; **Rotation** → body section on `/scene`.
+14. **Shading / Tessellation / Atmosphere Quality / Debug** → "View" or "Renderer"
+    (not saved with body).
+15. Move `illumination` out of `PlanetParameters` into view/scene lighting toggle.
 
 ### Phase E — Renderer integration
 
-14. Focused procedural render: `collectLightsForBody(scene, bodyId)`.
-15. Viewport restore keyed by URL path (`/scene/.../ferro`).
-16. Align look modes between scene camera, procedural layer, and future surface flight.
+16. Focused procedural render: `collectLightsForBody(scene, bodyId)`.
+17. Viewport restore keyed by URL path (`/scene/.../ferro`).
+18. Align look modes between scene camera, procedural layer, and future surface flight.
 
 ## Quick wins vs large lifts
 
@@ -243,13 +304,17 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
 |--------|--------|
 | **Quick** | Stop persisting `lookAtHorizon`, azimuth, elevation, altitude, orbit speed in **named document** saves |
 | **Quick** | Label editor sections as "Body" vs "View" vs "Session" |
-| **Medium** | `BodyNode.atmosphere` + procedural wiring |
+| **Medium** | Split `integrateSteps` → `RenderQualitySettings`; move Quality slider to Renderer |
+| **Medium** | `BodyNode.atmosphere` (design only) + procedural wiring |
 | **Large** | Scene document as single source of truth; `/planet` as focused view ([unified-scene-renderer.md](unified-scene-renderer.md)) |
 
 ## Acceptance criteria
 
-- Saving "Ferro" and reloading on another machine restores **terrain and atmosphere**,
-  not camera pose or look-at-horizon.
+- Saving "Ferro" and reloading on another machine restores **terrain and atmosphere
+  design** (shell, colours, fog), not camera pose, look-at-horizon, or atmosphere
+  march quality (`integrateSteps`).
+- A high `integrateSteps` saved on one machine does not force that GPU cost when
+  opening the same body elsewhere — quality comes from **device render prefs**.
 - Two viewports on the same body (map + 3D, or split) can hold **different**
   `ViewportState` without conflicting body data.
 - `AppearanceEditor` comment remains true: atmosphere is edited on the body, not mixed
@@ -262,4 +327,5 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
 - [celestial-body-params.md](celestial-body-params.md) — `BodyAppearance` + resolver
 - [solar-system-model.md](solar-system-model.md) — system persistence replaces single-planet doc
 - [scene-routing.md](scene-routing.md) — URL mirrors scene tree; viewport keyed by path
-- [device-tessellation-defaults.md](device-tessellation-defaults.md) — tessellation as device pref
+- [device-tessellation-defaults.md](device-tessellation-defaults.md) — tessellation as device pref; same pattern for atmosphere march steps
+- [../terrain-self-shadows.md](../terrain-self-shadows.md) — `SHADOW_STEPS` is another future render-quality candidate
