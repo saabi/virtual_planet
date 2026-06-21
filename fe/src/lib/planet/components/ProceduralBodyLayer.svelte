@@ -2,13 +2,13 @@
 	import { onMount } from 'svelte';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
-	import { createOrbitCamera } from '../camera/orbitCamera.js';
-	import { FOVY } from '../scene3d/orbitCamera.js';
+	import { sceneBodyCamera, type OrbitCamera } from '../scene3d/orbitCamera.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
+	import type { Vec3 } from '../math/vec.js';
 	import type { BodyNode } from '../scene/types.js';
 
 	// A procedural render of one body on its own canvas, camera-driven by the host scene
@@ -20,14 +20,14 @@
 
 	interface Props {
 		body: BodyNode;
-		azimuth: number;
-		elevation: number;
-		/** Camera distance in the body's render-space units (matched to the scene by the host). */
-		distance: number;
+		/** The scene orbit camera (azimuth/elevation/distance); the body is the target. */
+		camera: OrbitCamera;
+		/** The body's world position, so it renders in world coords / floating origin. */
+		bodyWorldPos: Vec3;
 		/** Packed scene lighting (sun toward Sol, in the body frame) from the host. */
 		lighting: LightingUniforms;
 	}
-	let { body, azimuth, elevation, distance, lighting }: Props = $props();
+	let { body, camera, bodyWorldPos, lighting }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = 1;
@@ -38,24 +38,18 @@
 
 	function frame(ts: number) {
 		if (renderer && ready && w > 0 && h > 0) {
-			const params = resolveBodyParams(body);
-			const camera = createOrbitCamera({
-				// Match the scene camera: look at the body centre (not the horizon), and
-				// remap azimuth — scene-3d's dir is [cos·sin az, sin, cos·cos az] vs this
-				// camera's [cos·cos az, sin, cos·sin az], so az' = π/2 − az aligns them.
-				lookMode: 'planet-center',
-				distance: Math.max(params.radius * 1.02, distance),
-				azimuth: Math.PI / 2 - azimuth,
-				elevation,
-				fovDeg: (FOVY * 180) / Math.PI, // match the scene camera's fov
-				aspect: w / Math.max(h, 1),
-				near: Math.max(0.01, params.radius * 0.001),
-				far: params.radius * 40,
-				planetRadius: params.radius
-			});
+			// Render at world scale (radius = radiusMeters; terrain is scale-invariant)
+			// in the scene camera via floating origin → screen + depth match the spheres.
+			const params = { ...resolveBodyParams(body), radius: body.radiusMeters };
+			const cam = sceneBodyCamera(
+				{ ...camera, target: bodyWorldPos },
+				bodyWorldPos,
+				body.radiusMeters,
+				w / Math.max(h, 1)
+			);
 			renderer.render({
 				time: ts * 0.001,
-				camera,
+				camera: cam,
 				width: w,
 				height: h,
 				params,

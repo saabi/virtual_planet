@@ -14,7 +14,7 @@
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
-	import { resolveBodyParams, type LodLevel } from '../scene/bodyParams.js';
+	import type { LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
@@ -38,6 +38,8 @@
 	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
 	let procBody = $state<BodyNode | null>(null);
 	let procBlend = $state(0);
+	/** The selected body's live world position, for the layer's world-coord render. */
+	let procWorldPos = $state<Vec3>([0, 0, 0]);
 	/** Feathered disc (screen px) to mask the procedural layer to its planet + atmosphere,
 	 *  so the rest of the layer is transparent and the scene shows through. */
 	let procMask = $state<{ x: number; y: number; r0: number; r1: number } | null>(null);
@@ -65,11 +67,6 @@
 		return selectedId ? getWorldTransform(animated, selectedId).position : [0, 0, 0];
 	}
 
-	// Procedural-layer camera distance: scale the scene distance into the body's
-	// render-space so the procedural planet matches its sphere's on-screen size.
-	const procDistance = $derived(
-		procBody ? (resolveBodyParams(procBody).radius * camera.distance) / procBody.radiusMeters : 1
-	);
 
 	// Screen-size LOD lives in buildDrawList (dot/sphere/procedural by projected px, with
 	// ±15% hysteresis via lodState). A dot renders as a fixed-size point so distant
@@ -174,6 +171,7 @@
 		) {
 			procBlend = item.blend;
 			procBody = item.blend > 0 ? node : null;
+			procWorldPos = item.worldPos;
 			// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
 			const r = item.screenPx / 2;
 			procMask = procBody ? { x: item.screen.x, y: item.screen.y, r0: r, r1: r * 1.35 } : null;
@@ -329,9 +327,8 @@
 		<div class="proc-wrap" style={procStyle}>
 			<ProceduralBodyLayer
 				body={procBody}
-				azimuth={camera.azimuth}
-				elevation={camera.elevation}
-				distance={procDistance}
+				{camera}
+				bodyWorldPos={procWorldPos}
 				lighting={procLighting}
 			/>
 		</div>
