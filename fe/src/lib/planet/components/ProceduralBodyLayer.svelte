@@ -40,13 +40,23 @@
 		if (renderer && ready && w > 0 && h > 0) {
 			// Render at world scale (radius = radiusMeters; terrain is scale-invariant)
 			// in the scene camera via floating origin → screen + depth match the spheres.
-			const params = { ...resolveBodyParams(body), radius: body.radiusMeters };
+			const preset = resolveBodyParams(body);
+			const params = { ...preset, radius: body.radiusMeters };
 			const cam = sceneBodyCamera(
 				{ ...camera, target: bodyWorldPos },
 				bodyWorldPos,
 				body.radiusMeters,
 				w / Math.max(h, 1)
 			);
+			// Atmosphere optical depth ∝ strength × radius; the strengths are tuned at the
+			// preset radius (~100), so scale them inversely with the world radius to keep
+			// the look — else the world-scale shell is thousands× thicker → blown-out white.
+			const atmoScale = preset.radius / body.radiusMeters;
+			const atmosphere = {
+				...defaultAtmosphereParams(body.radiusMeters, 0.8 * atmoScale),
+				rayleighStrength: atmoScale,
+				mieStrength: atmoScale
+			};
 			renderer.render({
 				time: ts * 0.001,
 				camera: cam,
@@ -57,7 +67,7 @@
 				debug: { wireframe: false, faceColors: false, showPatchBorders: false, showRingColors: false },
 				lighting,
 				materialOverrides: DEFAULT_MATERIAL_OVERRIDES,
-				atmosphere: defaultAtmosphereParams(params.radius),
+				atmosphere,
 				planetRotation: [0, 0, 0, 1]
 			});
 		}
