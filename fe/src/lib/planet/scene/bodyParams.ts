@@ -1,22 +1,40 @@
 import type { PlanetParameters } from '../params/planetParams.js';
-import { DEFAULT_PRESET, PLANET_PRESETS } from '../params/presets.js';
+import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import type { BodyNode } from './types.js';
 
 // Per-body appearance + render-LOD resolution (pure). resolveBodyParams gives the
-// procedural appearance; selectLod picks a representation from on-screen size. The
-// physical size (radiusMeters) is applied at render time, separately from the
-// appearance's render-space `radius`. See _docs/specs/celestial-body-params.md.
+// procedural appearance; selectLod picks a representation from on-screen size. The terrain
+// is scale-invariant, so the renderer sets params.radius = body.radiusMeters (world scale);
+// the preset's radius (~100) is only the authoring reference R_ref. See
+// _docs/specs/celestial-body-params.md and renderer-unification-plan.md §3.1/§5.
 
 /**
- * The body's procedural appearance: its preset merged with sparse overrides. NB the
- * resulting `radius` is the appearance/render-space radius (it scales noise
- * relations), NOT the physical size — `body.radiusMeters` is the world scale, applied
- * separately when the body is composited into the scene.
+ * The body's procedural appearance: its preset merged with sparse overrides. The resulting
+ * `radius` is the preset's authoring-reference radius (R_ref); the world size is
+ * `body.radiusMeters`, which the renderer applies as `params.radius` at render time.
  */
 export function resolveBodyParams(body: BodyNode): PlanetParameters {
 	const preset = body.appearance?.preset ?? DEFAULT_PRESET;
 	const base = PLANET_PRESETS[preset] ?? PLANET_PRESETS[DEFAULT_PRESET];
 	return { ...base, ...body.appearance?.overrides };
+}
+
+/**
+ * Inverse of resolveBodyParams: the sparse overrides that, layered on `preset`, reproduce
+ * `params` — only fields differing from the preset, which is what the scene stores in
+ * `appearance.overrides` (matching AppearanceEditor). Used by the `/planet` → `/scene`
+ * save-back round-trip (see scene/planetHandoff.ts).
+ */
+export function diffAppearanceOverrides(
+	params: PlanetParameters,
+	preset: PlanetPresetName
+): Partial<PlanetParameters> {
+	const base = PLANET_PRESETS[preset] ?? PLANET_PRESETS[DEFAULT_PRESET];
+	const overrides: Partial<PlanetParameters> = {};
+	for (const key of Object.keys(params) as (keyof PlanetParameters)[]) {
+		if (params[key] !== base[key]) overrides[key] = params[key];
+	}
+	return overrides;
 }
 
 export type LodLevel = 'dot' | 'sphere' | 'procedural';

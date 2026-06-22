@@ -7,6 +7,13 @@
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
 	import { pathNodeIds, pathOf, resolvePath } from '$lib/planet/scene/scenePath.js';
 	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
+	import { resolveBodyParams } from '$lib/planet/scene/bodyParams.js';
+	import { writeHandoffLink } from '$lib/planet/scene/planetHandoff.js';
+	import { toSnapshot } from '$lib/planet/documents/snapshot.js';
+	import { writeSession } from '$lib/planet/documents/storage.js';
+	import { CURRENT_SNAPSHOT_VERSION } from '$lib/planet/documents/types.js';
+	import { defaultAtmosphereParams } from '$lib/planet/params/atmosphereParams.js';
+	import { DEFAULT_PRESET } from '$lib/planet/params/presets.js';
 	import {
 		addChild,
 		addOrbitingBody,
@@ -191,6 +198,51 @@
 		if (selectedId) scene = updateNode(scene, selectedId, { lod: l });
 	}
 
+	// Hand the selected body off to the /planet editor: copy its resolved params into
+	// /planet's session (so PlanetViewport hydrates them) + a persistent "link" record so
+	// /planet can save edits back to this body. Persist the scene first so that save-back
+	// round-trips against the current tree. See scene/planetHandoff.ts.
+	function openInPlanetEditor(newTab: boolean) {
+		if (!browser || !bodyNode) return;
+		const presetName = bodyNode.appearance?.preset ?? DEFAULT_PRESET;
+		const params = resolveBodyParams(bodyNode);
+		saveScene();
+		writeSession({
+			schemaVersion: CURRENT_SNAPSHOT_VERSION,
+			snapshot: toSnapshot({
+				presetName,
+				params,
+				atmosphere: defaultAtmosphereParams(params.radius),
+				camera: {
+					azimuth: 0.6,
+					elevation: 0.35,
+					distance: params.radius * 3,
+					altitudeMeters: params.radius * 2,
+					orbitSpeedRadPerSec: 0,
+					lookAtHorizon: false
+				}
+			}),
+			activeDocumentId: null
+		});
+		writeHandoffLink({ bodyId: bodyNode.id, bodyName: bodyNode.name, presetName, scenePath: page.url.pathname });
+		if (newTab) window.open('/planet', '_blank');
+		else goto('/planet');
+	}
+
+	// Live round-trip: when /planet (another tab) saves edits back into the scene, reload.
+	// storage events fire only in *other* tabs, so this never echoes our own writes.
+	$effect(() => {
+		if (!browser) return;
+		const onStorage = (e: StorageEvent) => {
+			if (e.key === SCENE_KEY && e.newValue) {
+				const reloaded = deserializeScene(e.newValue);
+				if (reloaded) scene = reloaded;
+			}
+		};
+		window.addEventListener('storage', onStorage);
+		return () => window.removeEventListener('storage', onStorage);
+	});
+
 	function addUnder(kind: 'group' | 'body' | 'orbit') {
 		const parentId = selectedId ?? scene.rootId;
 		if (kind === 'orbit') {
@@ -277,12 +329,21 @@
 						<button type="button" class="render-btn" onclick={() => (focusedBodyId = bodyNode.id)}>
 							Render procedurally →
 						</button>
+						<div class="editor-handoff">
+							<button type="button" class="edit-link" onclick={() => openInPlanetEditor(false)}>
+								Edit in /planet →
+							</button>
+							<button
+								type="button"
+								class="edit-link new-tab"
+								title="Open in a new tab (compare side by side)"
+								aria-label="Open in planet editor in a new tab"
+								onclick={() => openInPlanetEditor(true)}
+							>
+								↗
+							</button>
+						</div>
 					</div>
-				{/if}
-				{#if selectedNode.kind === 'body'}
-					<!-- The full procedural editor still lives at /planet (per-body params +
-					     the nested route are future work). -->
-					<a class="edit-link" href="/planet">Open in planet editor →</a>
 				{/if}
 			</div>
 		{/if}
@@ -526,14 +587,29 @@
 		opacity: 0.6;
 	}
 
+	.editor-handoff {
+		display: flex;
+		align-items: stretch;
+		gap: 4px;
+		margin-top: 2px;
+	}
+
 	.edit-link {
-		color: #9ec0ff;
-		text-decoration: none;
-		font-size: 12px;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 10px;
+		border-radius: 4px;
+		border: 1px solid rgba(158, 192, 255, 0.4);
+		background: rgba(158, 192, 255, 0.12);
+		color: #cfe0ff;
+		cursor: pointer;
 	}
 
 	.edit-link:hover {
-		text-decoration: underline;
+		background: rgba(158, 192, 255, 0.22);
+	}
+
+	.edit-link.new-tab {
+		padding: 3px 8px;
 	}
 
 	.atmo-debug {

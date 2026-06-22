@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { proceduralBlend, resolveBodyParams, selectLod } from './bodyParams.js';
+import {
+	diffAppearanceOverrides,
+	proceduralBlend,
+	resolveBodyParams,
+	selectLod
+} from './bodyParams.js';
 import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import type { BodyNode } from './types.js';
 
@@ -34,6 +39,25 @@ describe('resolveBodyParams', () => {
 	it('falls back to the default preset for an unknown name', () => {
 		const p = resolveBodyParams(body({ appearance: { preset: 'nope' as PlanetPresetName } }));
 		expect(p).toEqual(PLANET_PRESETS[DEFAULT_PRESET]);
+	});
+});
+
+describe('diffAppearanceOverrides', () => {
+	it('keeps only fields that differ from the preset', () => {
+		const params = { ...PLANET_PRESETS.desert, water_level: 0.123, erosion: 2.5 };
+		const overrides = diffAppearanceOverrides(params, 'desert');
+		expect(overrides).toEqual({ water_level: 0.123, erosion: 2.5 });
+	});
+
+	it('is empty when params equal the preset', () => {
+		expect(diffAppearanceOverrides({ ...PLANET_PRESETS.desert }, 'desert')).toEqual({});
+	});
+
+	it('round-trips with resolveBodyParams', () => {
+		const edited = { ...PLANET_PRESETS.desert, voronoi_distortion_scale: 7, snow_cover: 0.9 };
+		const overrides = diffAppearanceOverrides(edited, 'desert');
+		const resolved = resolveBodyParams(body({ appearance: { preset: 'desert', overrides } }));
+		expect(resolved).toEqual(edited);
 	});
 });
 

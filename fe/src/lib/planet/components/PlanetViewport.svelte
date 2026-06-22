@@ -51,6 +51,12 @@
 		writeSession
 	} from '../documents/storage.js';
 	import { CURRENT_SNAPSHOT_VERSION, type StoredPlanetDocument } from '../documents/types.js';
+	import {
+		readHandoffLink,
+		clearHandoffLink,
+		saveParamsToSceneBody,
+		type ScenePlanetHandoff
+	} from '../scene/planetHandoff.js';
 	import { createDefaultPlanetScene } from '../scene/defaults.js';
 	import { collectSceneLighting } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
@@ -70,6 +76,10 @@
 	let selection = $state(defaultSelection());
 	let activeDocumentId = $state<string | null>(null);
 	let savedDocuments = $state<StoredPlanetDocument[]>([]);
+	// Round-trip link to a /scene body (set when opened via "Edit in /planet"); enables
+	// saving the edited params back into that body's appearance. See scene/planetHandoff.ts.
+	let linkedScene = $state<ScenePlanetHandoff | null>(null);
+	let savedToScene = $state(false);
 	let hydrated = $state(false);
 
 	let scene = $state(createDefaultPlanetScene());
@@ -261,6 +271,7 @@
 		params = { ...PLANET_PRESETS[name] };
 		activeDocumentId = null;
 		selection = builtinSelection(name);
+		detachScene(); // editor content no longer corresponds to the linked body
 	}
 
 	function applyDocument(id: string) {
@@ -279,6 +290,22 @@
 		lookAtHorizon = applied.camera.lookAtHorizon ?? true;
 		activeDocumentId = id;
 		selection = documentSelection(id);
+		detachScene();
+	}
+
+	// Round-trip with /scene: save the current params back into the linked body, or detach.
+	function saveToScene() {
+		if (!linkedScene) return;
+		if (saveParamsToSceneBody(linkedScene.bodyId, linkedScene.presetName, $state.snapshot(params))) {
+			savedToScene = true;
+			window.setTimeout(() => (savedToScene = false), 1600);
+		}
+	}
+	function detachScene() {
+		if (!linkedScene) return;
+		clearHandoffLink();
+		linkedScene = null;
+		savedToScene = false;
 	}
 
 	function handleSelectionChange(next: string) {
@@ -1860,6 +1887,8 @@
 		};
 
 		hydrateFromSession();
+		// If we were opened from /scene's "Edit in /planet", surface the round-trip link.
+		linkedScene = readHandoffLink();
 		hydrated = true;
 
 		void initBackend();
@@ -2212,6 +2241,19 @@
 		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
 	</div>
 
+	{#if linkedScene}
+		<div class="scene-link-banner" role="status">
+			<span class="scene-link-label">Linked to scene body <strong>{linkedScene.bodyName}</strong></span>
+			<button type="button" class="scene-link-save" onclick={saveToScene}>
+				{savedToScene ? 'Saved ✓' : 'Save to scene'}
+			</button>
+			<a class="scene-link-back" href={linkedScene.scenePath}>↩ scene</a>
+			<button type="button" class="scene-link-unlink" title="Stop linking" onclick={detachScene}>
+				Unlink
+			</button>
+		</div>
+	{/if}
+
 	<PlanetEditorPanel
 		bind:params
 		bind:atmosphere
@@ -2244,6 +2286,45 @@
 		width: 100%;
 		height: 100vh;
 		background: #0a0a12;
+	}
+
+	.scene-link-banner {
+		position: absolute;
+		top: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 30;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 5px 10px;
+		border-radius: 6px;
+		border: 1px solid rgba(158, 192, 255, 0.4);
+		background: rgba(18, 24, 40, 0.92);
+		color: #cfe0ff;
+		font: 12px/1.2 system-ui, sans-serif;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+	}
+
+	.scene-link-banner button,
+	.scene-link-back {
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 9px;
+		border-radius: 4px;
+		border: 1px solid rgba(158, 192, 255, 0.4);
+		background: rgba(158, 192, 255, 0.14);
+		color: #cfe0ff;
+		cursor: pointer;
+		text-decoration: none;
+	}
+
+	.scene-link-banner button:hover,
+	.scene-link-back:hover {
+		background: rgba(158, 192, 255, 0.26);
+	}
+
+	.scene-link-unlink {
+		opacity: 0.75;
 	}
 
 	.planet-canvas {
