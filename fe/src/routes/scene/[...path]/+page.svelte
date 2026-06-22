@@ -290,17 +290,19 @@
 			<label class="atmo-head">
 				<input type="checkbox" bind:checked={atmo.enabled} /> Atmosphere (debug)
 			</label>
+			<!-- Strengths are radius-invariant now (normalized by R_ref/radius), so these
+			     are authored on /planet's ~1.0 scale, not the old world-scale workaround. -->
 			<label class="atmo-row">
-				<span>rayleigh {atmo.rayleigh.toFixed(4)}</span>
-				<input type="range" min="0" max="0.05" step="0.0005" bind:value={atmo.rayleigh} />
+				<span>rayleigh {atmo.rayleigh.toFixed(2)}</span>
+				<input type="range" min="0" max="2" step="0.01" bind:value={atmo.rayleigh} />
 			</label>
 			<label class="atmo-row">
-				<span>mie {atmo.mie.toFixed(4)}</span>
-				<input type="range" min="0" max="0.05" step="0.0005" bind:value={atmo.mie} />
+				<span>mie {atmo.mie.toFixed(2)}</span>
+				<input type="range" min="0" max="2" step="0.01" bind:value={atmo.mie} />
 			</label>
 			<label class="atmo-row">
-				<span>fog {atmo.fog.toFixed(3)}</span>
-				<input type="range" min="0" max="0.5" step="0.005" bind:value={atmo.fog} />
+				<span>fog {atmo.fog.toFixed(2)}</span>
+				<input type="range" min="0" max="1" step="0.01" bind:value={atmo.fog} />
 			</label>
 			<label class="atmo-row">
 				<span>debug view</span>

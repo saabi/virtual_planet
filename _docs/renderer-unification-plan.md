@@ -44,15 +44,16 @@ The fix is to make all five **explicit and testable**, then converge the two rou
   unit-direction frequencies use `R_ref` as a fixed normalizer so they stay
   scale-invariant. Today this is the fine **texture noise** (`unit_dir · R_ref ·
   sqrt(texture_noise_scale)`), tuned at the presets' radius 100.
-- **Atmosphere must be made scale-invariant (Phase 3 — not yet implemented).**
-  Atmosphere optical depth ≈ `∫ strength · density(h) dl`, and both the shell path `dl`
-  and the density scale-height grow with radius, so optical depth ∝ `strength × radius`.
-  Today `toGpuAtmosphereParams` passes the strengths through unchanged, so a strength
-  authored at radius 100 blows out at world scale. **The Phase 3 change** is to have
-  `toGpuAtmosphereParams` normalize strength by `R_ref / planetRadius`: at radius 100 the
-  factor is 1 (`/planet` unchanged); at `5e5` it divides by ~5000 (no blow-out). Once
-  done, `BodyAtmosphere` strengths are radius-independent and defaults of `1.0` are
-  correct everywhere. Until then `/scene` exposes the strengths as live debug knobs.
+- **Atmosphere is scale-invariant (Phase 3 — done).** Atmosphere optical depth ≈
+  `∫ strength · density(h) dl`, and both the shell path `dl` and the density scale-height
+  grow with radius, so raw optical depth ∝ `strength × radius`. `toGpuAtmosphereParams`
+  now divides the per-unit-length strengths (`rayleigh`, `mie`) by `radius / R_ref`: at
+  radius 100 the factor is 1 (`/planet` unchanged); at `5e5` it divides by 5000 (no
+  blow-out). The shader's old `radius/100` β factor — which scaled the wrong way and
+  compounded into ~`radius²` optical depth (the overexposure) — was removed; the CPU owns
+  the scale contract. Fog density rides on `σ_t`, so it inherits the normalization. So
+  `BodyAtmosphere` strengths are radius-independent and defaults of `1.0` are correct
+  everywhere.
 - **Per-parameter table.** Every `PlanetParameters` / `AtmosphereParameters` field is
   documented with **unit + coordinate space + scale-behavior** (`ratio-of-radius` /
   `unit-dir-frequency` / `absolute-normalized-by-R_ref`). See
@@ -106,11 +107,16 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   `body_dir` from the ray∩base-sphere coordinate (`inv_view_projection` + `viewport` added
   to `ViewUniforms`; shared `common/idealSphere.wgsl`), falling back to the interpolated
   dir on a miss (grazing case deferred). Both cube-sphere and surface-patch paths use it.
+- **Phase 3 — atmosphere scale-invariance (code done):** `toGpuAtmosphereParams` divides
+  `rayleigh`/`mie` strength by `radius / R_ref`; the shader's backwards `radius/100` β
+  factor is removed; fog inherits the normalization via `σ_t`. `/scene` debug sliders
+  back on `/planet`'s ~1.0 scale.
 - **Done but not yet visually verified on GPU:** the camera-parity slice, the debug views,
-  and Phase 2 — confirm with the Phase-0 lat/long grid under a tessellation sweep (it
-  should now stay put). The author has no GPU.
-- **Not started:** atmosphere scale-invariance (Phase 3), `BodyAtmosphere` data (Phase 4),
-  single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph compiler.
+  Phase 2, and Phase 3 — confirm the lat/long grid stays put under a tessellation sweep,
+  and that one atmosphere strength looks the same at radius 100 and at world scale (no
+  overexposure). The author has no GPU.
+- **Not started:** `BodyAtmosphere` data (Phase 4), single-engine composite (Phase 5),
+  eclipse shadows (Phase 6), the graph compiler.
 
 ## 5. Contradictions resolved
 
@@ -144,9 +150,11 @@ shared by cube-sphere and surface-patch paths via `common/idealSphere.wgsl`
 interpolated dir). CPU mirror test locks the ray/inverse/intersection math; **verify on
 GPU** with the Phase-0 lat/long grid under a tessellation sweep.
 
-**Phase 3 — Scale model.** Make the atmosphere scale-invariant (§3.1); confirm
-`params.radius = radiusMeters` + `R_ref` for texture; retire the route-debug atmosphere
-guesswork.
+**Phase 3 — Scale model. ✅ code done.** Atmosphere made scale-invariant (§3.1):
+`toGpuAtmosphereParams` divides `rayleigh`/`mie` strength by `radius / R_ref` and the
+shader's backwards β factor is removed; `/scene` strength sliders restored to `/planet`'s
+~1.0 scale (the route-debug guesswork retired). Verify on GPU: one strength, same look at
+radius 100 and world scale.
 
 **Phase 4 — Body / view / quality split.** `BodyAtmosphere` on `BodyNode`,
 `RenderQualitySettings`, `ViewportState`; move atmosphere off route-debug knobs onto

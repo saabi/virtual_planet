@@ -5,16 +5,16 @@
 
 const SUN_STEPS: u32 = 4u;
 
+// Strengths arrive pre-normalized by R_ref/radius from toGpuAtmosphereParams (the scale
+// contract lives on the CPU now), so β applies no radius factor of its own. A previous
+// `radius/100` factor here scaled β *up* with radius — the wrong direction — compounding
+// with the radius-growing path into ~radius² optical depth (the world-scale overexposure).
 fn rayleigh_beta(atmo: AtmosphereParams) -> vec3f {
-  let radius_ref = max(atmo.planet_radius, 1.0);
-  let scale = radius_ref / 100.0;
-  return vec3f(0.0058, 0.0135, 0.0331) * atmo.rayleigh_strength * scale;
+  return vec3f(0.0058, 0.0135, 0.0331) * atmo.rayleigh_strength;
 }
 
 fn mie_beta(atmo: AtmosphereParams) -> vec3f {
-  let radius_ref = max(atmo.planet_radius, 1.0);
-  let scale = radius_ref / 100.0;
-  return vec3f(atmo.mie_strength * 0.004 * scale);
+  return vec3f(atmo.mie_strength * 0.004);
 }
 
 fn sun_transmittance(

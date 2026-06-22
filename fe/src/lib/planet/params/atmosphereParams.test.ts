@@ -25,6 +25,20 @@ describe('atmosphereParams', () => {
 		expect(view.getFloat32(48, true)).toBe(12);
 	});
 
+	it('normalizes strengths by R_ref/radius so optical depth is radius-invariant', () => {
+		const params = { ...defaultAtmosphereParams(100), rayleighStrength: 1, mieStrength: 1 };
+		// At the reference radius the factor is 1 (/planet unchanged).
+		const ref = toGpuAtmosphereParams(params, 100);
+		expect(ref.rayleigh_strength).toBeCloseTo(1, 6);
+		expect(ref.mie_strength).toBeCloseTo(1, 6);
+		// At world scale the strength divides by radius/R_ref (= 5000 here).
+		const world = toGpuAtmosphereParams(params, 5e5);
+		expect(world.rayleigh_strength).toBeCloseTo(100 / 5e5, 10);
+		expect(world.mie_strength).toBeCloseTo(100 / 5e5, 10);
+		// Fog density is a dimensionless multiplier (rides on σ_t) — not normalized.
+		expect(world.ground_fog_density).toBeCloseTo(params.groundFogDensity, 6);
+	});
+
 	it('zeros scattering when atmosphere is disabled', () => {
 		const params = { ...defaultAtmosphereParams(100), enabled: false };
 		const gpu = toGpuAtmosphereParams(params, 100);
