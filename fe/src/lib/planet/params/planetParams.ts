@@ -1,30 +1,51 @@
 import type { RenderMode } from '../patches/types.js';
 
-/** Serializable planet procedural parameters (matches legacy presets). */
+/**
+ * Serializable planet procedural parameters (matches legacy presets).
+ *
+ * PARAMETER CONTRACT (see _docs/renderer-unification-plan.md §3.1 and
+ * planet-shaping-pipeline-graph.md). Every shape/material field is sampled in the
+ * BODY frame: the shader's `sample_planet(unit_dir, …)` receives `body_dir =
+ * inverse(planetRotation)·world_dir`, so terrain is anchored to the body, never the
+ * viewport. The trailing tag is the field's *scale-behavior* — how its look survives a
+ * change of `radius`. The renderer sets `radius = radiusMeters` (world scale), so only
+ * scale-invariant fields keep their appearance across sizes:
+ *
+ *   freq    multiplies the unit direction (`unit_dir·value`)          → invariant
+ *   ratioR  × radius → metres of relief                               → invariant
+ *   R_ref   absolute, normalized by the reference radius R_ref=100 m  → invariant
+ *   pure    dimensionless number: [0,1] threshold / mix / exponent    → invariant
+ *   flag    0/1 toggle
+ *   length  absolute metres — this field IS the world scale
+ *
+ * Thresholds tagged `pure` act on the normalized height `tl = height/total_amplitude`
+ * (water compares metres against the water level), so they are radius-free too. Adding
+ * a field? Tag it, and make it scale-invariant unless it is `length`/`flag`.
+ */
 export interface PlanetParameters {
-	radius: number;
-	voronoi_scale: number;
-	voronoi_amplitude: number;
-	voronoi_albedo: number;
-	voronoi_albedo_y: number;
-	voronoi_albedo_z: number;
-	voronoi_distortion_scale: number;
-	voronoi_distortion_amplitude: number;
-	voronoi_distortion_albedo: number;
-	detail_scale: number;
-	detail_amplitude: number;
-	detail_albedo: number;
-	water_level: number;
-	render_water: number;
-	erosion: number;
-	sand_cutoff: number;
-	vegetation_level: number;
-	snow_cover: number;
-	texture_noise_scale: number;
-	texture_noise_amplitude: number;
-	polar_scale: number;
-	polar_amplitude: number;
-	illumination: number;
+	radius: number; // length — world render radius; set = radiusMeters (presets use R_ref=100)
+	voronoi_scale: number; // freq   — macro relief frequency
+	voronoi_amplitude: number; // ratioR — macro relief height
+	voronoi_albedo: number; // pure   — [0,1] albedo mix (vor.x spottiness)
+	voronoi_albedo_y: number; // pure   — [0,1] albedo mix (vor.y)
+	voronoi_albedo_z: number; // pure   — [0,1] albedo mix (vor.z)
+	voronoi_distortion_scale: number; // freq   — domain-warp frequency for the voronoi coord
+	voronoi_distortion_amplitude: number; // pure   — warp offset in voronoi-coord space (dimensionless)
+	voronoi_distortion_albedo: number; // pure   — [0,1] albedo mix (distortion)
+	detail_scale: number; // freq   — fine relief frequency
+	detail_amplitude: number; // ratioR — fine relief height
+	detail_albedo: number; // pure   — [0,1] albedo mix (detail)
+	water_level: number; // pure   — [0,1] sea level within the relief band
+	render_water: number; // flag   — draw water surface + water biome
+	erosion: number; // pure   — height-curve exponent
+	sand_cutoff: number; // pure   — [0,1] normalized-height shore threshold
+	vegetation_level: number; // pure   — [0,1] normalized-height vegetation threshold
+	snow_cover: number; // pure   — [0,1] normalized-height snow threshold
+	texture_noise_scale: number; // R_ref  — fine texture frequency (unit_dir·100·√scale)
+	texture_noise_amplitude: number; // ratioR — fine texture relief height
+	polar_scale: number; // pure   — [0,1] latitude (|unit_dir.y|) where polar relief begins
+	polar_amplitude: number; // ratioR — polar relief height
+	illumination: number; // flag   — lighting mode, NOT shape (slated to leave PlanetParameters)
 }
 
 /** GPU uniform block — 16-byte aligned, mirrors planet/params.wgsl */

@@ -1,14 +1,33 @@
-/** Serializable atmosphere parameters. */
+/**
+ * Serializable atmosphere parameters.
+ *
+ * SCALE CONTRACT (see _docs/renderer-unification-plan.md §3.1). Unlike terrain, the
+ * atmosphere is NOT yet scale-invariant. Optical depth ≈ ∫ strength·density·dl, and
+ * both the shell path `dl` and the scale height grow with radius, so optical depth ∝
+ * strength × radius. The `coeff/len` fields below are per-unit-length absolute
+ * coefficients → at world scale they blow out (the lit-side overexposure). Phase 3
+ * normalizes them by `R_ref/radius` in `toGpuAtmosphereParams` so one authored strength
+ * looks the same at any radius; until then `/scene` tunes them live as debug knobs.
+ * Tags mirror PlanetParameters; `coeff/len` = scales with radius (NOT invariant).
+ */
 export interface AtmosphereParameters {
-	/** When false, skip scattering/fog and present terrain without an atmosphere pass. */
+	/** flag — when false, skip scattering/fog and present terrain without an atmosphere pass. */
 	enabled: boolean;
+	/** length — shell thickness above the surface (default radius·0.2; floored at radius·0.05). */
 	shellHeightMeters: number;
+	/** length — density e-folding height (default radius·0.1; floored at radius·0.02). */
 	scaleHeightMeters: number;
+	/** coeff/len — Rayleigh scattering strength; scales with radius (NOT invariant — Phase 3). */
 	rayleighStrength: number;
+	/** coeff/len — Mie scattering strength; scales with radius (NOT invariant — Phase 3). */
 	mieStrength: number;
+	/** pure — Mie phase anisotropy g ∈ (−1, 1). */
 	mieG: number;
+	/** coeff/len — ground fog density; scales with radius (NOT invariant — Phase 3). */
 	groundFogDensity: number;
+	/** pure — sun-disk radiance multiplier. */
 	sunDiskIntensity: number;
+	/** quality — ray-march sample count (view/quality pref, slated for RenderQualitySettings). */
 	integrateSteps: number;
 }
 

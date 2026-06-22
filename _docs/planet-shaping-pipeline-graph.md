@@ -57,22 +57,51 @@ not an uploaded or baked texture.
 
 `PlanetParameters` is the shape/material input schema. `toGpuPlanetParams()` copies it
 into the `PlanetParams` uniform block, with `time` appended for shader animation hooks.
+The per-field contract now lives **on the type** (`fe/src/lib/planet/params/planetParams.ts`
+and `atmosphereParams.ts`) so misuse is caught where values are written; this table is
+the prose mirror. Every shape/material field is sampled in the **body frame**
+(`sample_planet(body_dir, …)`). The **scale-behavior** column says how a field survives
+a change of `radius` — the renderer sets `radius = radiusMeters`, so only the
+scale-invariant tags keep their look at world scale:
 
-| Parameter group | Fields | Current meaning |
+- `freq` — multiplies the unit direction (`unit_dir·value`); invariant.
+- `ratioR` — × radius → metres of relief; invariant.
+- `R_ref` — absolute, normalized by the reference radius `R_ref = 100 m`; invariant.
+- `pure` — dimensionless number ([0,1] threshold / mix / exponent); invariant.
+- `flag` — 0/1 toggle. `length` — absolute metres (sets the world scale).
+
+| Field | Scale | Meaning |
 |---|---|---|
-| Radius | `radius` | Base sphere radius in renderer meters. |
-| Macro cells | `voronoi_scale`, `voronoi_amplitude`, `voronoi_albedo`, `voronoi_albedo_y`, `voronoi_albedo_z` | Large terrain cells plus color bias. Amplitude is a ratio of radius in current presets. |
-| Macro distortion | `voronoi_distortion_scale`, `voronoi_distortion_amplitude`, `voronoi_distortion_albedo` | Distorts the macro-cell sample domain and material color contribution. |
-| Detail relief | `detail_scale`, `detail_amplitude`, `detail_albedo` | Secondary FBM relief and color contribution. Amplitude is a ratio of radius. |
-| Water and erosion | `water_level`, `render_water`, `erosion` | Converts raw relief into water-clamped radius and an erosion value used by material classification. |
-| Biome thresholds | `sand_cutoff`, `vegetation_level`, `snow_cover` | Material thresholds derived from erosion, pseudo-latitude, and elevation. |
-| Fine texture noise | `texture_noise_scale`, `texture_noise_amplitude` | Procedural fine noise. Despite the name, this is not a GPU texture. Amplitude is a ratio of radius. |
-| Polar shaping | `polar_scale`, `polar_amplitude` | Procedural polar material/height influence. |
-| Lighting toggle | `illumination` | Renderer/material lighting control. This is not intrinsic shape and should move out of `PlanetParameters`. |
+| `radius` | length | World render radius; set = `radiusMeters` (presets author at `R_ref = 100`). |
+| `voronoi_scale` | freq | Macro relief frequency. |
+| `voronoi_amplitude` | ratioR | Macro relief height. |
+| `voronoi_albedo`, `_y`, `_z` | pure | `[0,1]` albedo mix from the three voronoi channels. |
+| `voronoi_distortion_scale` | freq | Domain-warp frequency for the voronoi coord. |
+| `voronoi_distortion_amplitude` | pure | Warp offset in voronoi-coord space (dimensionless). |
+| `voronoi_distortion_albedo` | pure | `[0,1]` albedo mix (distortion channel). |
+| `detail_scale` | freq | Fine relief frequency. |
+| `detail_amplitude` | ratioR | Fine relief height. |
+| `detail_albedo` | pure | `[0,1]` albedo mix (detail channel). |
+| `water_level` | pure | `[0,1]` sea level within the relief band. |
+| `render_water` | flag | Draw water surface + water biome. |
+| `erosion` | pure | Height-curve exponent. |
+| `sand_cutoff`, `vegetation_level`, `snow_cover` | pure | `[0,1]` thresholds on normalized height `tl = height/total_amplitude`. |
+| `texture_noise_scale` | R_ref | Fine texture frequency (`unit_dir·100·√scale`) — the one field anchored to `R_ref`. |
+| `texture_noise_amplitude` | ratioR | Fine texture relief height. Despite the name this is not a GPU texture. |
+| `polar_scale` | pure | `[0,1]` latitude (`|unit_dir.y|`) where polar relief begins. |
+| `polar_amplitude` | ratioR | Polar relief height. |
+| `illumination` | flag | Lighting mode, **not** intrinsic shape — slated to leave `PlanetParameters`. |
+
+`AtmosphereParameters` carries an extra tag, `coeff/len` (per-unit-length coefficient
+that **scales with radius**, so NOT invariant): `rayleighStrength`, `mieStrength`,
+`groundFogDensity`. Phase 3 normalizes those by `R_ref/radius`; `shellHeightMeters` /
+`scaleHeightMeters` are `length`, `mieG` / `sunDiskIntensity` are `pure`,
+`integrateSteps` is a quality pref.
 
 The current problem is not only incorrect signs or axis assignments. Those bugs are
-possible because the coordinate-space and parameter contracts are implicit. A graph
-schema should make spaces, units, dependencies, and shader-stage placement explicit.
+possible because the coordinate-space and parameter contracts are implicit. Pinning the
+contract on the type (above) is the cheap near-term step; a graph schema would later make
+spaces, units, dependencies, and shader-stage placement machine-checkable.
 
 ## Current procedural graph
 
