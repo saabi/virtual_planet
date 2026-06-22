@@ -18,9 +18,10 @@ import type { RenderMode } from '../patches/types.js';
  *   flag    0/1 toggle
  *   length  absolute metres — this field IS the world scale
  *
- * Thresholds tagged `pure` act on the normalized height `tl = height/total_amplitude`
- * (water compares metres against the water level), so they are radius-free too. Adding
- * a field? Tag it, and make it scale-invariant unless it is `length`/`flag`.
+ * Biome thresholds tagged `pure` act on the normalized height `tl = (height +
+ * texture_noise + polar)/total_amplitude` — so the fine texture and polar terms shift
+ * biome boundaries too — while water compares metres against the water level. All
+ * radius-free. Adding a field? Tag it, and make it scale-invariant unless `length`/`flag`.
  */
 export interface PlanetParameters {
 	radius: number; // length — world render radius; set = radiusMeters (presets use R_ref=100)
@@ -43,7 +44,7 @@ export interface PlanetParameters {
 	snow_cover: number; // pure   — [0,1] normalized-height snow threshold
 	texture_noise_scale: number; // R_ref  — fine texture frequency (unit_dir·100·√scale)
 	texture_noise_amplitude: number; // ratioR — fine texture relief height
-	polar_scale: number; // pure   — [0,1] latitude (|unit_dir.y|) where polar relief begins
+	polar_scale: number; // pure   — [0,1] pseudo-latitude threshold; vs |world_pos.y|/radius = |unit_dir.y|·(world_radius/radius), not exactly |unit_dir.y|
 	polar_amplitude: number; // ratioR — polar relief height
 	illumination: number; // flag   — lighting mode, NOT shape (slated to leave PlanetParameters)
 }

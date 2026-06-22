@@ -85,10 +85,10 @@ scale-invariant tags keep their look at world scale:
 | `water_level` | pure | `[0,1]` sea level within the relief band. |
 | `render_water` | flag | Draw water surface + water biome. |
 | `erosion` | pure | Height-curve exponent. |
-| `sand_cutoff`, `vegetation_level`, `snow_cover` | pure | `[0,1]` thresholds on normalized height `tl = height/total_amplitude`. |
+| `sand_cutoff`, `vegetation_level`, `snow_cover` | pure | `[0,1]` thresholds on normalized height `tl = (height + texture_noise + polar)/total_amplitude` — i.e. fine texture noise and the polar term shift biome boundaries, not just the macro/detail relief. Compared as `pow(threshold, 2)`. |
 | `texture_noise_scale` | R_ref | Fine texture frequency (`unit_dir·100·√scale`) — the one field anchored to `R_ref`. |
 | `texture_noise_amplitude` | ratioR | Fine texture relief height. Despite the name this is not a GPU texture. |
-| `polar_scale` | pure | `[0,1]` latitude (`|unit_dir.y|`) where polar relief begins. |
+| `polar_scale` | pure | `[0,1]` pseudo-latitude threshold where polar relief begins. Compared against `|world_pos.y|/radius = |unit_dir.y|·(world_radius/radius)` — latitude scaled by the local relief ratio (≈ `1 + height/radius`), *not* exactly `|unit_dir.y|`. Still scale-invariant (the ratio is), but the boundary wobbles slightly with terrain height. |
 | `polar_amplitude` | ratioR | Polar relief height. |
 | `illumination` | flag | Lighting mode, **not** intrinsic shape — slated to leave `PlanetParameters`. |
 

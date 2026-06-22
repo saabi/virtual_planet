@@ -44,13 +44,15 @@ The fix is to make all five **explicit and testable**, then converge the two rou
   unit-direction frequencies use `R_ref` as a fixed normalizer so they stay
   scale-invariant. Today this is the fine **texture noise** (`unit_dir · R_ref ·
   sqrt(texture_noise_scale)`), tuned at the presets' radius 100.
-- **Atmosphere must be made scale-invariant.** Atmosphere optical depth ≈ `∫ strength ·
-  density(h) dl`, and both the shell path `dl` and the density scale-height grow with
-  radius, so optical depth ∝ `strength × radius`. To keep one authored strength looking
-  the same at any radius, **`toGpuAtmosphereParams` normalizes strength by
-  `R_ref / planetRadius`**. At radius 100 the factor is 1 (`/planet` unchanged); at
-  `5e5` it divides by ~5000 (no blow-out). Then `BodyAtmosphere` strengths are
-  radius-independent and defaults of `1.0` are correct everywhere.
+- **Atmosphere must be made scale-invariant (Phase 3 — not yet implemented).**
+  Atmosphere optical depth ≈ `∫ strength · density(h) dl`, and both the shell path `dl`
+  and the density scale-height grow with radius, so optical depth ∝ `strength × radius`.
+  Today `toGpuAtmosphereParams` passes the strengths through unchanged, so a strength
+  authored at radius 100 blows out at world scale. **The Phase 3 change** is to have
+  `toGpuAtmosphereParams` normalize strength by `R_ref / planetRadius`: at radius 100 the
+  factor is 1 (`/planet` unchanged); at `5e5` it divides by ~5000 (no blow-out). Once
+  done, `BodyAtmosphere` strengths are radius-independent and defaults of `1.0` are
+  correct everywhere. Until then `/scene` exposes the strengths as live debug knobs.
 - **Per-parameter table.** Every `PlanetParameters` / `AtmosphereParameters` field is
   documented with **unit + coordinate space + scale-behavior** (`ratio-of-radius` /
   `unit-dir-frequency` / `absolute-normalized-by-R_ref`). See

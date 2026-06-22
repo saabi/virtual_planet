@@ -81,6 +81,12 @@ frame remain external.
 
 ## Remaining Caveats
 
+- **Body-local sampling is necessary but not sufficient.** This fix anchors the
+  *coordinate* to the body, but the fragment still samples from the **interpolated**
+  vertex `body_dir`, which is a flat-triangle approximation of the sphere — so terrain
+  noise/material still shifts when tessellation changes. The complete fix is to
+  recompute `body_dir` from the ideal-sphere fragment coordinate; see
+  [ideal-sphere-fragment-sampling.md](ideal-sphere-fragment-sampling.md) (plan Phase 2).
 - `/scene` still renders the selected procedural body in a CSS-masked overlay canvas,
   not inside the main `SceneEngine` depth pass.
 - `/scene` selected-body view still uses body-center targeting, while `/planet` defaults
