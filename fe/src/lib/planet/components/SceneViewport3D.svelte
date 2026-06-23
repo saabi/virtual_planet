@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
-	import { SceneEngine } from '../scene3d/sceneEngine.js';
+	import { SceneEngine, type SceneOverlayContext } from '../scene3d/sceneEngine.js';
 	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
 	import {
 		clampElevation,
@@ -67,13 +67,8 @@
 	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
 	let procBody = $state<BodyNode | null>(null);
 	let procBlend = $state(0);
-	/** The selected body's live world position, for the layer's world-coord render. */
-	let procWorldPos = $state<Vec3>([0, 0, 0]);
 	/** The selected body's evaluated body-space rotation (spin/tilt), for terrain sampling. */
 	let procRotation = $state<Quat>([0, 0, 0, 1]);
-	/** Feathered disc (screen px) to mask the procedural layer to its planet + atmosphere,
-	 *  so the rest of the layer is transparent and the scene shows through. */
-	let procMask = $state<{ x: number; y: number; r0: number; r1: number } | null>(null);
 	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
 	let procLighting = $state<LightingUniforms>(packSceneLighting({ ambient: [0, 0, 0], lights: [] }));
 
@@ -200,13 +195,11 @@
 			: null;
 
 		let atmoOverlay:
-			| ((
-					pass: GPURenderPassEncoder,
-					sceneColorView: GPUTextureView,
-					depthView: GPUTextureView,
-					surfaceDistanceView: GPUTextureView
-			  ) => void)
+			| ((overlay: SceneOverlayContext) => void)
 			| undefined;
+		const atmosphereBlendMode = atmosphereDebugActive
+			? 'explicit-composite'
+			: (viewportPrefs?.atmosphere.blendMode ?? 'explicit-composite');
 		if (procActive && procInput && sceneAtmosphere) {
 			const bodyAtmo = resolveBodyAtmosphere(procBody!);
 			if (bodyAtmo.enabled) {
@@ -226,8 +219,15 @@
 					height: h,
 					debugMode: sceneAtmosphereDebugToGpu(materialDebug)
 				};
-				atmoOverlay = (pass, sceneColorView, depthView, surfaceDistanceView) =>
-					sceneAtmosphere!.record(pass, sceneColorView, depthView, surfaceDistanceView, atmoIn);
+				atmoOverlay = (overlay) =>
+					sceneAtmosphere!.record(
+						overlay.pass,
+						overlay.sceneColorView,
+						overlay.depthView,
+						overlay.surfaceDistanceView,
+						atmoIn,
+						overlay.mode
+					);
 			}
 		}
 
@@ -242,7 +242,8 @@
 				}
 			},
 			atmoOverlay,
-			atmosphereOnWhite ? { r: 1, g: 1, b: 1, a: 1 } : undefined
+			atmosphereOnWhite ? { r: 1, g: 1, b: 1, a: 1 } : undefined,
+			atmosphereBlendMode
 		);
 	}
 
@@ -275,11 +276,7 @@
 		) {
 			procBlend = item.blend;
 			procBody = item.blend > 0 ? node : null;
-			procWorldPos = item.worldPos;
 			procRotation = getWorldTransform(animated, node.id).rotation;
-			// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
-			const r = item.screenPx / 2;
-			procMask = procBody ? { x: item.screen.x, y: item.screen.y, r0: r, r1: r * 1.35 } : null;
 			if (procBody) {
 				// Sun as a directional light toward Sol, in the body's (untilted) frame.
 				const col = collectSceneLights(animated);
@@ -302,7 +299,6 @@
 		}
 		procBlend = 0;
 		procBody = null;
-		procMask = null;
 	}
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */

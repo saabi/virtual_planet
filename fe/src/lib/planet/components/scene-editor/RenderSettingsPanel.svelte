@@ -1,7 +1,10 @@
 <script module lang="ts">
 	import { SCENE_DEBUG_LABELS, type SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
-	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
+	import type {
+		SceneAtmosphereBlendMode,
+		SceneViewportPrefs
+	} from '$lib/planet/scene/viewportPrefs.js';
 
 	interface Props {
 		materialDebug: SceneDebugMode;
@@ -65,6 +68,18 @@
 								{#each SCENE_DEBUG_LABELS as opt (opt.value)}
 									<option value={opt.value}>{opt.label}</option>
 								{/each}
+							</select>
+						</label>
+						<label class="atmo-row">
+							<span>atmosphere blend</span>
+							<select
+								value={viewportPrefs.atmosphere.blendMode}
+								onchange={(e) =>
+									(viewportPrefs.atmosphere.blendMode = e.currentTarget
+										.value as SceneAtmosphereBlendMode)}
+							>
+								<option value="explicit-composite">Explicit composite</option>
+								<option value="hardware-alpha">Hardware alpha</option>
 							</select>
 						</label>
 					</EditorSubsection>

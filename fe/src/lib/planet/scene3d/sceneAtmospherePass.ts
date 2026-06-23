@@ -9,6 +9,7 @@ import { MATERIAL_OVERRIDES_UNIFORM_SIZE, writeMaterialOverrides } from '../rend
 import { writeAtmosphereParamsToBuffer, type GpuAtmosphereParams } from '../params/atmosphereParams.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { CameraState } from '../camera/cameraModes.js';
+import type { SceneOverlayCompositeMode } from './sceneEngine.js';
 
 // Atmosphere composite for the shared scene pass (Phase 5). Runs after the spheres+terrain
 // pass and alpha-blends the focused body's atmosphere over the scene color. The selected
@@ -36,7 +37,8 @@ export interface SceneAtmosphereInput {
 
 export class SceneAtmospherePass {
 	private device: GPUDevice;
-	private pipeline: GPURenderPipeline;
+	private explicitPipeline: GPURenderPipeline;
+	private alphaPipeline: GPURenderPipeline;
 	private frameBuffer: GPUBuffer;
 	private lightingBuffer: GPUBuffer;
 	private materialBuffer: GPUBuffer;
@@ -45,13 +47,39 @@ export class SceneAtmospherePass {
 	constructor(device: GPUDevice, format: GPUTextureFormat) {
 		this.device = device;
 		const module = device.createShaderModule({ code: sceneAtmosphereShader });
-		this.pipeline = device.createRenderPipeline({
+		this.explicitPipeline = device.createRenderPipeline({
 			layout: 'auto',
 			vertex: { module, entryPoint: 'vs_main' },
 			fragment: {
 				module,
-				entryPoint: 'fs_main',
+				entryPoint: 'fs_explicit',
 				targets: [{ format }]
+			},
+			primitive: { topology: 'triangle-list' }
+		});
+		this.alphaPipeline = device.createRenderPipeline({
+			layout: 'auto',
+			vertex: { module, entryPoint: 'vs_main' },
+			fragment: {
+				module,
+				entryPoint: 'fs_alpha',
+				targets: [
+					{
+						format,
+						blend: {
+							color: {
+								srcFactor: 'one',
+								dstFactor: 'one-minus-src-alpha',
+								operation: 'add'
+							},
+							alpha: {
+								srcFactor: 'one',
+								dstFactor: 'one-minus-src-alpha',
+								operation: 'add'
+							}
+						}
+					}
+				]
 			},
 			primitive: { topology: 'triangle-list' }
 		});
@@ -63,11 +91,13 @@ export class SceneAtmospherePass {
 
 	record(
 		pass: GPURenderPassEncoder,
-		sceneColorView: GPUTextureView,
+		sceneColorView: GPUTextureView | null,
 		depthView: GPUTextureView,
 		surfaceDistanceView: GPUTextureView,
-		input: SceneAtmosphereInput
+		input: SceneAtmosphereInput,
+		mode: SceneOverlayCompositeMode = 'explicit-composite'
 	) {
+		const pipeline = mode === 'hardware-alpha' ? this.alphaPipeline : this.explicitPipeline;
 		const frame = new ArrayBuffer(FRAME_SIZE);
 		const view = new DataView(frame);
 		for (let i = 0; i < 16; i++) view.setFloat32(i * 4, input.invViewProjection[i], true);
@@ -94,7 +124,7 @@ export class SceneAtmospherePass {
 		this.device.queue.writeBuffer(this.atmosphereBuffer, 0, atmoStaging);
 
 		const frameBg = this.device.createBindGroup({
-			layout: this.pipeline.getBindGroupLayout(0),
+			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: { buffer: this.frameBuffer } },
 				{ binding: 1, resource: { buffer: this.lightingBuffer } },
@@ -102,15 +132,24 @@ export class SceneAtmospherePass {
 				{ binding: 3, resource: { buffer: this.atmosphereBuffer } }
 			]
 		});
-		const sceneBg = this.device.createBindGroup({
-			layout: this.pipeline.getBindGroupLayout(1),
-			entries: [
-				{ binding: 0, resource: sceneColorView },
-				{ binding: 1, resource: depthView },
-				{ binding: 2, resource: surfaceDistanceView }
-			]
-		});
-		pass.setPipeline(this.pipeline);
+		const sceneBg =
+			mode === 'hardware-alpha'
+				? this.device.createBindGroup({
+						layout: pipeline.getBindGroupLayout(1),
+						entries: [
+							{ binding: 1, resource: depthView },
+							{ binding: 2, resource: surfaceDistanceView }
+						]
+					})
+				: this.device.createBindGroup({
+						layout: pipeline.getBindGroupLayout(1),
+						entries: [
+							{ binding: 0, resource: sceneColorView! },
+							{ binding: 1, resource: depthView },
+							{ binding: 2, resource: surfaceDistanceView }
+						]
+					});
+		pass.setPipeline(pipeline);
 		pass.setBindGroup(0, frameBg);
 		pass.setBindGroup(1, sceneBg);
 		pass.draw(3);

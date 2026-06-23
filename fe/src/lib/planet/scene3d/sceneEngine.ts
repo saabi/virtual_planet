@@ -6,6 +6,15 @@
 const CLEAR = { r: 0.02, g: 0.03, b: 0.06, a: 1 };
 const SURFACE_DISTANCE_FORMAT: GPUTextureFormat = 'r32float';
 type ClearColor = { r: number; g: number; b: number; a: number };
+export type SceneOverlayCompositeMode = 'explicit-composite' | 'hardware-alpha';
+
+export interface SceneOverlayContext {
+	pass: GPURenderPassEncoder;
+	sceneColorView: GPUTextureView | null;
+	depthView: GPUTextureView;
+	surfaceDistanceView: GPUTextureView;
+	mode: SceneOverlayCompositeMode;
+}
 
 export class SceneEngine {
 	readonly device: GPUDevice;
@@ -85,17 +94,14 @@ export class SceneEngine {
 		width: number,
 		height: number,
 		recordScene: (pass: GPURenderPassEncoder) => void,
-		recordOverlay?: (
-			pass: GPURenderPassEncoder,
-			sceneColorView: GPUTextureView,
-			depthView: GPUTextureView,
-			surfaceDistanceView: GPUTextureView
-		) => void,
-		clearColor: ClearColor = CLEAR
+		recordOverlay?: (overlay: SceneOverlayContext) => void,
+		clearColor: ClearColor = CLEAR,
+		overlayMode: SceneOverlayCompositeMode = 'explicit-composite'
 	) {
 		const depth = this.ensureDepth(width, height);
 		const surfaceDistance = this.ensureSurfaceDistance(width, height);
-		const sceneColorView = recordOverlay
+		const useOffscreenSceneColor = !!recordOverlay && overlayMode === 'explicit-composite';
+		const sceneColorView = useOffscreenSceneColor
 			? this.ensureSceneColor(width, height).createView()
 			: colorView;
 		const encoder = this.device.createCommandEncoder();
@@ -124,17 +130,18 @@ export class SceneEngine {
 					{
 						view: colorView,
 						clearValue: clearColor,
-						loadOp: 'clear',
+						loadOp: overlayMode === 'explicit-composite' ? 'clear' : 'load',
 						storeOp: 'store'
 					}
 				]
 			});
-			recordOverlay(
-				overlayPass,
-				sceneColorView,
-				depth.createView(),
-				surfaceDistance.createView()
-			);
+			recordOverlay({
+				pass: overlayPass,
+				sceneColorView: useOffscreenSceneColor ? sceneColorView : null,
+				depthView: depth.createView(),
+				surfaceDistanceView: surfaceDistance.createView(),
+				mode: overlayMode
+			});
 			overlayPass.end();
 		}
 		this.device.queue.submit([encoder.finish()]);

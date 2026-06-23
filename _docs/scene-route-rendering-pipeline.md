@@ -71,18 +71,28 @@ Each frame:
 - The WebGPU device and canvas format.
 - A `depth24plus` texture resized to the current viewport.
 - A selected-body `r32float` surface-distance texture resized to the current viewport.
-- A sampleable offscreen scene-color texture used only when the atmosphere overlay is active.
+- A sampleable offscreen scene-color texture used only when the atmosphere overlay runs in
+  explicit-composite mode.
 - The command encoder and render pass lifecycle.
 
 For every frame it clears color to a dark background, clears depth to `1`, and clears the
-selected-surface distance target to `-1`. When the atmosphere overlay is active, scene
-color is first rendered into the sampleable offscreen scene-color texture; otherwise it
-renders directly to the swapchain. Spheres, dots, and the selected procedural body's
-terrain are recorded inside this pass, so the procedural terrain depth-tests against the
-rest of the scene. Terrain fragments also write their linear camera distance into the
-selected-surface target. The color, depth, and surface-distance textures are sampleable,
-and `render()` takes an optional overlay recorder that runs in a **second pass** after the
-scene pass ends, writing the final composited color to the swapchain.
+selected-surface distance target to `-1`. Spheres, dots, and the selected procedural
+body's terrain are recorded inside this pass, so the procedural terrain depth-tests
+against the rest of the scene. Terrain fragments also write their linear camera distance
+into the selected-surface target.
+
+When the atmosphere overlay is active, `SceneEngine` supports two compositing modes:
+
+- **Explicit composite**: scene color first renders into the sampleable offscreen
+  scene-color texture. The overlay pass clears the swapchain, samples scene color, depth,
+  and surface distance, and writes `sceneColor·avgTransmittance + inscatter`.
+- **Hardware alpha**: scene color renders directly to the swapchain. The overlay pass
+  loads the swapchain, samples only depth and surface distance, and uses fixed-function
+  blending with `src=one`, `dst=one-minus-src-alpha` after outputting
+  `vec4(inscatter, 1 - avgTransmittance)`.
+
+Atmosphere diagnostic views force explicit-composite mode so their outputs are not mixed
+with the underlying scene.
 
 ## Sphere pass
 
@@ -169,10 +179,11 @@ composited by `SceneAtmospherePass` (`scene3d/sceneAtmospherePass.ts` +
 ray-march in the body-local (`focusedBodyCamera`) frame. The selected body's terrain
 fragments provide a precision-safe linear surface distance for the march endpoint, while
 the **shared scene depth** remains the foreground occlusion source so nearer bodies
-occlude the halo. The pass samples the offscreen scene color and writes the explicit
-composite `sceneColor·avgTransmittance + inscatter`, matching `/planet`'s atmosphere
-composition instead of relying on render-target alpha blending. (The standalone `/planet`
-backend still uses its own `AtmospherePass`.)
+occlude the halo. The pass can either sample offscreen scene color and write the explicit
+composite `sceneColor·avgTransmittance + inscatter`, or output `inscatter`/alpha for
+hardware render-target blending. The explicit path matches `/planet`'s atmosphere
+composition most directly; the hardware-alpha path is available as a lower-bandwidth
+comparison mode. (The standalone `/planet` backend still uses its own `AtmospherePass`.)
 
 ## Focused body view
 

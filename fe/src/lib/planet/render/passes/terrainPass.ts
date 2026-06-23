@@ -326,10 +326,6 @@ export class TerrainPass {
 		return this.depthView;
 	}
 
-	getSurfaceDistanceView(): GPUTextureView | null {
-		return this.surfaceDistanceView;
-	}
-
 	updateSurfacePatches(frame: RenderFrame): void {
 		this.surfacePatchCount =
 			frame.surfacePatches.length > 0

@@ -93,13 +93,11 @@ fn selected_surface_t_at(uv: vec2f) -> f32 {
   return textureLoad(selected_surface_t, texel, 0).x;
 }
 
-@fragment
-fn fs_main(in: VSOut) -> @location(0) vec4f {
+fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f {
   let eye = atmo_frame.camera_pos.xyz;
-  let omega = world_ray(in.uv);
-  let scene_rgb = scene_color_at(in.uv);
+  let omega = world_ray(uv);
   let debug_mode = u32(atmo_frame.debug.x + 0.5);
-  let surface_t = selected_surface_t_at(in.uv);
+  let surface_t = selected_surface_t_at(uv);
 
   if (debug_mode == ATMOS_DEBUG_SURFACE_MASK) {
     let hit = select(0.0, 1.0, surface_t >= 0.0);
@@ -109,6 +107,9 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   // Cheap reject: pixels whose ray never crosses the atmosphere shell contribute nothing.
   let shell = ray_sphere_intersect(eye, omega, atmo.planet_center, atmo.outer_radius);
   if (shell.y < 0.0) {
+    if (hardware_alpha) {
+      return vec4f(0.0);
+    }
     return vec4f(select(scene_rgb, vec3f(0.0), debug_mode > ATMOS_DEBUG_NONE), 1.0);
   }
 
@@ -129,8 +130,11 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   // atmosphere without self-occluding on the selected terrain depth.
   if (shell.x > 0.0) {
     let shell_front_depth = projected_depth(shell.x, eye, omega);
-    let depth = scene_depth_at(in.uv);
+    let depth = scene_depth_at(uv);
     if (depth + 0.0001 < shell_front_depth) {
+      if (hardware_alpha) {
+        return vec4f(0.0);
+      }
       return vec4f(select(scene_rgb, vec3f(0.0), debug_mode > ATMOS_DEBUG_NONE), 1.0);
     }
   }
@@ -143,6 +147,19 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   if (debug_mode == ATMOS_DEBUG_TRANSMITTANCE) {
     return vec4f(vec3f(scatter.a), 1.0);
   }
+  if (hardware_alpha) {
+    return vec4f(inscatter, clamp(1.0 - scatter.a, 0.0, 1.0));
+  }
   let out_rgb = scene_rgb * scatter.a + inscatter;
   return vec4f(out_rgb, 1.0);
+}
+
+@fragment
+fn fs_explicit(in: VSOut) -> @location(0) vec4f {
+  return shade_atmosphere(in.uv, scene_color_at(in.uv), false);
+}
+
+@fragment
+fn fs_alpha(in: VSOut) -> @location(0) vec4f {
+  return shade_atmosphere(in.uv, vec3f(0.0), true);
 }

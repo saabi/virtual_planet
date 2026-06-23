@@ -14,8 +14,15 @@ export interface ViewportDebugSettings {
 	showRingColors: boolean;
 }
 
+export type SceneAtmosphereBlendMode = 'explicit-composite' | 'hardware-alpha';
+
+export interface SceneAtmosphereSettings {
+	blendMode: SceneAtmosphereBlendMode;
+}
+
 export interface SceneViewportPrefs {
 	debug: ViewportDebugSettings;
+	atmosphere: SceneAtmosphereSettings;
 	tessellation: TessellationSettings;
 	materialOverrides: MaterialOverrides;
 }
@@ -28,6 +35,9 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 			showPatchBorders: false,
 			showRingColors: false
 		},
+		atmosphere: {
+			blendMode: 'explicit-composite'
+		},
 		tessellation: { ...DEFAULT_TESSELLATION },
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES }
 	};
@@ -36,11 +46,12 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 /** Read every pref field that affects procedural rendering (for render-loop deps). */
 export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void {
 	if (!p) return;
-	const { debug: d, tessellation: t, materialOverrides: m } = p;
+	const { debug: d, atmosphere: a, tessellation: t, materialOverrides: m } = p;
 	void d.wireframe;
 	void d.faceColors;
 	void d.showPatchBorders;
 	void d.showRingColors;
+	void a.blendMode;
 	void t.detail;
 	void t.vertexBudgetMillions;
 	void t.maxPatchResolution;
