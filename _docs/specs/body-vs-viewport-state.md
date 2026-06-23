@@ -214,19 +214,26 @@ paths must converge: body carries spin/tilt; camera does not.
 ## Current renderer wiring gaps
 
 The solar-system path ([`SceneViewport3D`](../../fe/src/lib/planet/components/SceneViewport3D.svelte)
-→ [`ProceduralBodyLayer`](../../fe/src/lib/planet/components/ProceduralBodyLayer.svelte)):
+→ `buildProceduralRenderInput` → `PlanetRenderer.recordInto`):
 
-- Reads **`resolveBodyParams(body)`** for terrain — correct.
-- Uses **`defaultAtmosphereParams(params.radius)`** — should use **`body.atmosphere`**.
-- Uses **`DEFAULT_TESSELLATION`**, **`DEFAULT_MATERIAL_OVERRIDES`** — view/device prefs.
-- Camera from host scene — correct (ephemeral); **`lookAtHorizon` not shared** —
-  procedural layer hardcodes `lookMode: 'planet-center'`.
-- Lighting from **`collectSceneLights`** — correct direction; focused body should use
-  **`collectLightsForBody(scene, bodyId)`** when scoping matters.
+- Reads **`resolveBodyParams(body)`** for terrain and overwrites **`params.radius =
+  body.radiusMeters`** before rendering — correct for the current "one physical/render
+  radius" rule.
+- Uses **`resolveBodyAtmosphere(body)`** / `bodyAtmosphereToParameters(...)` for body
+  atmosphere data — correct, but the shared `/scene` procedural path currently records
+  terrain only. Depth-aware scene atmosphere is still pending.
+- Uses **`DEFAULT_TESSELLATION`** and **`DEFAULT_MATERIAL_OVERRIDES`** — view/device
+  prefs. `RenderQualitySettings` remains deferred.
+- Camera from host scene is ephemeral, and focused procedural inputs now use the shared
+  `focusedBodyCamera` builder plus the route `lookMode`.
+- Lighting is flattened to the scene's current sun-direction input. Focused body views
+  should use **`collectLightsForBody(scene, bodyId)`** when multi-light scoping matters.
 - Passes the selected body's evaluated world transform rotation into
-  **`planetRotation`** — scene spin and inherited frame rotation now reach terrain
-  sampling. Full parity still needs a shared spin/tilt body model across `/planet`
-  and `/scene`.
+  **`planetRotation`** — scene spin and inherited frame rotation reach terrain sampling.
+  Full parity still needs a shared spin/tilt body model across `/planet` and `/scene`.
+- Records terrain into `SceneEngine`'s shared color/depth pass on the shared WebGPU
+  device. The removed `ProceduralBodyLayer` CSS/canvas overlay is no longer part of the
+  current path.
 
 Legacy `/planet` path still owns a monolithic snapshot and a local `createDefaultPlanetScene()` for lights instead of the system graph.
 
@@ -280,16 +287,17 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
    migration path), so bumping would silently drop every existing scene; an optional field
    is backward-compatible (old scenes load, atmosphere absent → radius-derived defaults).
    Done: `BodyAtmosphere` type, `resolveBodyAtmosphere`/bridge converters, per-body
-   `AtmosphereEditor`, `ProceduralBodyLayer`/`FocusedBodyView` wiring, handoff round-trip.
+   `AtmosphereEditor`, `/scene` procedural render input / `FocusedBodyView` wiring,
+   handoff round-trip.
 7. Introduce `RenderQualitySettings` + device/session persist (mirror
    [device-tessellation-defaults.md](device-tessellation-defaults.md) pattern); wire
    `terrainPass` / `atmospherePass` to pass external step count into
    `toGpuAtmosphereParams`.
 8. Atmosphere editor on `/scene` for planet/moon bodies (design fields only); move
    **Quality** slider to View / Renderer section.
-9. Wire `ProceduralBodyLayer`, `FocusedBodyView` to body atmosphere + render quality;
-   `ProceduralBodyLayer` already receives evaluated body-frame world rotation instead
-   of identity.
+9. ✅ Wire `/scene` procedural render input and `FocusedBodyView` to body atmosphere;
+   render quality remains pending. The scene procedural path already receives evaluated
+   body-frame world rotation instead of identity.
 
 ### Phase C — Document → scene migration
 

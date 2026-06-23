@@ -96,13 +96,14 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
 ## 4. Current state (honest)
 
 - **Committed / done:** scale-invariant terrain (radius-relative LOD gates, `unit_dir·100`
-  texture), draw list, `SceneEngine` + `SpherePass`, `bodyRelativeView`, the `/scene`
-  CSS-overlay procedural cross-fade; the parameter contract (Phase 0.1) and the
-  `body_dir`/lat-long debug views (Phase 0.2); the camera-parity slice (FOV → 60°,
-  azimuth → +X, `planetRotation` = body world-frame rotation, surface-patch `body_dir`);
-  and **Phase 1** — one shared `focusedBodyCamera` builder over `createOrbitCamera`, used
-  by `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer`, with `lookMode` as viewport
-  state (the duplicate `sceneBodyCamera` retired).
+  texture), draw list, `SceneEngine` + `SpherePass`, `bodyRelativeView`, the parameter
+  contract (Phase 0.1), the `body_dir`/lat-long debug views (Phase 0.2), and the
+  camera-parity slice (FOV -> 60 degrees, azimuth -> +X, `planetRotation` = body
+  world-frame rotation, surface-patch `body_dir`).
+- **Phase 1 — camera unification (done):** one shared `focusedBodyCamera` builder over
+  `createOrbitCamera`, used by `/planet`, `FocusedBodyView`, and the `/scene` procedural
+  render input builder. `lookMode` is viewport state and the duplicate `sceneBodyCamera`
+  is retired.
 - **Phase 2 — ideal-sphere fragment sampling (code done):** fragment terrain recomputes
   `body_dir` from the ray∩base-sphere coordinate (`inv_view_projection` + `viewport` added
   to `ViewUniforms`; shared `common/idealSphere.wgsl`), falling back to the interpolated
@@ -117,8 +118,9 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   overexposure). The author has no GPU.
 - **Phase 4 — atmosphere as body data (code done):** `BodyAtmosphere` on `BodyNode`
   (optional field, no doc-version bump → existing scenes load unchanged), a per-body
-  `AtmosphereEditor` on `/scene`, `ProceduralBodyLayer`/`FocusedBodyView` consume
-  `resolveBodyAtmosphere(body)`, and the global route-debug atmosphere knobs are retired.
+  `AtmosphereEditor` on `/scene`, `FocusedBodyView` and the `/scene` procedural render
+  input builder consume `resolveBodyAtmosphere(body)`, and the global route-debug
+  atmosphere knobs are retired.
   Atmosphere now round-trips through the `/scene`↔`/planet` handoff. `integrateSteps` stays
   a default (the `RenderQualitySettings`/`ViewportState` split is the remaining Phase-4 bit).
 - **Phase 4 — viewport/body boundary (code done):** named `/planet` saves now persist
@@ -126,15 +128,22 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   longer moves the camera (look-mode/azimuth/altitude). The session still restores the
   full viewport. `RenderQualitySettings` is **deferred** — `integrateSteps` already has no
   editor (it's a constant default), so the split has no current consumer.
-- **Not started:** single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph
-  compiler.
+- **Phase 5 — shared scene pass terrain (code done):** `/scene` now uses one WebGPU
+  device and one canvas. The selected procedural body's terrain is recorded directly
+  into `SceneEngine`'s shared color/depth render pass through
+  `PlanetRenderer.recordInto()` / `WebGPUBackend.recordTerrainInto()`; the old
+  `ProceduralBodyLayer`, CSS radial mask, second canvas, and render-to-texture
+  composite pass were removed.
+- **Still pending:** depth-aware scene atmosphere for procedural terrain, eclipse shadows
+  (Phase 6), moving `illumination` out of `PlanetParameters`, optional
+  `RenderQualitySettings`, and the graph compiler.
 
 ## 5. Contradictions resolved
 
 | Contradiction | Sources | Resolution |
 |---------------|---------|------------|
 | Atmosphere debug defaults `1.0` "match `/planet`" **vs** blown white at world scale | integration-plan §"first slice"; comparison §atmosphere | Make atmosphere **scale-invariant** (§3.1): normalize strength by `R_ref/radius`. Then `1.0` is correct at any radius. |
-| "Two separate radii, do not merge" **vs** renderer sets `params.radius = radiusMeters` | celestial-body-params decision #2 **vs** ProceduralBodyLayer | `radiusMeters` **is** the render radius (terrain scale-invariant). No render-space radius; preset radius is only an authoring reference (`R_ref`). Update celestial-body-params. |
+| "Two separate radii, do not merge" **vs** renderer sets `params.radius = radiusMeters` | celestial-body-params decision #2 **vs** scene procedural render path | `radiusMeters` **is** the render radius (terrain scale-invariant). No render-space radius; preset radius is only an authoring reference (`R_ref`). Update celestial-body-params. |
 | "First slice already applied" | integration-plan | Uncommitted + unverified → **in-progress**. |
 | `FOVY = π/4` **vs** `π/3` | scene-3d-viewport / unified-scene-renderer specs **vs** current code | `π/3` (60°) to match `/planet`. Update the two specs. |
 | Terrain "now body-local / stable" **vs** still tessellation-dependent | scene-terrain-local-coordinates **vs** ideal-sphere-fragment-sampling | Body-local was necessary but not sufficient; fragment ideal-sphere sampling completes it. Add the caveat to scene-terrain-local-coordinates. |
@@ -150,10 +159,10 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
 3. **Parity test**: same body + camera + style ⇒ identical `RenderFrame` before submit.
 
 **Phase 1 — Camera unification. ✅ done.** One shared focused-body camera builder
-(`focusedBodyCamera` over `createOrbitCamera`) for `/planet`, `FocusedBodyView`,
-`ProceduralBodyLayer`; `lookMode` is viewport state; the duplicate `sceneBodyCamera` is
-retired and `bodyRelativeView` kept for the Phase-5 composite. Camera-parity slice
-committed behind it.
+(`focusedBodyCamera` over `createOrbitCamera`) for `/planet`, `FocusedBodyView`, and
+the `/scene` procedural render input builder; `lookMode` is viewport state; the
+duplicate `sceneBodyCamera` is retired and `bodyRelativeView` remains available for
+system-space/floating-origin views. Camera-parity slice committed behind it.
 
 **Phase 2 — Fragment correctness. ✅ code done.** Ideal-sphere fragment coordinate (§3.3),
 shared by cube-sphere and surface-patch paths via `common/idealSphere.wgsl`
@@ -176,9 +185,13 @@ hard-reject deserializer would otherwise drop existing scenes), per-body
 does). *Deferred:* `RenderQualitySettings` — `integrateSteps` has no editor today (it's a
 constant), so the split has no consumer yet. (body-vs-viewport Phases A–B.)
 
-**Phase 5 — Single engine.** Move procedural terrain + atmosphere into `SceneEngine`'s
-shared color+depth via `bodyRelativeView`; `objectOpacity` cross-fade (sphere fades out,
-planet fades in, one writes depth); retire the CSS overlay + mask. (unified-scene-renderer.)
+**Phase 5 — Single engine. ✅ terrain done, atmosphere pending.** `/scene` records the
+selected procedural body's terrain directly into `SceneEngine`'s shared color/depth pass
+on the shared device. The sphere for that body is skipped while procedural terrain is
+active, so terrain depth-tests against the rest of the scene. The CSS overlay, second
+canvas, radial mask, and render-to-texture composite pass are retired. Remaining work:
+bring atmosphere back as a depth-aware scene pass and generalize beyond one focused
+procedural body.
 
 **Phase 6 — Eclipse shadows.** Analytic umbra (then penumbra), multiplied with terrain
 self-shadow. (eclipse-shadows.)
@@ -207,7 +220,7 @@ graph, once Phases 0–5 have made the contracts explicit and tested.
 | [ideal-sphere-fragment-sampling.md](ideal-sphere-fragment-sampling.md) | tessellation-independent fragment sampling | proposal (Phase 2) |
 | [scene-terrain-local-coordinates.md](scene-terrain-local-coordinates.md) | body-local `planetRotation` fix | implementation note |
 | [body-vs-viewport-state.md](specs/body-vs-viewport-state.md) | body vs viewport vs quality split | proposal (Phase 4) |
-| [unified-scene-renderer.md](specs/unified-scene-renderer.md) | one engine, shared depth, opacity fade | proposal (Phase 5) |
-| [celestial-body-params.md](specs/celestial-body-params.md) | `BodyAppearance` + resolver | partly done (radius note updated by §5) |
+| [unified-scene-renderer.md](specs/unified-scene-renderer.md) | one engine, shared depth, opacity fade | background; terrain single-pass landed, atmosphere pending |
+| [celestial-body-params.md](specs/celestial-body-params.md) | `BodyAppearance` + resolver | model/editor done; radius decision superseded |
 | [eclipse-shadows.md](specs/eclipse-shadows.md) | analytic eclipse shadows | proposal (Phase 6) |
 | [webgpu-unification-integration-plan.md](webgpu-unification-integration-plan.md) | prior integration plan | superseded by this doc |

@@ -1,6 +1,27 @@
 # WebGPU unification and body-state integration plan
 
-Status: design plus first bug-fix slice. This integrates:
+Status: superseded by `_docs/renderer-unification-plan.md`.
+
+This file is retained as historical design context. It describes the first integration
+slice and older phase numbering; do not treat its "remaining" sections as current
+implementation status without checking `_docs/renderer-unification-plan.md` and the code.
+
+Current state after later commits:
+
+- Shared focused-body camera input is implemented for `/planet`, `FocusedBodyView`, and
+  the `/scene` procedural render input builder.
+- Body atmosphere is implemented as `BodyNode.atmosphere`, edited in `/scene`, consumed
+  by focused/procedural render inputs, and round-tripped through the `/scene`↔`/planet`
+  handoff.
+- `/scene` uses one WebGPU device/canvas for spheres and selected-body procedural
+  terrain. Terrain records directly into `SceneEngine`'s shared color/depth pass.
+- The old `ProceduralBodyLayer`, CSS overlay/mask, second canvas, and render-to-texture
+  route composite were removed.
+- Still pending: depth-aware scene procedural atmosphere, eclipse shadows, moving
+  `illumination` out of `PlanetParameters`, optional `RenderQualitySettings`, and the
+  shaping graph/compiler work.
+
+It originally integrated:
 
 - `_docs/specs/body-vs-viewport-state.md`
 - `_docs/specs/eclipse-shadows.md`
@@ -26,8 +47,8 @@ These are narrow fixes that reduce current mismatch without changing persistence
    (`z in [0, 1]`), matching `scene3d/orbitCamera`.
 2. `scene3d` FOV is now 60 degrees, matching `/planet`.
 3. `scene3d` azimuth zero now starts on +X, matching `/planet`.
-4. `/scene` atmosphere debug defaults now match `/planet` defaults:
-   rayleigh `1.0`, mie `1.0`, fog `0.8`.
+4. Historical: `/scene` atmosphere debug defaults were aligned with `/planet`. Later
+   commits moved atmosphere to body data instead of route debug knobs.
 5. `/planet` no longer falls back to WebGL at runtime; the active renderer path is
    WebGPU-only.
 6. `/scene` procedural bodies now pass evaluated world rotation of the body frame into
@@ -42,7 +63,10 @@ the current procedural shaping graph, confirms that terrain is not baked into te
 and proposes a typed graph/compiler layer so cube-sphere, surface-patch, `/planet`, and
 `/scene` variants share one shaping contract.
 
-## Remaining current bugs / mismatches
+## Historical remaining bugs / mismatches
+
+This section is preserved to show the rationale behind the later work. Items marked here
+may already be fixed or superseded by `_docs/renderer-unification-plan.md`.
 
 ### 1. Camera target semantics still differ
 
@@ -54,7 +78,8 @@ Fix design:
 
 - Introduce one shared `PlanetCameraInput` helper for focused-body rendering.
 - Make look mode an explicit `ViewportState` field, never a body field.
-- Use the same helper from `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer`.
+- Use the same helper from `/planet`, `FocusedBodyView`, and the `/scene` procedural
+  render input builder.
 - For scene overview (`SceneViewport3D` spheres), keep a system camera, but when it
   drives a procedural body, adapt through the shared focused-body helper.
 
@@ -69,7 +94,8 @@ Fix design:
 - Add `BodyAtmosphere` to `BodyNode`.
 - Keep `integrateSteps` out of `BodyAtmosphere`; move it to `RenderQualitySettings`.
 - Update `/scene` appearance/atmosphere editor to edit body atmosphere.
-- Update `ProceduralBodyLayer` and `FocusedBodyView` to consume body atmosphere.
+- Update the `/scene` procedural render input builder and `FocusedBodyView` to consume
+  body atmosphere.
 - Migrate single-planet documents into scene-body data, with camera saved only in
   session viewport state.
 
@@ -117,10 +143,11 @@ Fix design:
 - Remove the `/planet`-only spin controls from the camera section; move them to body
   design or scene body editing.
 
-### 6. Procedural body compositing is still a CSS overlay
+### 6. Procedural body compositing was still a CSS overlay
 
-`/scene` still renders procedural detail into a second WebGPU canvas and masks it with
-CSS. This is good enough for preview, but not a unified renderer.
+Historical status at the time of this plan: `/scene` rendered procedural detail into a
+second WebGPU canvas and masked it with CSS. Current status: this has been replaced by
+selected-body terrain recorded directly into `SceneEngine`'s shared pass/depth.
 
 Fix design:
 
@@ -173,7 +200,8 @@ PlanetScene at time t
 
 - Keep the WebGPU projection tests added for both camera modules.
 - Extract a shared focused-body camera builder.
-- Route `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer` through that builder.
+- Route `/planet`, `FocusedBodyView`, and the `/scene` procedural render input builder
+  through that builder.
 - Remove or deprecate remaining runtime WebGL exports once no call sites need them.
 
 ### Phase 2 — Body data and render style split
@@ -192,9 +220,10 @@ PlanetScene at time t
 
 ### Phase 4 — Single WebGPU scene engine
 
-- Move selected-body procedural rendering out of CSS overlay and into `SceneEngine`.
-- Render into one color/depth target.
-- Use draw-list LOD to select sphere vs procedural pass without CSS masking.
+- ✅ Move selected-body procedural terrain rendering out of CSS overlay and into
+  `SceneEngine`.
+- ✅ Render selected-body terrain into one color/depth target.
+- ✅ Use draw-list LOD to select sphere vs procedural terrain without CSS masking.
 - Keep WebGPU-only route behavior: no WebGL visual fallback.
 
 ### Phase 5 — Eclipse shadows

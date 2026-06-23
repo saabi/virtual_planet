@@ -13,14 +13,15 @@ and `localStorage`.
 - Loads/saves the scene from `localStorage` under `vp.systemScene`, falling back to
   `createToySolarSystemScene()`.
 - Keeps `selectedId` synchronized with the URL path via `resolvePath()` and `pathOf()`.
-- Hosts the scene tree, node editors, atmosphere debug controls, and the render surface.
+- Hosts the scene tree, node editors, body appearance/atmosphere editors, and the render
+  surface.
 - Maintains a shared `clock`, driven by `SystemMapPanel`, and passes it to
   `SceneViewport3D`.
 
 The render area is:
 
 ```svelte
-<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} />
+<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
 <SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 ```
 
@@ -35,7 +36,9 @@ On mount it:
 2. Configures the canvas with `configureWebGPUCanvas()`.
 3. Creates a `SceneEngine`, which owns the frame render pass and depth texture.
 4. Creates a `SpherePass`, which owns the instanced sphere pipeline.
-5. Starts a continuous RAF loop.
+5. Creates a `PlanetRenderer` backed by `WebGPUBackend` adopting the shared device,
+   without its own canvas.
+6. Starts a continuous RAF loop.
 
 Each frame:
 
@@ -47,10 +50,14 @@ Each frame:
    `dot`, `sphere`, or `procedural`, with hysteresis.
 5. `instancesFromDrawList()` converts visible draw items into sphere instances. Dot LOD
    is represented as a small fixed-screen-size sphere by back-solving a world radius.
-6. `lighting(animated)` collects scene lights and picks the first point light as the sun.
-7. `SceneEngine.render(currentTextureView, w, h, record)` opens a render pass and calls
-   `SpherePass.record(...)`.
-8. Selection marker and procedural overlay state are updated from the same draw list.
+6. `lighting(animated)` collects scene lights and picks the first point light as the sun
+   for sphere lighting.
+7. Selection marker and procedural body state are updated from the same draw list.
+8. `SceneEngine.render(currentTextureView, w, h, record)` opens one shared render pass.
+9. `SpherePass.record(...)` records all visible sphere/dot bodies, excluding the selected
+   procedural body while its terrain is active.
+10. If a selected planet/moon has procedural blend > 0, `PlanetRenderer.recordInto(...)`
+    records its terrain directly into the same render pass and depth target.
 
 ## SceneEngine
 
@@ -60,10 +67,10 @@ Each frame:
 - A `depth24plus` texture resized to the current viewport.
 - The command encoder and render pass lifecycle.
 
-For every frame it clears color to a dark background and clears depth to `1`. All current
-main-scene geometry is recorded inside this pass. Today that means spheres only; the
-comments and specs point toward future procedural passes sharing this same color/depth
-target.
+For every frame it clears color to a dark background and clears depth to `1`. Spheres,
+dots, and the selected procedural body's terrain are recorded inside this pass, so the
+procedural terrain depth-tests against the rest of the scene. Atmosphere is not yet part
+of this shared pass.
 
 ## Sphere pass
 
@@ -111,53 +118,49 @@ LOD rules come from `fe/src/lib/planet/scene/bodyParams.ts`:
 - Below `sphereAbovePx`, render as a dot.
 - Above `sphereAbovePx`, render as a sphere.
 - Above `proceduralAbovePx`, begin the procedural path.
-- `proceduralBlend()` ramps opacity across the next 50% of projected-size growth.
+- `proceduralBlend()` returns an activation/blend value across the next 50% of
+  projected-size growth. The current single-pass `/scene` path uses `blend > 0` to switch
+  the selected body from sphere to procedural terrain; smooth opacity fade is deferred.
 
-## Procedural overlay path
+## Procedural terrain path
 
-Selected planets and moons can fade into the real `/planet` procedural renderer, but this
-is not yet a shared-depth render inside `SceneEngine`.
+Selected planets and moons can fade into the real `/planet` procedural terrain renderer.
+The old second-canvas/CSS-overlay path has been removed; the terrain now records into the
+same `SceneEngine` render pass and shared depth target as the spheres.
 
-When the selected body is visible and its draw item has `blend > 0`,
-`SceneViewport3D.svelte` mounts `ProceduralBodyLayer.svelte` in an absolutely positioned
-wrapper over the main canvas. The wrapper opacity is `proceduralBlend`, and a CSS radial
-mask limits the overlay to the selected body's screen disc plus an atmosphere feather.
+When the selected body is visible, is a planet/moon, and its draw item has `blend > 0`,
+`SceneViewport3D.svelte`:
 
-`ProceduralBodyLayer.svelte` creates:
+- Skips the selected body's sphere instance while procedural terrain is active.
+- Computes the body's evaluated world rotation for `planetRotation`.
+- Packs one directional procedural light toward the first scene point light/star.
+- Builds per-frame `PlanetRenderInputs` through `buildProceduralRenderInput(...)`.
+- Calls `PlanetRenderer.recordInto(pass, inputs)` inside the active scene render pass.
 
-- A separate canvas.
-- A separate `WebGPUBackend`.
-- A `PlanetRenderer` host.
-
-Each frame it:
+`buildProceduralRenderInput(...)`:
 
 1. Resolves body appearance with `resolveBodyParams(body)`.
 2. Sets `params.radius` to the body's physical `radiusMeters`.
 3. Builds the focused-body `CameraState` with the shared `focusedBodyCamera()`
-   (`createOrbitCamera` under the hood) — the body at the local origin, orbited by the
-   scene camera. (Floating-origin compositing into the shared depth is Phase 5, via
-   `bodyRelativeView()`.)
-4. Packs scene lighting as a directional light toward the sun in body-local space.
-5. Builds atmosphere parameters from the body's radius plus the route's debug controls.
-6. Calls `PlanetRenderer.render(...)`.
+   (`createOrbitCamera` under the hood).
+4. Uses `resolveBodyAtmosphere(body)` for the body's atmosphere design.
+5. Applies material debug and look-mode viewport state.
 
 `PlanetRenderer` then runs the normal `/planet` flow:
 
-`PlanetRenderer.render()` -> `buildRenderFrame()` -> `WebGPUBackend.render()` ->
-`TerrainPass` and `AtmospherePass`.
+`PlanetRenderer.recordInto()` -> `buildRenderFrame()` ->
+`WebGPUBackend.recordTerrainInto()` -> `TerrainPass.renderInto()`.
 
-Because this is a stacked canvas, depth interaction between the procedural body and other
-scene bodies is approximate. The code already contains `bodyRelativeView()` and
-`WebGPUBackend.renderToTexture()` pieces for a future true compositing path, but `/scene`
-currently presents the procedural render through CSS opacity and mask.
+The single-pass scene path records terrain only. `AtmospherePass` still runs in the normal
+standalone `/planet` backend path, but not in `SceneEngine` yet. The next renderer step is
+a depth-aware scene atmosphere pass for the procedural body.
 
 ## Focused body view
 
 The sidebar "Render procedurally" action opens `FocusedBodyView.svelte` as a full-screen
-overlay. This is also a separate `PlanetRenderer + WebGPUBackend` canvas, but it uses an
-independent orbit-about-body camera (`createOrbitCamera`) rather than the system scene
-camera. It includes an `offscreen` toggle to exercise the backend offscreen render/copy
-path used by the future compositing work.
+overlay. This remains a separate `PlanetRenderer + WebGPUBackend` canvas for inspecting a
+single body outside the system scene. It uses the shared `focusedBodyCamera()` and the
+body's appearance/atmosphere data.
 
 ## Fallback behavior
 
@@ -165,13 +168,12 @@ If WebGPU initialization fails in `SceneViewport3D`, the route displays:
 
 `3D unavailable: ... - use the 2D map.`
 
-The route still has the editor, tree, and 2D `SystemMapPanel`. If `ProceduralBodyLayer`
-fails to initialize WebGPU, it silently leaves the host sphere view visible.
+The route still has the editor, tree, and 2D `SystemMapPanel`.
 
 ## Current boundaries
 
-- `/scene` has one main WebGPU canvas for the sphere scene.
-- The procedural selected-body render is currently a second WebGPU canvas overlaid by CSS.
-- Main-scene depth is shared only by `SceneEngine` and `SpherePass` today.
-- The future unified renderer direction is to render procedural terrain/atmosphere into
-  the scene engine's color/depth targets instead of compositing a masked overlay canvas.
+- `/scene` has one main WebGPU canvas and one shared scene depth target.
+- Spheres/dots and the selected body's procedural terrain share that render pass/depth.
+- Only one selected procedural body is supported in the scene pass today.
+- Procedural atmosphere is not yet rendered in the shared scene pass.
+- Eclipse shadows, rings, and multi-procedural-body budgeting remain future work.

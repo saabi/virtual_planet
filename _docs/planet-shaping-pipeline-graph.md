@@ -24,8 +24,9 @@ are render targets and pass inputs:
 - `TerrainPass` renders terrain into a color texture and depth texture.
 - `AtmospherePass` samples those terrain color/depth textures for full-screen
   atmospheric composition.
-- `WebGPUBackend.renderToTexture()` can render to a provided texture for composition
-  and tooling.
+- `WebGPUBackend.renderToTexture()` still exists for focused/offscreen tooling, but the
+  current `/scene` route uses `recordTerrainInto()` to write terrain into the shared
+  scene pass instead of compositing a render texture.
 
 Those are frame/pass textures, not cached height, albedo, normal, biome, or lookup
 textures for terrain generation.
@@ -294,11 +295,11 @@ Recommended path:
 
 ## Immediate bug-oriented next steps
 
-1. Add a graph-derived debug material mode that visualizes `body_dir` as RGB and a
-   latitude/longitude grid. The same debug output must render in `/planet` and
-   `/scene`.
-2. Route `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer` through one shared
-   focused-body camera builder so `scale_ctx` and visible layer gates match.
+1. ✅ Add debug material modes that visualize `body_dir` as RGB and a latitude/longitude
+   grid. Use them for `/planet` and `/scene` GPU parity checks under tessellation sweeps.
+2. ✅ Route `/planet`, `FocusedBodyView`, and the `/scene` procedural render input
+   builder through one shared focused-body camera builder so `scale_ctx` and visible
+   layer gates match.
 3. Split `PlanetParameters` into intrinsic shape/material parameters and renderer
    style settings. Move `illumination` out first because it is clearly not shape.
 4. Generate cube-sphere and surface-patch shader wrappers from one graph module so

@@ -1,19 +1,23 @@
 # Procedural bodies in the scene (CelestialBody Phase 4–5)
 
-**Status:** proposal · **Scope:** render scene bodies with the real `/planet`
-procedural pipeline — first one focused body, then several composited (the multi-scale
-goal). **Related:** [celestial-body-params.md](celestial-body-params.md) (appearance +
-LOD, done through Phase 3), [scene-3d-viewport.md](scene-3d-viewport.md), the
-`/planet` renderer.
+**Status:** background/spec history. The focused-body path and the first shared-pass
+terrain path have landed; this document is retained to explain the design options and
+remaining multi-body/atmosphere goals. Current implementation status lives in
+[`../renderer-unification-plan.md`](../renderer-unification-plan.md) and
+[`../scene-route-rendering-pipeline.md`](../scene-route-rendering-pipeline.md).
 
 ## Where we are / the gap
 
-LOD already classifies bodies dot/sphere/**procedural** (`selectLod`), but `procedural`
-draws as a sphere. The real pipeline lives in `WebGPUBackend.render(frame: RenderFrame)`
-— but it is built for **one** planet on **its own canvas**: a single `params`
-(`PlanetParameters`), a single `localFrame` (floating origin from `buildLocalFrame`),
-patches scheduled relative to that planet, into the backend's own targets. So it can't
-just be pointed at N scene bodies in scene-3d's framebuffer.
+LOD classifies bodies dot/sphere/**procedural**. The selected procedural planet/moon now
+records its **terrain** directly into `SceneEngine`'s shared color/depth pass through
+`PlanetRenderer.recordInto()` and `WebGPUBackend.recordTerrainInto()`.
+
+Remaining gaps:
+
+- scene procedural atmosphere is not yet drawn in the shared pass,
+- only one selected procedural body is supported in the scene pass,
+- the full system camera/surface mode is still future work,
+- eclipse/ring/transparent ordering remains future work.
 
 ## The fork (be explicit)
 
@@ -27,7 +31,9 @@ just be pointed at N scene bodies in scene-3d's framebuffer.
   camera-relative (floating-origin) offset. The seam toward "gas giant behind a moon."
   Needs the single-planet pipeline lifted off its private canvas.
 
-Recommend **4a first** (a real procedural planet from the scene, low risk), then **4b**.
+What landed: 4a first, then a direct shared-pass terrain implementation of 4b. The
+intermediate offscreen texture/depth-composite path was tried and removed in favor of
+recording terrain into the scene pass.
 
 ## 4a — focused body via the backend
 
@@ -52,7 +58,8 @@ gas giant they must share a depth buffer in a **comparable depth space**. Two ro
 - **(A) Unified single pass** — render spheres *and* procedural bodies into one pass
   with one camera/projection. Cleanest occlusion, but a big refactor: the planet
   passes are wired to the backend's own camera/localFrame/bind-groups.
-- **(B) Offscreen render → depth composite** *(recommended, incremental)* — render the
+- **(B) Offscreen render → depth composite** *(historical alternative, no longer the
+  active route path)* — render the
   body via the backend into an **offscreen color+depth** target, then a fullscreen
   pass composites it into scene-3d's color+depth (depth-test the two). Lower-risk,
   reuses 4a almost verbatim; the cost is reconciling the two depth spaces.
@@ -62,6 +69,11 @@ gas giant they must share a depth buffer in a **comparable depth space**. Two ro
   `bodyParams.ts`), so the planet *dissolves in over its sphere* across a band above
   the threshold instead of popping. The sphere stays underneath; (A)'s single pass
   can't do this cleanly. Sphere can stay drawn under a fully-faded body (cheap).
+
+Implementation note: the current code uses route (A) for terrain. The selected body's
+sphere is skipped while procedural terrain is active, and terrain depth-tests against
+the rest of the scene. A smooth visual cross-fade can be revisited later if needed, but
+the old CSS/canvas overlay and the offscreen composite pass are gone.
 
 **Prerequisite for either (the real keystone): the backend renders to an external
 target.** Today `WebGPUBackend.init(canvas)` is swapchain-bound (`getCurrentTexture`).
@@ -76,17 +88,11 @@ and scene-3d's projection (so its depth matches the spheres). This is where phys
 `radiusMeters` finally drives the render scale. The subtle part — and the only way to
 get cm-at-surface *and* ~1e8 m to the gas giant in Float32.
 
-**Sequence (each step user-verifiable):** **① ✅ backend render-to-target** —
-`WebGPUBackend.renderInto(target)` shared by `render()` + a public `renderToTexture`;
-a `useOffscreen` flag routes `render()` through an offscreen color target then copies
-to the swapchain. `FocusedBodyView` has an "offscreen" toggle to check parity with 4a.
-→ **② ✅ cross-fade layer** — `ProceduralBodyLayer` (the `FocusedBodyView` render path,
-camera-driven by props, `pointer-events:none`) stacked over the sphere view with
-`opacity = proceduralBlend`; its camera matches the scene's (fov + distance scaled by
-`radius/radiusMeters`) so the planet aligns with its sphere and dissolves in as you
-zoom the selected planet/moon. Two canvases, CSS opacity — no device sharing / GPU
-composite yet. → ③ replace the CSS layer with a true GPU composite into scene-3d's
-depth (per-pixel occlusion, floating origin) → ④ N bodies (a budget) + atmospheres.
+**Sequence actually taken:** **1. ✅ headless renderer + focused view** →
+**2. ✅ shared GPU device for `/scene`** → **3. ✅ terrain recorded directly into
+`SceneEngine`'s shared render pass/depth**. The transient render-to-texture composite
+and CSS overlay paths were removed. Next: depth-aware procedural atmosphere in the scene
+pass, then N procedural bodies.
 
 ## Camera unification
 
@@ -125,9 +131,10 @@ a moon looking up at the primary.
    `WebGPUBackend`, fed `resolveBodyParams` + an orbit-about-body camera + default
    scene lighting/atmosphere. Behind an explicit button (no blast radius on the system
    view). GPU output unverified in CI.
-3. **4b single composited body** — largest on-screen procedural body into scene-3d's
-   depth, floating origin. The first true multi-scale frame.
-4. **Phase 5** — N procedural bodies + atmospheres + the unified surface/orbit camera.
+3. **✅ 4b terrain single-pass** — selected procedural body terrain records into
+   scene-3d's shared depth; its sphere is skipped while terrain is active.
+4. **Next** — procedural atmosphere in the shared scene pass.
+5. **Later Phase 5+** — N procedural bodies + atmospheres + the unified surface/orbit camera.
    "Gas giant from a moon's surface."
 
 Start with (1): a headless renderer is the keystone refactor; it unblocks both the 4a

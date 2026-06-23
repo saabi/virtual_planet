@@ -6,17 +6,16 @@ differences that can make the same procedural planet render differently between
 
 ## Summary
 
-The two routes share the terrain/atmosphere backend only after `/scene` enters its
-selected-body procedural overlay path. The outer environment around that backend is
-different:
+The two routes share the terrain backend after `/scene` enters its selected-body
+procedural path. The outer environment around that backend is different:
 
 - `/planet` is a single-planet editor whose camera, lighting, atmosphere, terrain mode,
   and planet rotation are owned by `PlanetViewport.svelte`.
 - `/scene` is a system renderer. Bodies are first drawn as instanced spheres in
-  `SceneViewport3D.svelte`; a selected planet/moon can then fade in a separate
-  `ProceduralBodyLayer` canvas that reuses `PlanetRenderer`.
-- `/scene` procedural rendering is not yet a true render into the scene engine's shared
-  depth buffer. It is a masked, CSS-opacity overlay canvas.
+  `SceneViewport3D.svelte`; a selected planet/moon can then replace its sphere with
+  procedural terrain recorded by `PlanetRenderer` into the same `SceneEngine` render pass.
+- `/scene` procedural terrain now shares the main scene depth buffer. Its atmosphere is
+  not yet rendered in that shared scene pass.
 
 The largest mismatch candidates are camera model, projection convention, near/far planes,
 lighting representation, atmosphere parameters, physical radius scaling, and planet
@@ -24,7 +23,7 @@ rotation.
 
 ## Top differences likely to affect visual parity
 
-| Area | `/planet` | `/scene` procedural overlay | Risk |
+| Area | `/planet` | `/scene` procedural terrain | Risk |
 | --- | --- | --- | --- |
 | Camera module | `camera/orbitCamera.ts` (`createOrbitCamera`) | shared `focusedBodyCamera()` → same `createOrbitCamera` | Unified (Phase 1) |
 | FOV | 60 degrees | 60 degrees (`FOVY = PI / 3`) | Fixed |
@@ -34,11 +33,11 @@ rotation.
 | Near/far | near `0.1`; far `max(radius*20, distance*4)` | near `distance*0.002`; far `distance*20` | Medium |
 | Distance input | altitude above sea level -> distance | scene camera distance, often body radius * 8 on selection | Medium |
 | Lighting source | default scene has directional sun on +X | toy solar-system point light converted to body-local directional sun | High |
-| Lighting scope | respects `params.illumination > 0.5` | procedural overlay currently always packs selected-body lighting when visible | Medium |
-| Atmosphere | saved/editor atmosphere, defaults strength 1.0, fog 0.8 | debug knobs default rayleigh/mie 1.0, fog 0.8 | Fixed default only |
+| Lighting scope | respects `params.illumination > 0.5` | selected procedural terrain packs a single sun-direction light when visible | Medium |
+| Atmosphere | rendered by `AtmospherePass` | body atmosphere data exists, but shared-scene atmosphere pass is not implemented | High |
 | Planet rotation | `planetRotation = axialTilt * spinAngle` | evaluated world rotation of the body frame | Partially fixed |
 | Physical radius | preset/editor `params.radius` | `params.radius = body.radiusMeters` after resolving appearance | High |
-| Backend canvas | one WebGPU backend/canvas | separate WebGPU backend/canvas stacked over scene canvas | Medium |
+| Backend canvas | one WebGPU backend/canvas | one scene canvas/shared WebGPU device; terrain records into `SceneEngine` | Fixed for terrain |
 
 ## /planet render environment
 
@@ -66,26 +65,28 @@ For WebGPU:
 
 ## /scene procedural render environment
 
-The `/scene` main viewport has two layers:
+The `/scene` main viewport has one WebGPU canvas:
 
-1. The main scene canvas: `SceneEngine + SpherePass`.
-2. The selected-body procedural overlay: `ProceduralBodyLayer + PlanetRenderer + WebGPUBackend`.
+1. `SceneEngine + SpherePass` records sphere/dot bodies.
+2. The selected-body procedural terrain is recorded by `PlanetRenderer.recordInto(...)`
+   into the same render pass and depth target.
 
-Only the second layer uses the `/planet` terrain/atmosphere pipeline.
+Only the procedural terrain path uses the `/planet` terrain backend. The `/planet`
+atmosphere backend is not yet integrated into the scene pass.
 
-`SceneViewport3D.svelte` decides whether to mount the overlay from the draw list:
+`SceneViewport3D.svelte` decides whether to activate procedural terrain from the draw list:
 
 - The selected body must be a planet or moon.
 - It must be visible.
 - Its `proceduralBlend()` must be greater than zero.
 
-The overlay then renders with:
+The procedural terrain then renders with:
 
 - Body appearance from `resolveBodyParams(body)`.
 - `params.radius` overwritten to `body.radiusMeters`.
 - Camera from the shared `focusedBodyCamera()` (same `createOrbitCamera` builder as `/planet`).
-- Atmosphere from `defaultAtmosphereParams(body.radiusMeters, atmo.fog)` with live debug
-  strengths.
+- Atmosphere design from `resolveBodyAtmosphere(body)` in the render input, though the
+  shared scene path currently records terrain only.
 - Lighting packed as one directional light toward the solar-system point light.
 - `planetRotation` from the selected body's evaluated world transform rotation.
 
@@ -196,14 +197,11 @@ from `camera.position` and `params.radius`.
 
 In `/planet`, `camera.position` is planet-local ECEF-like world space.
 
-In `/scene`, `focusedBodyCamera()` renders the body at the local origin (orbit position
-`distance·dir`), so `camera.position` is body-relative — identical to `/planet` for the
-same orbit. (The general floating-origin translation by `-bodyWorldPos`, for compositing
-the body among other scene objects, is `bodyRelativeView()`, deferred to Phase 5.) This
-is the right shape for reusing the planet pipeline, but it depends on the scene camera
-view/projection being exactly compatible
-with the backend shaders. Any mismatch in projection, target, FOV, or near/far becomes
-visible inside the same terrain passes.
+In `/scene`, `focusedBodyCamera()` renders the selected body at the local origin for the
+procedural terrain input. `SceneViewport3D` records that terrain directly into the scene
+render pass, so projection/depth compatibility is now exercised in the same canvas rather
+than hidden behind a CSS overlay. Any mismatch in projection, target, FOV, or near/far
+becomes visible inside the same terrain pass and shared depth target.
 
 ## Lighting differences
 
@@ -229,9 +227,10 @@ That is physically sensible for bodies in the system, but it is not the same as 
 fixed +X directional light in `/planet` unless the selected body happens to sit on the
 matching side of the star and the route uses matching camera orientation.
 
-The sphere pass also uses point-light Lambert shading, while the procedural overlay uses
-the planet PBR lighting code. During fade-in, the sphere and procedural body can disagree
-in terminator shape and brightness.
+The sphere pass also uses point-light Lambert shading, while procedural terrain uses the
+planet PBR lighting code. While a body is procedural, its sphere instance is skipped, so
+there is no CSS cross-fade mismatch; however, sphere and terrain lighting can still differ
+at the LOD boundary.
 
 ## Atmosphere differences
 
@@ -244,15 +243,13 @@ in terminator shape and brightness.
 - `scaleHeightMeters = radius * 0.1`
 - `sunDiskIntensity = 20.0`
 
-`/scene` procedural overlay creates fresh atmosphere params per body and then overrides:
+`/scene` bodies now carry optional `BodyAtmosphere` design data. The scene editor writes
+that data through `AtmosphereEditor`, and the `/scene` -> `/planet` handoff round-trips it.
 
-- `enabled = atmo.enabled`
-- `rayleighStrength = atmo.rayleigh`, default `1.0`
-- `mieStrength = atmo.mie`, default `1.0`
-- `groundFogDensity = atmo.fog`, default `0.8`
-
-So the current defaults match `/planet`, but `/scene` still does not persist atmosphere
-as body data and still exposes these as route-level debug knobs.
+Current renderer gap: the shared scene procedural path records terrain only. It passes
+body atmosphere through `buildProceduralRenderInput(...)`, but `recordInto(...)` uses
+`WebGPUBackend.recordTerrainInto(...)`, so `AtmospherePass` is not run for scene terrain
+yet.
 
 ## Radius and scale differences
 
@@ -294,15 +291,17 @@ parity still needs the body model to store axial tilt/spin consistently across
 `/planet` owns a single render canvas and presents the terrain/atmosphere output directly.
 It can fall back to WebGL when WebGPU is unavailable.
 
-`/scene` procedural overlay:
+`/scene` procedural terrain:
 
 - Uses WebGPU only.
-- Creates a second `WebGPUBackend` and canvas.
-- Is visually composited by CSS opacity and a radial mask over the sphere scene.
-- Does not share depth with `SceneEngine`.
+- Adopts the shared scene GPU device.
+- Records terrain into the `SceneEngine` render pass with shared color/depth.
+- Skips the selected body's sphere instance while procedural terrain is active.
+- Does not run a scene atmosphere pass yet.
 
-This can cause visible differences at edges, atmosphere feathering, occlusion, and during
-the LOD cross-fade from sphere to procedural.
+This fixes the old second-canvas/CSS-mask edge and depth mismatch for terrain. Atmosphere
+parity remains pending because `/planet` runs `AtmospherePass` and `/scene` does not for
+the shared terrain path.
 
 ## Recommended parity checks
 
@@ -312,14 +311,13 @@ the LOD cross-fade from sphere to procedural.
    (`/scene` exposes a horizon-look toggle), so the gaze can be matched to either
    `/planet` mode rather than diverging silently.
 3. Keep both projection helpers covered by explicit WebGPU depth convention tests.
-4. Move atmosphere from route debug state onto body design data before judging saved
-   planet parity.
+4. ✅ Done (Phase 4): move atmosphere from route debug state onto body design data.
 5. Compare with the same evaluated `planetRotation`, zero extra viewport spin, and equal radius.
 6. Use the same light type/direction: either force `/planet` to a directional light that
    matches `normalize(sun - body)`, or force `/scene` overlay to the `/planet` default +X
    directional light.
-7. Compare screenshots with the procedural overlay opacity forced to `1` and the sphere
-   layer hidden, so CSS cross-fade and sphere shading do not contaminate the comparison.
+7. Compare screenshots with the selected body already in procedural LOD, so sphere shading
+   does not contaminate the comparison.
 
 ## Most likely root causes
 
@@ -332,5 +330,5 @@ points to these first:
    direction toward a point-light star.
 3. Scale mismatch: `/scene` replaces preset radius with the body radius, so terrain and
    atmosphere scale are not guaranteed to match the `/planet` active preset.
-4. Body-state mismatch: `/scene` atmosphere is still route/debug driven, and full
-   rotation parity still needs a shared body spin/tilt model.
+4. Atmosphere pipeline mismatch: `/scene` has body atmosphere data, but no shared-scene
+   procedural atmosphere pass yet.

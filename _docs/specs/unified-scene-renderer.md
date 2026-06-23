@@ -1,10 +1,9 @@
 # Unified scene renderer — one engine for spheres + procedural bodies
 
-**Status:** proposal · **Scope:** converge the two render paths (scene-3d spheres +
-the planet backend) into **one engine** — one device, one pass (color + **shared
-depth**), one camera — drawing each body at its LOD, depth-composited, floating-origin.
-**Evolves** the CSS cross-fade into a GPU render-to-texture composite (kept, not
-retired). **Related:**
+**Status:** background/spec history. The terrain part of this proposal has landed as a
+single shared WebGPU pass on `/scene`; the CSS overlay and render-to-texture composite
+paths were removed. Remaining implementation work is depth-aware procedural atmosphere,
+multi-body procedural budgets, and surface/focused camera continuity. **Related:**
 [scene-procedural-rendering.md](scene-procedural-rendering.md),
 [scene-3d-viewport.md](scene-3d-viewport.md),
 [celestial-body-params.md](celestial-body-params.md).
@@ -21,8 +20,10 @@ hacks the interim needed.
 - `buildRenderFrame` (headless frame assembly), `PlanetRenderer`.
 - `resolveBodyParams`, `selectLod`, `proceduralBlend` — the LOD model.
 - Scene graph + `evaluateScene` + `getWorldTransform` + `collectSceneLights`.
-- `WebGPUBackend.renderToTexture` (render-to-target) + `useOffscreen` plumbing.
-- The instanced sphere pipeline (`SceneRenderer`) + the terrain / atmosphere passes.
+- `PlanetRenderer.recordInto` / `WebGPUBackend.recordTerrainInto` for recording selected
+  procedural terrain into an external scene pass.
+- The instanced sphere pipeline (`SceneEngine`) + the terrain pass. The atmosphere pass
+  exists for `/planet` but is not yet recorded into the shared scene pass.
 
 ## Architecture (one frame)
 
@@ -32,25 +33,18 @@ the camera each frame):
 1. **Draw list.** Per visible body: `selectLod(px)` → `dot | sphere | procedural`, with
    `proceduralBlend`; cull off-screen. Cap procedural bodies at a **budget**.
 2. **Spheres → shared color + depth.** Instanced dot/sphere bodies.
-3. **Procedural bodies — rendered directly into the shared pass + depth:**
-   - **Close (blend = 1): single-pass.** Terrain into the shared color+depth in the
-     body-relative scene view (`bodyRelativeView` — provably screen- and **depth**-equal
-     to the spheres, via floating origin: the scene camera translated by −bodyWorldPos,
-     same projection). Per-pixel occlusion for free.
-   - **Fading (0 < blend < 1): opacity cross-fade, in-pass.** Render *both* the sphere
-     (`objectOpacity = 1 − blend`) and the planet (`objectOpacity = blend`) directly,
-     alpha-blended. They occupy the same place, so **only one writes depth** (the
-     planet, for occlusion against other bodies); the other just blends. No offscreen,
-     no composite, no mask. (`renderToTexture` stays available as a fallback.)
-4. **Atmospheres + tone-map / present.** Scattering reads the shared depth.
-
-The fade is just an `objectOpacity` uniform on the sphere + terrain passes once the
-single-pass body exists — so single-pass is the keystone; the fade falls out of it.
+3. **Procedural body — current implementation:** the selected body's terrain records
+   directly into the shared color/depth pass in a body-relative scene view. The matching
+   sphere is skipped while procedural terrain is active, so terrain depth-tests against
+   the rest of the scene. Smooth in-pass opacity fade is deferred.
+4. **Atmospheres + tone-map / present.** Pending for `/scene`: scattering must read the
+   shared scene depth and composite in draw order without returning to a second canvas.
 
 Key unifications:
 - **One** device + canvas + **depth** buffer (today: two devices, two depths).
-- The terrain/atmosphere passes take an **external view-projection (scene camera) + a
-  per-body world offset**, instead of owning their camera/localFrame. *The core change.*
+- The terrain pass takes an **external view-projection (scene camera) + a per-body world
+  offset**, instead of owning a separate canvas/camera. Atmosphere still needs the same
+  scene-pass adaptation.
 - **Floating origin** shared by spheres + procedural so depth is comparable; reuse
   `buildLocalFrame` / `maybeRebaseFrame`.
 
@@ -69,14 +63,14 @@ it needs on-device verification at each step (see "Working method").
    device + shared depth + the render pass; `scene3d/spherePass.ts` (`SpherePass`)
    records the sphere draw into it. `SceneViewport3D` uses engine + sphere pass. No
    behaviour change — the seam where the fade composite + single-pass terrain plug in.
-2. **Single-pass for the close body** — `bodyRelativeView` (✅ floating-origin camera
-   math, tested: screen + depth match the spheres) → terrain into the shared pass +
-   shared depth when `blend = 1`. **The keystone — GPU-deep** (terrain/atmosphere passes
-   recording into the engine's pass with the body-relative view).
-3. **Opacity cross-fade** — an `objectOpacity` uniform on the sphere + terrain passes;
-   render both during the fade, one writes depth. Retires the CSS layer + mask.
-4. **Atmospheres in-pass; multi-body + budget; surface camera** — the "gas giant from a
-   moon's surface" payoff.
+2. **✅ Single-pass terrain for the selected body** — `bodyRelativeView` plus shared
+   device/pass/depth now records terrain into `SceneEngine` with
+   `PlanetRenderer.recordInto()` / `WebGPUBackend.recordTerrainInto()`.
+3. **Deferred opacity cross-fade** — the current code switches from sphere to terrain
+   when procedural rendering activates. A later `objectOpacity` path can render both
+   during the transition without reviving the CSS layer.
+4. **Atmospheres in-pass; multi-body + budget; surface camera** — remaining renderer
+   convergence work.
 
 ## Decisions
 

@@ -1,21 +1,18 @@
 # Per-body appearance — the `CelestialBody` params model
 
-**Status:** proposal · **Scope:** give scene bodies a procedural appearance
-(`PlanetParameters`) so they can be rendered/edited as real planets. A
-`scene/bodyParams.ts` resolver + a body schema + the editor wiring; later, the
-procedural render path. **Related:** [scene-routing.md](scene-routing.md) (phasing
-item 4, "per-body params + body-editor view"), [scene-3d-viewport.md](scene-3d-viewport.md)
-(Phase 4 procedural upgrade), [body-vs-viewport-state.md](body-vs-viewport-state.md)
-(what is body data vs camera/session), the `/planet` renderer + `params/`.
+**Status:** model/editor implemented; multi-body procedural rendering still later.
+**Scope:** scene bodies carry procedural appearance (`PlanetParameters` preset +
+overrides) and body atmosphere, so they can be rendered/edited as real planets.
+**Related:** [renderer-unification-plan.md](../renderer-unification-plan.md),
+[body-vs-viewport-state.md](body-vs-viewport-state.md), the `/planet` renderer +
+`params/`.
 
 ## Problem
 
-Scene bodies are stand-ins: `BodyNode = { bodyType, radiusMeters, standIn }` — no
-appearance. So the 3D viewport draws flat spheres, and "open in the planet editor" is
-a dead link. The `/planet` renderer is driven by `PlanetParameters` (radius + voronoi
-/ detail noise, water, erosion, biomes, …) with named `PLANET_PRESETS`. The missing
-link is **how a body carries its `PlanetParameters`** — the prerequisite for both
-procedural bodies in 3D *and* the per-body editor.
+Earlier scene bodies were stand-ins with only `bodyType`, `radiusMeters`, and `standIn`.
+They now carry optional `appearance`, `atmosphere`, and `lod` fields. The remaining
+problem is no longer the data model; it is generalizing the renderer from one selected
+procedural body to multiple procedural bodies plus atmospheres in the scene pass.
 
 ## Model
 
@@ -95,20 +92,19 @@ toward multi-body — the main integration cost, taken incrementally.
 
 ## Decisions to confirm
 
-1. **Storage:** preset + sparse overrides (recommended) vs full inline `PlanetParameters`.
-2. **Radius:** ~~radiusMeters authoritative, params.radius derived~~ → *revised*:
-   `radiusMeters` (SI, physical) and `params.radius` (render-space) are different
-   units, kept separate; the resolver doesn't merge them (physical size applied at
-   render).
-3. **Focused-body view:** embed `PlanetViewport` inline in `/scene` (recommended — stays
-   in scene context) vs link out to `/planet` with params.
-4. **Body types:** only planet/moon get appearance now; star/gas_giant stay stand-ins
-   (recommended).
+1. **Storage:** preset + sparse overrides is implemented.
+2. **Radius:** `resolveBodyParams()` returns the authoring preset radius, but procedural
+   render inputs overwrite `params.radius = body.radiusMeters`. The rendered planet has
+   one physical/render radius; preset radius is the `R_ref` authoring reference.
+3. **Focused-body editing:** `/scene` can hand a body to `/planet` and round-trip edits
+   back through the handoff link.
+4. **Body types:** only planet/moon get terrain appearance now; star/gas_giant stay
+   stand-ins until their own appearance models exist.
 
 ## Phasing
 
-1. **Model + resolve** — `BodyAppearance` (+ `lod` policy) on `BodyNode`;
-   `resolveBodyParams` (pure, tested); default preset; doc-version bump. No UI.
+1. **✅ Model + resolve** — `BodyAppearance` (+ `lod` policy) on `BodyNode`;
+   `resolveBodyParams` (pure, tested); default preset.
 2. **✅ Appearance editor** — `AppearanceEditor`: preset picker + override sliders
    (reused from `PARAM_EDITOR_SECTIONS` shape/materials) writing `appearance.overrides`
    (overridden rows flagged; one-click reset) + the `lod` thresholds, in the `/scene`
@@ -117,9 +113,11 @@ toward multi-body — the main integration cost, taken incrementally.
    px diameter and picks dot/sphere via `selectLod` (procedural drawn as a sphere for
    now); sub-threshold bodies render as fixed-size points, with ±15% per-body
    hysteresis. Off-screen bodies culled.
-4. **First procedural body composited** — render the largest on-screen body via the
-   `/planet` pipeline + floating origin, depth-composited with the sphere scene.
-5. **Multi-procedural + atmosphere + near-surface camera** — N procedural bodies, their
+4. **✅ First procedural terrain body in shared depth** — selected planet/moon terrain
+   records through the `/planet` pipeline into the `SceneEngine` render pass; its sphere
+   is skipped while terrain is active.
+5. **Next** — procedural atmosphere in the shared scene pass.
+6. **Multi-procedural + atmosphere + near-surface camera** — N procedural bodies, their
    atmospheres, the unified camera. The "gas giant from a moon's surface" milestone.
 
 Start with (1): pure model + resolver + tests, unblocks everything, touches no
