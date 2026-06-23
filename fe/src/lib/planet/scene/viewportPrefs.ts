@@ -6,6 +6,7 @@ import {
 	DEFAULT_TESSELLATION,
 	type TessellationSettings
 } from '$lib/planet/patches/tessellationSettings.js';
+import { DEFAULT_ATMOSPHERE_INTEGRATE_STEPS } from '$lib/planet/scene/bodyAtmosphere.js';
 
 export interface ViewportDebugSettings {
 	wireframe: boolean;
@@ -25,6 +26,8 @@ export interface SceneViewportPrefs {
 	atmosphere: SceneAtmosphereSettings;
 	tessellation: TessellationSettings;
 	materialOverrides: MaterialOverrides;
+	/** Ray-march step count for the atmosphere volume integral (global render quality). */
+	atmosphereIntegrateSteps: number;
 }
 
 export function createDefaultViewportPrefs(): SceneViewportPrefs {
@@ -39,7 +42,8 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 			blendMode: 'explicit-composite'
 		},
 		tessellation: { ...DEFAULT_TESSELLATION },
-		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES }
+		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES },
+		atmosphereIntegrateSteps: DEFAULT_ATMOSPHERE_INTEGRATE_STEPS
 	};
 }
 
@@ -62,4 +66,5 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void m.roughnessMult;
 	void m.waterGloss;
 	void m.fogDensity;
+	void p.atmosphereIntegrateSteps;
 }

@@ -139,6 +139,19 @@
 							</select>
 						</label>
 					</EditorSubsection>
+					<EditorSubsection title="Atmosphere" defaultOpen>
+						<ul class="slider-list">
+							<Range
+								id="atmo-integrate-steps"
+								label="Quality"
+								min={4}
+								max={64}
+								step={1}
+								variant="scene"
+								bind:value={viewportPrefs.atmosphereIntegrateSteps}
+							/>
+						</ul>
+					</EditorSubsection>
 				{:else if section.id === 'debug'}
 					<EditorSubsection title="Overlays" defaultOpen>
 						<label class="atmo-head">

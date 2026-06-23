@@ -79,6 +79,7 @@
 	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
 	let procBody = $state<BodyNode | null>(null);
 	let procBlend = $state(0);
+	let procWorldPos = $state<Vec3>([0, 0, 0]);
 	/** The selected body's evaluated body-space rotation (spin/tilt), for terrain sampling. */
 	let procRotation = $state<Quat>([0, 0, 0, 1]);
 	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
@@ -247,7 +248,7 @@
 					viewProjection: camState.viewProjectionMatrix,
 					camera: camState,
 					atmosphere: toGpuAtmosphereParams(
-						bodyAtmosphereToParameters(bodyAtmo),
+						bodyAtmosphereToParameters(bodyAtmo, viewportPrefs?.atmosphereIntegrateSteps),
 						procBody!.radiusMeters,
 						[0, 0, 0]
 					),
@@ -314,6 +315,7 @@
 		) {
 			procBlend = item.blend;
 			procBody = item.blend > 0 ? node : null;
+			procWorldPos = item.worldPos;
 			procRotation = getWorldTransform(animated, node.id).rotation;
 			if (procBody) {
 				// Sun as a directional light toward Sol, in the body's (untilted) frame.

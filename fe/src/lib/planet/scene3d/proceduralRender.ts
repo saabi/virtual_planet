@@ -75,7 +75,10 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
 			materialDebug: o.materialDebug ?? 'off'
 		},
-		atmosphere: bodyAtmosphereToParameters(resolveBodyAtmosphere(o.body)),
+		atmosphere: bodyAtmosphereToParameters(
+			resolveBodyAtmosphere(o.body),
+			prefs?.atmosphereIntegrateSteps
+		),
 		planetRotation: o.planetRotation
 	};
 }
