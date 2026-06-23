@@ -66,7 +66,8 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 		atmosphereIntegrateSteps: num(r.atmosphereIntegrateSteps, d.atmosphereIntegrateSteps),
 		lod: {
 			sphereAboveRadiusPx: num(lod.sphereAboveRadiusPx, d.lod.sphereAboveRadiusPx),
-			proceduralAboveRadiusPx: num(lod.proceduralAboveRadiusPx, d.lod.proceduralAboveRadiusPx)
+			proceduralAboveRadiusPx: num(lod.proceduralAboveRadiusPx, d.lod.proceduralAboveRadiusPx),
+			fadeGamma: num(lod.fadeGamma, d.lod.fadeGamma)
 		}
 	};
 }

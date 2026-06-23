@@ -93,12 +93,21 @@ describe('fadeOpacity', () => {
 	it('preserves the endpoints and biases toward the sphere mid-transition', () => {
 		expect(fadeOpacity(0)).toBe(0);
 		expect(fadeOpacity(1)).toBe(1);
-		// gamma > 1 ⇒ opacity sits below the linear blend everywhere in between
+		// default gamma > 1 ⇒ opacity sits below the linear blend everywhere in between
 		expect(fadeOpacity(0.5)).toBeLessThan(0.5);
 		expect(fadeOpacity(0.8)).toBeLessThan(0.8);
 	});
 
-	it('clamps out-of-range input', () => {
+	it('is linear at gamma 1 and biases harder as gamma grows', () => {
+		expect(fadeOpacity(0.5, 1)).toBeCloseTo(0.5, 6);
+		expect(fadeOpacity(0.5, 4)).toBeLessThan(fadeOpacity(0.5, 2));
+	});
+
+	it('clamps gamma to >= 1 (never biases toward the terrain)', () => {
+		expect(fadeOpacity(0.5, 0)).toBeCloseTo(0.5, 6);
+	});
+
+	it('clamps out-of-range blend', () => {
 		expect(fadeOpacity(-1)).toBe(0);
 		expect(fadeOpacity(2)).toBe(1);
 	});

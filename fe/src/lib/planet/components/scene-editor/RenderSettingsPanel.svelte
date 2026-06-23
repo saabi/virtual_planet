@@ -104,6 +104,15 @@
 								variant="scene"
 								bind:value={viewportPrefs.lod.proceduralAboveRadiusPx}
 							/>
+							<Range
+								id="lod-fade-gamma"
+								label="Cross-fade gamma (→ sphere)"
+								min={1}
+								max={5}
+								step={0.1}
+								variant="scene"
+								bind:value={viewportPrefs.lod.fadeGamma}
+							/>
 						</ul>
 					</EditorSubsection>
 					<EditorSubsection title="Tessellation" defaultOpen>

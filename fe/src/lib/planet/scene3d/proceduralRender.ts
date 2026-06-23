@@ -76,7 +76,7 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		materialOverrides: {
 			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
 			materialDebug: o.materialDebug ?? 'off',
-			objectOpacity: fadeOpacity(o.blend ?? 1)
+			objectOpacity: fadeOpacity(o.blend ?? 1, prefs?.lod.fadeGamma)
 		},
 		atmosphere: bodyAtmosphereToParameters(
 			resolveBodyAtmosphere(o.body),
