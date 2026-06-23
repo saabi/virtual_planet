@@ -64,7 +64,7 @@ export class SpherePass {
 					}
 				]
 			},
-			fragment: { module, entryPoint: 'fs', targets: [{ format }] },
+			fragment: { module, entryPoint: 'fs', targets: [{ format }, { format: 'r32float' }] },
 			primitive: { topology: 'triangle-list', cullMode: 'none' },
 			depthStencil: { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' }
 		});

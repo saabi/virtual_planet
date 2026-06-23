@@ -33,6 +33,11 @@ struct VSOut {
   @location(3) patch_uv: vec2f,
 }
 
+struct FSOut {
+  @location(0) color: vec4f,
+  @location(1) surface_t: f32,
+}
+
 @vertex
 fn vs_main(
   @builtin(vertex_index) vid: u32,
@@ -61,7 +66,7 @@ fn vs_main(
 }
 
 @fragment
-fn fs_main(in: VSOut) -> @location(0) vec4f {
+fn fs_main(in: VSOut) -> FSOut {
   // Geometry/height/material/normal follow the displaced surface (the interpolated body
   // dir, here in.unit_dir); only the fine texture noise uses the tessellation-stable
   // ideal-sphere dir (with a grazing-miss fallback). See common/idealSphere.wgsl.
@@ -109,5 +114,8 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     col = apply_material_debug(debug_mode, n, body_dir, material, lit);
   }
 
-  return vec4f(col, 1.0);
+  var out: FSOut;
+  out.color = vec4f(col, 1.0);
+  out.surface_t = length(in.world_pos - view_u.camera_pos.xyz);
+  return out;
 }

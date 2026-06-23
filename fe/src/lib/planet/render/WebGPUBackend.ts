@@ -72,12 +72,16 @@ export class WebGPUBackend implements RenderBackend {
 	/** Record the terrain directly into an external render pass (the scene engine's shared
 	 *  color+depth) — single-pass. No atmosphere; the caller owns the pass and depth. Pass a
 	 *  floating-origin / focused-body camera in `frame` so the body lands at its world depth. */
-	recordTerrainInto(pass: GPURenderPassEncoder, frame: RenderFrame): RenderStats {
+	recordTerrainInto(
+		pass: GPURenderPassEncoder,
+		frame: RenderFrame,
+		options?: { surfaceOnly?: boolean }
+	): RenderStats {
 		if (!this.device || !this.terrain) {
 			return { frameMs: 0, patchCount: 0, vertexCount: 0, mode: frame.camera.mode };
 		}
 		this.terrain.updateSurfacePatches(frame);
-		return this.terrain.renderInto(pass, frame);
+		return this.terrain.renderInto(pass, frame, options);
 	}
 
 	private renderInto(target: GPUTexture, frame: RenderFrame): RenderStats {

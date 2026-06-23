@@ -30,6 +30,11 @@ struct VSOut {
 	@location(2) worldPos : vec3<f32>,
 };
 
+struct FSOut {
+	@location(0) color : vec4<f32>,
+	@location(1) surface_t : f32,
+};
+
 @vertex
 fn vs(in : VSIn) -> VSOut {
 	let model = mat4x4<f32>(in.m0, in.m1, in.m2, in.m3);
@@ -44,14 +49,18 @@ fn vs(in : VSIn) -> VSOut {
 }
 
 @fragment
-fn fs(in : VSOut) -> @location(0) vec4<f32> {
+fn fs(in : VSOut) -> FSOut {
 	let base = in.color.rgb;
+	var out : FSOut;
+	out.surface_t = -1.0;
 	if (in.color.w > 0.5) {
-		return vec4<f32>(base, 1.0); // emissive (stars)
+		out.color = vec4<f32>(base, 1.0); // emissive (stars)
+		return out;
 	}
 	let n = normalize(in.normal);
 	let l = normalize(u.lightPos.xyz - in.worldPos); // toward the sun's position
 	let ndl = max(dot(n, l), 0.0);
 	let lit = base * (u.ambient.rgb + u.lightColor.rgb * u.lightColor.w * ndl);
-	return vec4<f32>(lit, 1.0);
+	out.color = vec4<f32>(lit, 1.0);
+	return out;
 }

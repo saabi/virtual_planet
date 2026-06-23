@@ -1,21 +1,31 @@
 #include "../atmosphere/atmosphereParams.wgsl"
 #include "../atmosphere/integrate.wgsl"
 #include "../planet/lighting.wgsl"
-#include "../planet/material.wgsl"
 
-// Scene atmosphere composite (Phase 5). Like atmosphereFullscreen.wgsl, but it runs as a
-// second pass over the shared scene color+depth: it reads ONLY the scene depth (moons +
-// terrain) to limit the ray-march, and alpha-blends its result over the scene instead of
-// reading the color back. Run in the focused body's body-local frame (planet_center =
-// origin), the same frame the terrain was rendered in, so the shared depth reconstructs
-// correctly and coordinates stay small. Blend (src=one, dst=1-src.a):
-//   result = inscatter + sceneColor * avgTransmittance  (== sceneColor*T + inscatter).
+// Scene atmosphere composite (Phase 5). Like atmosphereFullscreen.wgsl, but adapted to
+// the scene engine's shared depth and selected-surface target. It samples the scene color
+// rendered in the first pass and writes the final composite explicitly:
+//   result = sceneColor * avgTransmittance + inscatter.
+// Run in the focused body's body-local frame
+// (planet_center = origin). The selected body's march end comes from a linear
+// surface-distance target written by the same terrain fragments that color the planet,
+// so it matches the tessellated mesh while avoiding scene-depth reconstruction precision
+// loss. Foreground occlusion still uses the shared scene depth as a raw depth-order test
+// against the atmosphere shell front.
 
 struct AtmosphereFrame {
   inv_view_projection: mat4x4f,
+  view_projection: mat4x4f,
   camera_pos: vec4f,
   viewport_size: vec4f,
+  debug: vec4f,
 }
+
+const ATMOS_DEBUG_NONE: u32 = 0u;
+const ATMOS_DEBUG_INSCATTER: u32 = 1u;
+const ATMOS_DEBUG_TRANSMITTANCE: u32 = 2u;
+const ATMOS_DEBUG_VIEW_SUN: u32 = 3u;
+const ATMOS_DEBUG_SURFACE_MASK: u32 = 4u;
 
 struct VSOut {
   @builtin(position) position: vec4f,
@@ -26,7 +36,9 @@ struct VSOut {
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
 @group(0) @binding(3) var<uniform> atmo: AtmosphereParams;
-@group(1) @binding(0) var scene_depth: texture_depth_2d;
+@group(1) @binding(0) var scene_color: texture_2d<f32>;
+@group(1) @binding(1) var scene_depth: texture_depth_2d;
+@group(1) @binding(2) var selected_surface_t: texture_2d<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vid: u32) -> VSOut {
@@ -57,32 +69,80 @@ fn tone_map_reinhard_atmo(color: vec3f) -> vec3f {
   return vec3f(1.0) - exp(-color * max(mat_overrides.exposure, 0.01));
 }
 
+fn projected_depth(t: f32, eye: vec3f, omega: vec3f) -> f32 {
+  let p = eye + omega * t;
+  let clip = atmo_frame.view_projection * vec4f(p, 1.0);
+  return clip.z / clip.w;
+}
+
+fn scene_depth_at(uv: vec2f) -> f32 {
+  let dims = vec2i(textureDimensions(scene_depth));
+  let texel = clamp(vec2i(uv * vec2f(dims)), vec2i(0), dims - vec2i(1));
+  return textureLoad(scene_depth, texel, 0);
+}
+
+fn scene_color_at(uv: vec2f) -> vec3f {
+  let dims = vec2i(textureDimensions(scene_color));
+  let texel = clamp(vec2i(uv * vec2f(dims)), vec2i(0), dims - vec2i(1));
+  return textureLoad(scene_color, texel, 0).rgb;
+}
+
+fn selected_surface_t_at(uv: vec2f) -> f32 {
+  let dims = vec2i(textureDimensions(selected_surface_t));
+  let texel = clamp(vec2i(uv * vec2f(dims)), vec2i(0), dims - vec2i(1));
+  return textureLoad(selected_surface_t, texel, 0).x;
+}
+
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
   let eye = atmo_frame.camera_pos.xyz;
   let omega = world_ray(in.uv);
+  let scene_rgb = scene_color_at(in.uv);
+  let debug_mode = u32(atmo_frame.debug.x + 0.5);
+  let surface_t = selected_surface_t_at(in.uv);
+
+  if (debug_mode == ATMOS_DEBUG_SURFACE_MASK) {
+    let hit = select(0.0, 1.0, surface_t >= 0.0);
+    return vec4f(vec3f(hit), 1.0);
+  }
 
   // Cheap reject: pixels whose ray never crosses the atmosphere shell contribute nothing.
   let shell = ray_sphere_intersect(eye, omega, atmo.planet_center, atmo.outer_radius);
   if (shell.y < 0.0) {
-    return vec4f(0.0);
+    return vec4f(select(scene_rgb, vec3f(0.0), debug_mode > ATMOS_DEBUG_NONE), 1.0);
   }
 
-  // Nearest scene surface from the shared depth (moons + terrain). Cleared sky has depth 1,
-  // which reconstructs to the far plane → a huge distance → the march is shell-limited. A
-  // body nearer than the shell makes t_max fall before the shell entry → no atmosphere
-  // (the body occludes the halo).
+  // March end = the surface distance produced by the selected body's terrain fragments.
+  // Pixels without selected terrain (halo/sky) march through the shell.
   let sun_dir = primary_sun_dir(lighting);
-  let dims = vec2f(textureDimensions(scene_depth));
-  let texel = vec2i(in.uv * dims);
-  let depth = textureLoad(scene_depth, texel, 0);
-  let ndc_x = in.uv.x * 2.0 - 1.0;
-  let ndc_y = (1.0 - in.uv.y) * 2.0 - 1.0;
-  let world_h = atmo_frame.inv_view_projection * vec4f(ndc_x, ndc_y, depth, 1.0);
-  let surface_t = length(world_h.xyz / world_h.w - eye);
+  let t_max = select(shell.y, surface_t, surface_t >= 0.0);
 
-  let scatter = integrate_atmosphere(eye, omega, surface_t, sun_dir, atmo);
+  if (debug_mode == ATMOS_DEBUG_VIEW_SUN) {
+    let phase = dot(omega, sun_dir) * 0.5 + 0.5;
+    return vec4f(vec3f(phase), 1.0);
+  }
+
+  // The shared depth contains both foreground bodies and the selected terrain. Do not
+  // reconstruct a distance from it for the selected body's surface: that was the scene
+  // precision failure. Use raw depth only to reject geometry that is in front of the
+  // atmosphere shell's near side, which covers moons/planets between the camera and this
+  // atmosphere without self-occluding on the selected terrain depth.
+  if (shell.x > 0.0) {
+    let shell_front_depth = projected_depth(shell.x, eye, omega);
+    let depth = scene_depth_at(in.uv);
+    if (depth + 0.0001 < shell_front_depth) {
+      return vec4f(select(scene_rgb, vec3f(0.0), debug_mode > ATMOS_DEBUG_NONE), 1.0);
+    }
+  }
+
+  let scatter = integrate_atmosphere(eye, omega, t_max, sun_dir, atmo);
   let inscatter = tone_map_reinhard_atmo(scatter.rgb);
-  let opacity = clamp(1.0 - scatter.a, 0.0, 1.0);
-  return vec4f(inscatter, opacity);
+  if (debug_mode == ATMOS_DEBUG_INSCATTER) {
+    return vec4f(inscatter, 1.0);
+  }
+  if (debug_mode == ATMOS_DEBUG_TRANSMITTANCE) {
+    return vec4f(vec3f(scatter.a), 1.0);
+  }
+  let out_rgb = scene_rgb * scatter.a + inscatter;
+  return vec4f(out_rgb, 1.0);
 }

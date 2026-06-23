@@ -82,7 +82,11 @@ export interface RenderBackend {
 	renderToTexture?(target: GPUTexture, frame: RenderFrame): RenderStats;
 	/** Record terrain directly into an external render pass (single-pass scene engine,
 	 *  shared depth). Optional — only the WebGPU backend implements it. */
-	recordTerrainInto?(pass: GPURenderPassEncoder, frame: RenderFrame): RenderStats;
+	recordTerrainInto?(
+		pass: GPURenderPassEncoder,
+		frame: RenderFrame,
+		options?: { surfaceOnly?: boolean }
+	): RenderStats;
 	destroy(): void;
 	/** Deferred — stub only */
 	renderPickingPass?(_frame: RenderFrame, _screenX: number, _screenY: number): PickingResult;

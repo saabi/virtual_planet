@@ -42,6 +42,7 @@ import { uploadPackedBucket } from '../../params/gpuBuffers.js';
 import { PatchCullPass } from './patchCullPass.js';
 
 export const VERTS_PER_PATCH = 6;
+export const SURFACE_DISTANCE_FORMAT: GPUTextureFormat = 'r32float';
 
 interface CubeBucketDraw {
 	resolution: number;
@@ -53,6 +54,8 @@ interface CubeBucketDraw {
 export class TerrainPass {
 	readonly cubePipeline: GPURenderPipeline;
 	readonly surfacePipeline: GPURenderPipeline;
+	readonly cubeSurfaceOnlyPipeline: GPURenderPipeline;
+	readonly surfaceSurfaceOnlyPipeline: GPURenderPipeline;
 	readonly viewBuffer: GPUBuffer;
 	readonly lightingBuffer: GPUBuffer;
 	readonly materialOverridesBuffer: GPUBuffer;
@@ -65,6 +68,8 @@ export class TerrainPass {
 	colorView: GPUTextureView | null = null;
 	depthTexture: GPUTexture | null = null;
 	depthView: GPUTextureView | null = null;
+	surfaceDistanceTexture: GPUTexture | null = null;
+	surfaceDistanceView: GPUTextureView | null = null;
 	// Persistent ring buffer (uploaded in place each frame) — no per-frame GPU
 	// buffer create/destroy.
 	readonly surfacePatchBuffer: GPUBuffer;
@@ -110,6 +115,8 @@ export class TerrainPass {
 
 		this.cubePipeline = this.createPipeline(cubeLayout, cubeModule);
 		this.surfacePipeline = this.createPipeline(surfaceLayout, surfaceModule);
+		this.cubeSurfaceOnlyPipeline = this.createPipeline(cubeLayout, cubeModule, true);
+		this.surfaceSurfaceOnlyPipeline = this.createPipeline(surfaceLayout, surfaceModule, true);
 
 		this.cubeViewBg = device.createBindGroup({
 			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.frame),
@@ -242,14 +249,21 @@ export class TerrainPass {
 		});
 	}
 
-	private createPipeline(layout: GPUPipelineLayout, module: GPUShaderModule): GPURenderPipeline {
+	private createPipeline(
+		layout: GPUPipelineLayout,
+		module: GPUShaderModule,
+		surfaceOnly = false
+	): GPURenderPipeline {
 		return this.device.createRenderPipeline({
 			layout,
 			vertex: { module, entryPoint: 'vs_main' },
 			fragment: {
 				module,
 				entryPoint: 'fs_main',
-				targets: [{ format: this.format }]
+				targets: [
+					{ format: this.format, writeMask: surfaceOnly ? 0 : GPUColorWrite.ALL },
+					{ format: SURFACE_DISTANCE_FORMAT }
+				]
 			},
 			primitive: { topology: 'triangle-list', cullMode: 'back' },
 			depthStencil: {
@@ -267,12 +281,15 @@ export class TerrainPass {
 			this.colorTexture?.width === w &&
 			this.colorTexture?.height === h &&
 			this.depthTexture?.width === w &&
-			this.depthTexture?.height === h
+			this.depthTexture?.height === h &&
+			this.surfaceDistanceTexture?.width === w &&
+			this.surfaceDistanceTexture?.height === h
 		) {
 			return;
 		}
 		this.colorTexture?.destroy();
 		this.depthTexture?.destroy();
+		this.surfaceDistanceTexture?.destroy();
 		this.colorTexture = this.device.createTexture({
 			size: [w, h],
 			format: this.format,
@@ -289,6 +306,12 @@ export class TerrainPass {
 			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 		});
 		this.depthView = this.depthTexture.createView();
+		this.surfaceDistanceTexture = this.device.createTexture({
+			size: [w, h],
+			format: SURFACE_DISTANCE_FORMAT,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+		});
+		this.surfaceDistanceView = this.surfaceDistanceTexture.createView();
 	}
 
 	getColorView(): GPUTextureView | null {
@@ -301,6 +324,10 @@ export class TerrainPass {
 
 	getDepthView(): GPUTextureView | null {
 		return this.depthView;
+	}
+
+	getSurfaceDistanceView(): GPUTextureView | null {
+		return this.surfaceDistanceView;
 	}
 
 	updateSurfacePatches(frame: RenderFrame): void {
@@ -423,6 +450,12 @@ export class TerrainPass {
 					clearValue: { r: 0.02, g: 0.03, b: 0.08, a: 0 },
 					loadOp: 'clear',
 					storeOp: 'store'
+				},
+				{
+					view: this.surfaceDistanceView!,
+					clearValue: { r: -1, g: 0, b: 0, a: 0 },
+					loadOp: 'clear',
+					storeOp: 'store'
 				}
 			],
 			depthStencilAttachment: {
@@ -441,15 +474,22 @@ export class TerrainPass {
 	 *  shared color+depth) — the single-pass path. Uniforms use frame.camera, so pass a
 	 *  floating-origin / focused-body camera so the body lands at its world depth. No own
 	 *  targets; the atmosphere is not drawn here (it returns as a depth-aware pass). */
-	renderInto(passEncoder: GPURenderPassEncoder, frame: RenderFrame): RenderStats {
+	renderInto(
+		passEncoder: GPURenderPassEncoder,
+		frame: RenderFrame,
+		options: { surfaceOnly?: boolean } = {}
+	): RenderStats {
 		const t0 = performance.now();
 		this.uploadUniforms(frame);
 		this.cubeBucketDraws = this.prepareCubeBuckets(frame);
-		const { patchCount, vertexCount } = this.recordDraws(passEncoder);
+		const { patchCount, vertexCount } = this.recordDraws(passEncoder, options);
 		return this.buildStats(frame, t0, patchCount, vertexCount);
 	}
 
-	private recordDraws(passEncoder: GPURenderPassEncoder): { patchCount: number; vertexCount: number } {
+	private recordDraws(
+		passEncoder: GPURenderPassEncoder,
+		options: { surfaceOnly?: boolean } = {}
+	): { patchCount: number; vertexCount: number } {
 		const viewBg = this.cubeViewBg;
 		const planetBg = this.cubePlanetBg;
 		const scaleBg = this.cubeScaleBg;
@@ -461,7 +501,7 @@ export class TerrainPass {
 			if (bucket.instanceCount === 0) continue;
 			const patchBg = this.cubePatchBgs.get(bucket.resolution);
 			if (!patchBg) continue;
-			passEncoder.setPipeline(this.cubePipeline);
+			passEncoder.setPipeline(options.surfaceOnly ? this.cubeSurfaceOnlyPipeline : this.cubePipeline);
 			passEncoder.setBindGroup(0, viewBg);
 			passEncoder.setBindGroup(1, planetBg);
 			passEncoder.setBindGroup(2, scaleBg);
@@ -473,7 +513,7 @@ export class TerrainPass {
 		}
 
 		if (this.surfacePatchCount > 0) {
-			passEncoder.setPipeline(this.surfacePipeline);
+			passEncoder.setPipeline(options.surfaceOnly ? this.surfaceSurfaceOnlyPipeline : this.surfacePipeline);
 			passEncoder.setBindGroup(0, viewBg);
 			passEncoder.setBindGroup(1, planetBg);
 			passEncoder.setBindGroup(2, this.surfaceScaleLocalBg);
@@ -511,5 +551,6 @@ export class TerrainPass {
 		this.surfacePatchBuffer.destroy();
 		this.colorTexture?.destroy();
 		this.depthTexture?.destroy();
+		this.surfaceDistanceTexture?.destroy();
 	}
 }

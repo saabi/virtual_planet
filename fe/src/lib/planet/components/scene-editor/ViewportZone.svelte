@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
+	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type { BodyNode, PlanetScene } from '$lib/planet/scene/types.js';
@@ -10,7 +10,7 @@
 		clock: number;
 		playing: boolean;
 		speed: number;
-		materialDebug: MaterialDebugMode;
+		materialDebug: SceneDebugMode;
 		lookMode: OrbitLookMode;
 		viewportPrefs: SceneViewportPrefs;
 		focusedBody: BodyNode | null;
@@ -22,6 +22,7 @@
 	import SceneViewport3D from '$lib/planet/components/SceneViewport3D.svelte';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
 	import FocusedBodyView from '$lib/planet/components/FocusedBodyView.svelte';
+	import { isSceneAtmosphereDebugMode } from '$lib/planet/scene/sceneDebug.js';
 
 	let {
 		scene,
@@ -35,13 +36,16 @@
 		focusedBody,
 		onCloseFocused
 	}: Props = $props();
+	let atmosphereDebugActive = $derived(isSceneAtmosphereDebugMode(materialDebug));
 </script>
 
 <div class="viewport-zone">
 	<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} bind:viewportPrefs />
-	<div class="map-inset">
-		<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
-	</div>
+	{#if !atmosphereDebugActive}
+		<div class="map-inset">
+			<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
+		</div>
+	{/if}
 	{#if focusedBody}
 		<FocusedBodyView body={focusedBody} onclose={onCloseFocused} />
 	{/if}

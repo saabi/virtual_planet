@@ -1,13 +1,10 @@
 <script module lang="ts">
-	import {
-		MATERIAL_DEBUG_LABELS,
-		type MaterialDebugMode
-	} from '$lib/planet/material/biomes.js';
+	import { SCENE_DEBUG_LABELS, type SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 
 	interface Props {
-		materialDebug: MaterialDebugMode;
+		materialDebug: SceneDebugMode;
 		lookMode: OrbitLookMode;
 		viewportPrefs: SceneViewportPrefs;
 	}
@@ -65,7 +62,7 @@
 						<label class="atmo-row">
 							<span>debug view</span>
 							<select bind:value={materialDebug}>
-								{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+								{#each SCENE_DEBUG_LABELS as opt (opt.value)}
 									<option value={opt.value}>{opt.label}</option>
 								{/each}
 							</select>

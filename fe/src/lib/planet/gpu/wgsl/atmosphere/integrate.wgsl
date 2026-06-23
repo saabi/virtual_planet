@@ -89,7 +89,11 @@ fn integrate_atmosphere(
     let ext = rho * sigma_t;
     let sample_trans = exp(-ext * dt);
     let sun_trans = sun_transmittance(pos, sun_dir, atmo, sigma_t);
-    inscatter += transmittance * (vec3f(1.0) - sample_trans) * sun_trans * phase * atmo.sun_radiance;
+    // Source radiance is ∫ rho * beta * phase * dt. `sample_trans` still uses
+    // sigma_t for extinction, but using (1 - sample_trans) here would multiply by
+    // sigma_t and then by the beta already present in `phase`, effectively squaring
+    // the radius-normalized coefficients and making world-scale atmospheres black.
+    inscatter += transmittance * rho * phase * dt * sun_trans * atmo.sun_radiance;
     transmittance *= sample_trans;
   }
 

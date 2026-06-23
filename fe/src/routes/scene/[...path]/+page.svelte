@@ -25,7 +25,7 @@
 	import { fields } from '@virtual-planet/schema';
 	import SceneEditorShell from '$lib/planet/components/scene-editor/SceneEditorShell.svelte';
 	import { createDefaultViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
-	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
+	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import {
 		resolveBodyAtmosphere,
@@ -139,7 +139,7 @@
 	});
 	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
 	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
-	let materialDebug = $state<MaterialDebugMode>('off');
+	let materialDebug = $state<SceneDebugMode>('off');
 	// Focused-body look mode — viewport state (not body data). planet-center targets the
 	// body; horizon aims along travel for low-orbit views, matching /planet's toggle.
 	let lookMode = $state<OrbitLookMode>('planet-center');

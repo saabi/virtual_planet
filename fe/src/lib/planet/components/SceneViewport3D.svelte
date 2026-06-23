@@ -26,7 +26,12 @@
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
-	import type { MaterialDebugMode } from '../material/biomes.js';
+	import {
+		isSceneAtmosphereDebugMode,
+		sceneAtmosphereDebugToGpu,
+		sceneMaterialDebugMode,
+		type SceneDebugMode
+	} from '../scene/sceneDebug.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
 	import { viewportPrefsRenderDeps, type SceneViewportPrefs } from '../scene/viewportPrefs.js';
 
@@ -36,7 +41,7 @@
 		/** Shared animation clock; re-renders as it advances (driven by the 2D map loop). */
 		time?: number;
 		/** Material debug view for the procedural layer (parity diagnostic). */
-		materialDebug?: MaterialDebugMode;
+		materialDebug?: SceneDebugMode;
 		/** Focused-body look mode (viewport state). */
 		lookMode?: OrbitLookMode;
 		/** Tessellation, debug overlays, and material overrides (session viewport prefs). */
@@ -50,6 +55,8 @@
 		lookMode = 'planet-center',
 		viewportPrefs = $bindable()
 	}: Props = $props();
+	let atmosphereDebugActive = $derived(isSceneAtmosphereDebugMode(materialDebug));
+	let atmosphereOnWhite = $derived(materialDebug === 'atmosphereWhite');
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = $state(1);
@@ -166,11 +173,13 @@
 		const light = lighting(animated);
 		updateMarker(animated, vp);
 		updateProcedural(animated, drawList);
+		const terrainMaterialDebug = sceneMaterialDebugMode(materialDebug);
 
 		// Single pass: spheres + the focused body's terrain into one shared color+depth, so
 		// the terrain depth-tests against the moons. When a body renders procedurally we skip
 		// its sphere (the terrain replaces it). The atmosphere then composites in a second
-		// pass that reads the shared depth, so nearer bodies occlude the halo.
+		// pass: selected-body surface-distance target for march end, shared scene depth for
+		// foreground occlusion by moons and other rendered bodies.
 		const procActive = !!(procBody && procBlend > 0 && proceduralRenderer);
 		const instances = instancesFromDrawList(drawList, procActive ? procBody!.id : null);
 
@@ -184,14 +193,19 @@
 					time,
 					lighting: procLighting,
 					planetRotation: procRotation,
-					materialDebug,
+					materialDebug: terrainMaterialDebug,
 					lookMode,
 					viewportPrefs
 				})
 			: null;
 
 		let atmoOverlay:
-			| ((pass: GPURenderPassEncoder, depthView: GPUTextureView) => void)
+			| ((
+					pass: GPURenderPassEncoder,
+					sceneColorView: GPUTextureView,
+					depthView: GPUTextureView,
+					surfaceDistanceView: GPUTextureView
+			  ) => void)
 			| undefined;
 		if (procActive && procInput && sceneAtmosphere) {
 			const bodyAtmo = resolveBodyAtmosphere(procBody!);
@@ -199,7 +213,8 @@
 				const camState = procInput.camera;
 				const atmoIn = {
 					invViewProjection: invert4(camState.viewProjectionMatrix),
-					cameraPos: camState.position,
+					viewProjection: camState.viewProjectionMatrix,
+					camera: camState,
 					atmosphere: toGpuAtmosphereParams(
 						bodyAtmosphereToParameters(bodyAtmo),
 						procBody!.radiusMeters,
@@ -208,9 +223,11 @@
 					lighting: procLighting,
 					materialOverrides: procInput.materialOverrides,
 					width: w,
-					height: h
+					height: h,
+					debugMode: sceneAtmosphereDebugToGpu(materialDebug)
 				};
-				atmoOverlay = (pass, depthView) => sceneAtmosphere!.record(pass, depthView, atmoIn);
+				atmoOverlay = (pass, sceneColorView, depthView, surfaceDistanceView) =>
+					sceneAtmosphere!.record(pass, sceneColorView, depthView, surfaceDistanceView, atmoIn);
 			}
 		}
 
@@ -219,10 +236,13 @@
 			w,
 			h,
 			(pass) => {
-				spheres!.record(pass, instances, vp, light);
-				if (procActive && procInput) proceduralRenderer!.recordInto(pass, procInput);
+				if (!atmosphereOnWhite) spheres!.record(pass, instances, vp, light);
+				if (procActive && procInput) {
+					proceduralRenderer!.recordInto(pass, procInput, { surfaceOnly: atmosphereOnWhite });
+				}
 			},
-			atmoOverlay
+			atmoOverlay,
+			atmosphereOnWhite ? { r: 1, g: 1, b: 1, a: 1 } : undefined
 		);
 	}
 
@@ -429,13 +449,15 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
-	{#if marker}
+	{#if marker && !atmosphereDebugActive}
 		<div
 			class="sel-ring"
 			style="left:{marker.x}px; top:{marker.y}px; width:{marker.r * 2}px; height:{marker.r * 2}px;"
 		></div>
 	{/if}
-	<button type="button" class="frame-btn" onclick={() => (selectedId = null)}>Frame all</button>
+	{#if !atmosphereDebugActive}
+		<button type="button" class="frame-btn" onclick={() => (selectedId = null)}>Frame all</button>
+	{/if}
 	{#if failed}
 		<div class="overlay">3D unavailable: {failed} — use the 2D map.</div>
 	{/if}

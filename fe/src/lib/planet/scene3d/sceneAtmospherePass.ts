@@ -8,24 +8,30 @@ import {
 import { MATERIAL_OVERRIDES_UNIFORM_SIZE, writeMaterialOverrides } from '../render/materialOverrides.js';
 import { writeAtmosphereParamsToBuffer, type GpuAtmosphereParams } from '../params/atmosphereParams.js';
 import type { MaterialOverrides } from '../material/biomes.js';
-import type { Vec3 } from '../math/vec.js';
+import type { CameraState } from '../camera/cameraModes.js';
 
 // Atmosphere composite for the shared scene pass (Phase 5). Runs after the spheres+terrain
-// pass; reads the scene depth (for occlusion / march length) and alpha-blends the focused
-// body's atmosphere over the scene color. See gpu/wgsl/scene3d/sceneAtmosphere.wgsl.
+// pass and alpha-blends the focused body's atmosphere over the scene color. The selected
+// body's terrain pass writes a linear surface-distance texture for the march end, while
+// shared scene depth remains the foreground occlusion source for moons and other bodies.
+// See gpu/wgsl/scene3d/sceneAtmosphere.wgsl.
 
-const FRAME_SIZE = 256; // invVP(64) + cameraPos(16) + viewport(16), padded
+const FRAME_SIZE = 256; // invVP(64) + VP(64) + cameraPos(16) + viewport(16) + debug(16), padded
 
 export interface SceneAtmosphereInput {
 	/** inverse(viewProjection) of the focused-body (body-local) camera. */
 	invViewProjection: Float32Array;
-	/** That camera's eye position (body-local). */
-	cameraPos: Vec3;
+	/** viewProjection of the focused-body (body-local) camera, depth-identical to scene. */
+	viewProjection: Float32Array;
+	/** Focused-body camera used by terrain; supplies eye, mode, altitude, and focal length. */
+	camera: CameraState;
 	atmosphere: GpuAtmosphereParams;
 	lighting: LightingUniforms;
 	materialOverrides: MaterialOverrides;
 	width: number;
 	height: number;
+	/** Scene atmosphere debug mode encoded for sceneAtmosphere.wgsl. */
+	debugMode: number;
 }
 
 export class SceneAtmospherePass {
@@ -45,16 +51,7 @@ export class SceneAtmospherePass {
 			fragment: {
 				module,
 				entryPoint: 'fs_main',
-				targets: [
-					{
-						format,
-						// result = inscatter + sceneColor * avgTransmittance (alpha = 1 - avgT).
-						blend: {
-							color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
-							alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }
-						}
-					}
-				]
+				targets: [{ format }]
 			},
 			primitive: { topology: 'triangle-list' }
 		});
@@ -64,16 +61,24 @@ export class SceneAtmospherePass {
 		this.atmosphereBuffer = device.createBuffer({ size: ATMOSPHERE_UNIFORM_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 	}
 
-	record(pass: GPURenderPassEncoder, depthView: GPUTextureView, input: SceneAtmosphereInput) {
+	record(
+		pass: GPURenderPassEncoder,
+		sceneColorView: GPUTextureView,
+		depthView: GPUTextureView,
+		surfaceDistanceView: GPUTextureView,
+		input: SceneAtmosphereInput
+	) {
 		const frame = new ArrayBuffer(FRAME_SIZE);
 		const view = new DataView(frame);
 		for (let i = 0; i < 16; i++) view.setFloat32(i * 4, input.invViewProjection[i], true);
-		view.setFloat32(64, input.cameraPos[0], true);
-		view.setFloat32(68, input.cameraPos[1], true);
-		view.setFloat32(72, input.cameraPos[2], true);
-		view.setFloat32(76, 1, true);
-		view.setFloat32(80, input.width, true);
-		view.setFloat32(84, input.height, true);
+		for (let i = 0; i < 16; i++) view.setFloat32(64 + i * 4, input.viewProjection[i], true);
+		view.setFloat32(128, input.camera.position[0], true);
+		view.setFloat32(132, input.camera.position[1], true);
+		view.setFloat32(136, input.camera.position[2], true);
+		view.setFloat32(140, 1, true);
+		view.setFloat32(144, input.width, true);
+		view.setFloat32(148, input.height, true);
+		view.setFloat32(160, input.debugMode, true);
 		this.device.queue.writeBuffer(this.frameBuffer, 0, frame);
 
 		const lightingStaging = new ArrayBuffer(LIGHTING_UNIFORM_SIZE);
@@ -99,9 +104,12 @@ export class SceneAtmospherePass {
 		});
 		const sceneBg = this.device.createBindGroup({
 			layout: this.pipeline.getBindGroupLayout(1),
-			entries: [{ binding: 0, resource: depthView }]
+			entries: [
+				{ binding: 0, resource: sceneColorView },
+				{ binding: 1, resource: depthView },
+				{ binding: 2, resource: surfaceDistanceView }
+			]
 		});
-
 		pass.setPipeline(this.pipeline);
 		pass.setBindGroup(0, frameBg);
 		pass.setBindGroup(1, sceneBg);

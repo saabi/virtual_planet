@@ -35,6 +35,11 @@ struct VSOut {
   @location(5) body_dir: vec3f,
 }
 
+struct FSOut {
+  @location(0) color: vec4f,
+  @location(1) surface_t: f32,
+}
+
 @vertex
 fn vs_main(
   @builtin(vertex_index) vid: u32,
@@ -75,7 +80,7 @@ fn vs_main(
 }
 
 @fragment
-fn fs_main(in: VSOut) -> @location(0) vec4f {
+fn fs_main(in: VSOut) -> FSOut {
   // Geometry/height/material/normal follow the displaced surface (the interpolated body
   // dir the vertices displaced along), so the interior is displaced exactly like the rims.
   // Only the fine texture noise samples the tessellation-stable ideal-sphere direction
@@ -139,5 +144,8 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     col = mix(col, vec3f(0.05, 1.0, 0.4), line);
   }
 
-  return vec4f(col, 1.0);
+  var out: FSOut;
+  out.color = vec4f(col, 1.0);
+  out.surface_t = length(in.world_pos - view_u.camera_pos.xyz);
+  return out;
 }

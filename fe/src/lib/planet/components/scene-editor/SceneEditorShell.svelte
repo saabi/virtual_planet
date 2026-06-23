@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import type { LayoutDocument } from '@virtual-planet/subdivide';
 	import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
-	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
+	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type {
@@ -35,7 +35,7 @@
 		clock: number;
 		playing: boolean;
 		speed: number;
-		materialDebug: MaterialDebugMode;
+		materialDebug: SceneDebugMode;
 		lookMode: OrbitLookMode;
 		viewportPrefs: SceneViewportPrefs;
 		focusedBody: BodyNode | null;

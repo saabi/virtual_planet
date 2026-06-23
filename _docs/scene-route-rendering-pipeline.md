@@ -70,14 +70,19 @@ Each frame:
 
 - The WebGPU device and canvas format.
 - A `depth24plus` texture resized to the current viewport.
+- A selected-body `r32float` surface-distance texture resized to the current viewport.
+- A sampleable offscreen scene-color texture used only when the atmosphere overlay is active.
 - The command encoder and render pass lifecycle.
 
-For every frame it clears color to a dark background and clears depth to `1`. Spheres,
-dots, and the selected procedural body's terrain are recorded inside this pass, so the
-procedural terrain depth-tests against the rest of the scene. The depth texture is
-sampleable, and `render()` takes an optional overlay recorder that runs in a **second
-pass** after the scene pass ends (color loaded, no depth attachment) — the atmosphere
-composite, which samples the scene depth.
+For every frame it clears color to a dark background, clears depth to `1`, and clears the
+selected-surface distance target to `-1`. When the atmosphere overlay is active, scene
+color is first rendered into the sampleable offscreen scene-color texture; otherwise it
+renders directly to the swapchain. Spheres, dots, and the selected procedural body's
+terrain are recorded inside this pass, so the procedural terrain depth-tests against the
+rest of the scene. Terrain fragments also write their linear camera distance into the
+selected-surface target. The color, depth, and surface-distance textures are sampleable,
+and `render()` takes an optional overlay recorder that runs in a **second pass** after the
+scene pass ends, writing the final composited color to the swapchain.
 
 ## Sphere pass
 
@@ -158,12 +163,16 @@ When the selected body is visible, is a planet/moon, and its draw item has `blen
 `PlanetRenderer.recordInto()` -> `buildRenderFrame()` ->
 `WebGPUBackend.recordTerrainInto()` -> `TerrainPass.renderInto()`.
 
-`PlanetRenderer.recordInto()` records terrain only. The body's atmosphere is then composited
-by `SceneAtmospherePass` (`scene3d/sceneAtmospherePass.ts` + `gpu/wgsl/scene3d/sceneAtmosphere.wgsl`)
-as the engine's overlay pass: a fullscreen ray-march in the body-local (`focusedBodyCamera`)
-frame that samples the **shared scene depth** to limit the march, so nearer bodies occlude
-the halo, and alpha-blends `inscatter + sceneColor·avgTransmittance` over the scene. (The
-standalone `/planet` backend still uses its own `AtmospherePass`.)
+`PlanetRenderer.recordInto()` records terrain only. The body's atmosphere is then
+composited by `SceneAtmospherePass` (`scene3d/sceneAtmospherePass.ts` +
+`gpu/wgsl/scene3d/sceneAtmosphere.wgsl`) as the engine's overlay pass: a fullscreen
+ray-march in the body-local (`focusedBodyCamera`) frame. The selected body's terrain
+fragments provide a precision-safe linear surface distance for the march endpoint, while
+the **shared scene depth** remains the foreground occlusion source so nearer bodies
+occlude the halo. The pass samples the offscreen scene color and writes the explicit
+composite `sceneColor·avgTransmittance + inscatter`, matching `/planet`'s atmosphere
+composition instead of relying on render-target alpha blending. (The standalone `/planet`
+backend still uses its own `AtmospherePass`.)
 
 ## Focused body view
 
@@ -182,8 +191,10 @@ The route still has the editor, tree, and 2D `SystemMapPanel`.
 
 ## Current boundaries
 
-- `/scene` has one main WebGPU canvas and one shared scene depth target.
-- Spheres/dots and the selected body's procedural terrain share that render pass/depth.
+- `/scene` has one main WebGPU canvas, one shared scene depth target, and one selected-body
+  surface-distance target.
+- Spheres/dots and the selected body's procedural terrain share that render pass/depth;
+  selected terrain also writes the surface-distance target for atmosphere termination.
 - Only one selected procedural body is supported in the scene pass today.
-- Procedural atmosphere is not yet rendered in the shared scene pass.
+- Procedural atmosphere is rendered as the scene overlay pass.
 - Eclipse shadows, rings, and multi-procedural-body budgeting remain future work.
