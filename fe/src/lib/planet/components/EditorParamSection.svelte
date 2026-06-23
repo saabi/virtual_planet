@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { ParamEditorSection } from '../params/paramEditorSchema.js';
-	import Range from './controls/Range.svelte';
-	import LogRange from './controls/LogRange.svelte';
+	import ParamSliderRow from './controls/ParamSliderRow.svelte';
 
 	let {
 		section,
@@ -17,24 +16,12 @@
 	<summary>{section.title}</summary>
 	<ul class="subsection-body">
 		{#each section.sliders as slider (slider.key)}
-			{#if slider.log}
-				<LogRange
-					id={slider.key}
-					label={slider.label}
-					min={slider.min}
-					max={slider.max}
-					bind:value={params[slider.key]}
-				/>
-			{:else}
-				<Range
-					id={slider.key}
-					label={slider.label}
-					min={slider.min}
-					max={slider.max}
-					step={slider.step}
-					bind:value={params[slider.key]}
-				/>
-			{/if}
+			<ParamSliderRow
+				id={String(slider.key)}
+				{slider}
+				value={params[slider.key]}
+				onvalue={(v) => (params[slider.key] = v)}
+			/>
 		{/each}
 		{#each section.toggles ?? [] as toggle (toggle.key)}
 			<li class="flag-row">

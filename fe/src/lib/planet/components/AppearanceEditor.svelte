@@ -4,7 +4,9 @@
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { BodyAppearance, BodyLod, BodyNode } from '../scene/types.js';
+	import ParamSliderRow from './controls/ParamSliderRow.svelte';
 	import EditorSubsection from './scene-editor/EditorSubsection.svelte';
+	import './controls/sliderList.css';
 
 	interface Props {
 		body: BodyNode;
@@ -30,13 +32,11 @@
 	function resetOverrides() {
 		onappearance?.({ preset: appearance.preset });
 	}
-	const isOverridden = (key: keyof PlanetParameters) => appearance.overrides?.[key] !== undefined;
 
 	function setLod(patch: Partial<BodyLod>) {
 		onlod?.({ ...lod, ...patch });
 	}
 
-	const round = (n: number) => Math.round(n * 1000) / 1000;
 	const overrideCount = $derived(Object.keys(appearance.overrides ?? {}).length);
 </script>
 
@@ -58,23 +58,20 @@
 
 	{#each shapeSections as section (section.title)}
 		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
-			{#each section.sliders as sl (sl.key)}
-				<label class="appr-row" class:overridden={isOverridden(sl.key)}>
-					<span class="appr-label">{sl.label}</span>
-					<input
-						type="range"
-						min={sl.min}
-						max={sl.max}
-						step={sl.step}
+			<ul class="slider-list">
+				{#each section.sliders as sl (sl.key)}
+					<ParamSliderRow
+						id={String(sl.key)}
+						slider={sl}
 						value={resolved[sl.key]}
-						oninput={(e) => setOverride(sl.key, Number(e.currentTarget.value))}
+						onvalue={(v) => setOverride(sl.key, v)}
+						variant="scene"
 					/>
-					<span class="appr-val">{round(resolved[sl.key])}</span>
-				</label>
-			{/each}
+				{/each}
+			</ul>
 			{#each section.toggles ?? [] as toggle (toggle.key)}
-				<label class="appr-row flag-row">
-					<span class="appr-label">{toggle.label}</span>
+				<label class="flag-row">
+					<span class="flag-label">{toggle.label}</span>
 					<input
 						type="checkbox"
 						checked={resolved[toggle.key] > 0.5}
@@ -87,26 +84,23 @@
 
 	{#each materialSections as section (section.title)}
 		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
-			{#each section.sliders as sl (sl.key)}
-				<label class="appr-row" class:overridden={isOverridden(sl.key)}>
-					<span class="appr-label">{sl.label}</span>
-					<input
-						type="range"
-						min={sl.min}
-						max={sl.max}
-						step={sl.step}
+			<ul class="slider-list">
+				{#each section.sliders as sl (sl.key)}
+					<ParamSliderRow
+						id={String(sl.key)}
+						slider={sl}
 						value={resolved[sl.key]}
-						oninput={(e) => setOverride(sl.key, Number(e.currentTarget.value))}
+						onvalue={(v) => setOverride(sl.key, v)}
+						variant="scene"
 					/>
-					<span class="appr-val">{round(resolved[sl.key])}</span>
-				</label>
-			{/each}
+				{/each}
+			</ul>
 		</EditorSubsection>
 	{/each}
 
 	<EditorSubsection title="LOD (projected px)">
-		<label class="appr-row">
-			<span class="appr-label">sphere above</span>
+		<label class="lod-row">
+			<span class="lod-label">sphere above</span>
 			<input
 				type="number"
 				step="any"
@@ -114,8 +108,8 @@
 				onchange={(e) => setLod({ sphereAbovePx: Number(e.currentTarget.value) })}
 			/>
 		</label>
-		<label class="appr-row">
-			<span class="appr-label">procedural above</span>
+		<label class="lod-row">
+			<span class="lod-label">procedural above</span>
 			<input
 				type="number"
 				step="any"
@@ -143,44 +137,36 @@
 		flex: 1;
 	}
 
-	.appr-row {
+	.flag-row {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 8px;
+		margin: 4px 0;
+		font-size: 11px;
+	}
+
+	.flag-label {
+		flex: 1;
+		text-align: right;
+		opacity: 0.8;
+	}
+
+	.lod-row {
 		display: flex;
 		align-items: center;
 		gap: 5px;
 		font-size: 11px;
+		margin: 2px 0;
 	}
 
-	.appr-row.flag-row {
-		justify-content: flex-end;
-	}
-
-	.appr-label {
+	.lod-label {
 		flex: 0 0 40%;
 		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 		opacity: 0.8;
 	}
 
-	.appr-row.overridden .appr-label {
-		opacity: 1;
-		color: #c7a6ff;
-	}
-
-	.appr-row input[type='range'] {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.appr-val {
-		flex: 0 0 2.6em;
-		text-align: right;
-		font-variant-numeric: tabular-nums;
-		opacity: 0.7;
-	}
-
-	.appr-row input[type='number'] {
+	.lod-row input[type='number'] {
 		flex: 1;
 		min-width: 0;
 		background: #1a1f30;

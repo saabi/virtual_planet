@@ -7,9 +7,21 @@
 		max: number | string;
 		step: number | string;
 		disabled?: boolean;
+		variant?: 'planet' | 'scene';
+		onvalue?: (v: number) => void;
 	}
 
-	let { id, label, value = $bindable(), min, max, step, disabled = false }: Props = $props();
+	let {
+		id,
+		label,
+		value = $bindable(),
+		min,
+		max,
+		step,
+		disabled = false,
+		variant = 'planet',
+		onvalue
+	}: Props = $props();
 	const inputId = id ?? label;
 
 	/** Round to 3 significant figures for display (drops float noise like 3.82000003). */
@@ -20,12 +32,28 @@
 	}
 
 	let formattedValue = $derived(format(value));
+
+	function onInput(e: Event) {
+		const v = Number((e.currentTarget as HTMLInputElement).value);
+		value = v;
+		onvalue?.(v);
+	}
 </script>
 
-<li class="range-row">
+<li class="range-row" class:scene={variant === 'scene'}>
 	<label class="range-label" for={inputId}>{label}</label>
-	<input class="range-input" id={inputId} type="range" {min} {max} {step} {disabled} bind:value />
-	<data class="range-value">{formattedValue}</data>
+	<input
+		class="range-input"
+		id={inputId}
+		type="range"
+		{min}
+		{max}
+		{step}
+		{disabled}
+		{value}
+		oninput={onInput}
+	/>
+	<data class="range-value" class:scene={variant === 'scene'}>{formattedValue}</data>
 </li>
 
 <style>
@@ -54,12 +82,20 @@
 		border-radius: 3px;
 	}
 
+	.range-value.scene {
+		color: #c7a6ff;
+	}
+
 	.range-input {
 		flex: 1;
 		min-width: 0;
 		max-width: 140px;
 		-webkit-appearance: none;
 		background: transparent;
+	}
+
+	.range-row.scene .range-input {
+		max-width: none;
 	}
 
 	.range-input:focus {

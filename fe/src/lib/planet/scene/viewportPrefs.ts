@@ -32,3 +32,23 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES }
 	};
 }
+
+/** Read every pref field that affects procedural rendering (for render-loop deps). */
+export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void {
+	if (!p) return;
+	const { debug: d, tessellation: t, materialOverrides: m } = p;
+	void d.wireframe;
+	void d.faceColors;
+	void d.showPatchBorders;
+	void d.showRingColors;
+	void t.detail;
+	void t.vertexBudgetMillions;
+	void t.maxPatchResolution;
+	void t.maxDepth;
+	void m.shadows;
+	void m.shadowFill;
+	void m.exposure;
+	void m.roughnessMult;
+	void m.waterGloss;
+	void m.fogDensity;
+}

@@ -28,7 +28,7 @@
 	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
 	import type { MaterialDebugMode } from '../material/biomes.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
-	import type { SceneViewportPrefs } from '../scene/viewportPrefs.js';
+	import { viewportPrefsRenderDeps, type SceneViewportPrefs } from '../scene/viewportPrefs.js';
 
 	interface Props {
 		scene: PlanetScene;
@@ -364,7 +364,7 @@
 		void selectedId;
 		void materialDebug;
 		void lookMode;
-		void viewportPrefs;
+		viewportPrefsRenderDeps(viewportPrefs);
 		void camera;
 		void w;
 		void h;

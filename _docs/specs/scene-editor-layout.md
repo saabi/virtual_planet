@@ -100,6 +100,7 @@ Dev playground: `/dev/subdivide` (`fe/src/routes/dev/subdivide/+page.svelte`).
 | `fe/src/lib/planet/components/scene-editor/PropertiesPanel.svelte` | Properties zone |
 | `fe/src/lib/planet/components/scene-editor/RenderSettingsPanel.svelte` | Render settings zone |
 | `fe/src/lib/planet/components/scene-editor/ViewportZone.svelte` | Viewport zone (3D + map + focused body) |
+| `fe/src/lib/planet/components/controls/Range.svelte` | Slider row + numeric pill (planet/scene variants) |
 | `fe/src/lib/planet/components/scene-editor/EditorAccordionSection.svelte` | Super-section accordion (scene styling) |
 | `fe/src/lib/planet/components/scene-editor/EditorSubsection.svelte` | `<details>` subsection wrapper |
 | `fe/src/lib/planet/components/scene-editor/propertiesSections.ts` | Properties super-section registry |
@@ -130,8 +131,8 @@ does not close the open section). Super-sections are pruned by node kind via
 | Transform | node selected | Position · Rotation · Scale (`TransformEditor` channels) |
 | Node | `editor.mode === 'schema'` | Schema fields (`SchemaForm`) |
 | Motion | node selected | Driver · Bindings · Constraints |
-| Appearance | body with appearance | Preset row in header; shape/material blocks from `PARAM_EDITOR_SECTIONS` (`EditorSubsection`); LOD |
-| Atmosphere | body with appearance | Design (`AtmosphereEditor`) |
+| Appearance | body with appearance | Preset row in header; shape/material blocks from `PARAM_EDITOR_SECTIONS` via `ParamSliderRow` (`Range` / `LogRange`, live numeric pill); LOD |
+| Atmosphere | body with appearance | Design (`AtmosphereEditor` — `bodyAtmosphereSliders`, same row layout) |
 | Actions | body with appearance | Procedural render · Handoff to `/planet` |
 
 Default open super-section: `transform`.
@@ -154,6 +155,10 @@ contains `<details>` subsections (multiple may stay open).
 | Quality | Tessellation (detail, budget, max res/depth) | `viewportPrefs.tessellation` |
 | Debug | Wireframe · face colors · patch borders · ring colors | `viewportPrefs.debug` |
 | Shading | Shadows · exposure · roughness · water gloss · fog | `viewportPrefs.materialOverrides` |
+
+Slider rows in Appearance, Atmosphere, and Render (tessellation/shading) reuse
+shared `Range` / `LogRange` controls from `fe/src/lib/planet/components/controls/`
+with `variant="scene"` (purple numeric pill, parity with `/planet` sidebar).
 
 `SceneViewportPrefs` (`viewportPrefs.ts`) is owned by `+page.svelte` and passed
 through `SceneEditorShell` → `RenderSettingsPanel` / `ViewportZone` →

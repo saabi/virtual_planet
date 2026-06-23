@@ -7,9 +7,21 @@
 		value: number;
 		min: number;
 		max: number;
+		disabled?: boolean;
+		variant?: 'planet' | 'scene';
+		onvalue?: (v: number) => void;
 	}
 
-	let { id, label, value = $bindable(), min, max }: Props = $props();
+	let {
+		id,
+		label,
+		value = $bindable(),
+		min,
+		max,
+		disabled = false,
+		variant = 'planet',
+		onvalue
+	}: Props = $props();
 	const inputId = id ?? label;
 
 	let sliderT = $state(0);
@@ -20,7 +32,9 @@
 
 	function onSliderInput(e: Event) {
 		const t = Number((e.currentTarget as HTMLInputElement).value);
-		value = mapLogSlider(t, min, max);
+		const v = mapLogSlider(t, min, max);
+		value = v;
+		onvalue?.(v);
 	}
 
 	/** 3 significant figures with adaptive units (m → km → Mm → Gm). */
@@ -37,7 +51,7 @@
 	let formattedValue = $derived(formatMeters(value));
 </script>
 
-<li class="range-row">
+<li class="range-row" class:scene={variant === 'scene'}>
 	<label class="range-label" for={inputId}>{label}</label>
 	<input
 		class="range-input"
@@ -46,10 +60,11 @@
 		min={0}
 		max={1}
 		step={0.001}
+		{disabled}
 		value={sliderT}
 		oninput={onSliderInput}
 	/>
-	<data class="range-value">{formattedValue}</data>
+	<data class="range-value" class:scene={variant === 'scene'}>{formattedValue}</data>
 </li>
 
 <style>
@@ -78,12 +93,20 @@
 		border-radius: 3px;
 	}
 
+	.range-value.scene {
+		color: #c7a6ff;
+	}
+
 	.range-input {
 		flex: 1;
 		min-width: 0;
 		max-width: 140px;
 		-webkit-appearance: none;
 		background: transparent;
+	}
+
+	.range-row.scene .range-input {
+		max-width: none;
 	}
 
 	.range-input:focus {

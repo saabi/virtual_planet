@@ -161,3 +161,12 @@ export function atmosphereSliders(radius: number): AtmosphereSliderDef[] {
 		{ key: 'integrateSteps', label: 'Quality', min: 4, max: 64, step: 1 }
 	];
 }
+
+/** Body-atmosphere design sliders (excludes render-quality `integrateSteps`). */
+export type BodyAtmosphereSliderKey = Exclude<AtmosphereSliderDef['key'], 'integrateSteps'>;
+
+export function bodyAtmosphereSliders(radius: number): (AtmosphereSliderDef & { key: BodyAtmosphereSliderKey })[] {
+	return atmosphereSliders(radius).filter(
+		(s): s is AtmosphereSliderDef & { key: BodyAtmosphereSliderKey } => s.key !== 'integrateSteps'
+	);
+}

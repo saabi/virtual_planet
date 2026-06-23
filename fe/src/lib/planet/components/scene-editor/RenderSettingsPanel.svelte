@@ -14,6 +14,8 @@
 </script>
 
 <script lang="ts">
+	import Range from '../controls/Range.svelte';
+	import '../controls/sliderList.css';
 	import EditorAccordionSection from './EditorAccordionSection.svelte';
 	import EditorSubsection from './EditorSubsection.svelte';
 
@@ -71,26 +73,26 @@
 					</EditorSubsection>
 				{:else if section.id === 'quality'}
 					<EditorSubsection title="Tessellation" defaultOpen>
-						<label class="atmo-row">
-							<span>detail</span>
-							<input
-								type="range"
-								min="0.05"
-								max="4"
-								step="0.05"
+						<ul class="slider-list">
+							<Range
+								id="tess-detail"
+								label="Detail"
+								min={0.05}
+								max={4}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.tessellation.detail}
 							/>
-						</label>
-						<label class="atmo-row">
-							<span>vertex budget (M)</span>
-							<input
-								type="range"
-								min="0.05"
-								max="32"
-								step="0.05"
+							<Range
+								id="tess-budget"
+								label="Vertex Budget (M)"
+								min={0.05}
+								max={32}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.tessellation.vertexBudgetMillions}
 							/>
-						</label>
+						</ul>
 						<label class="atmo-row">
 							<span>max resolution</span>
 							<select
@@ -150,56 +152,53 @@
 							<input type="checkbox" bind:checked={viewportPrefs.materialOverrides.shadows} />
 							Shadows
 						</label>
-						<label class="atmo-row">
-							<span>shadow fill</span>
-							<input
-								type="range"
-								min="0"
-								max="1"
-								step="0.01"
+						<ul class="slider-list">
+							<Range
+								id="shadow-fill"
+								label="Shadow Fill"
+								min={0}
+								max={1}
+								step={0.01}
+								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.shadowFill}
 							/>
-						</label>
-						<label class="atmo-row">
-							<span>exposure</span>
-							<input
-								type="range"
-								min="0.5"
-								max="3"
-								step="0.05"
+							<Range
+								id="exposure"
+								label="Exposure"
+								min={0.5}
+								max={3}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.exposure}
 							/>
-						</label>
-						<label class="atmo-row">
-							<span>roughness</span>
-							<input
-								type="range"
-								min="0.5"
-								max="2"
-								step="0.05"
+							<Range
+								id="roughness-mult"
+								label="Roughness"
+								min={0.5}
+								max={2}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.roughnessMult}
 							/>
-						</label>
-						<label class="atmo-row">
-							<span>water gloss</span>
-							<input
-								type="range"
-								min="0.5"
-								max="3"
-								step="0.05"
+							<Range
+								id="water-gloss"
+								label="Water Gloss"
+								min={0.5}
+								max={3}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.waterGloss}
 							/>
-						</label>
-						<label class="atmo-row">
-							<span>aerial fog</span>
-							<input
-								type="range"
-								min="0"
-								max="2"
-								step="0.05"
+							<Range
+								id="aerial-fog"
+								label="Aerial Fog"
+								min={0}
+								max={2}
+								step={0.05}
+								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.fogDensity}
 							/>
-						</label>
+						</ul>
 					</EditorSubsection>
 				{/if}
 			</EditorAccordionSection>
@@ -245,8 +244,7 @@
 		opacity: 0.8;
 	}
 
-	.atmo-row select,
-	.atmo-row input[type='range'] {
+	.atmo-row select {
 		flex: 1;
 		min-width: 0;
 	}
