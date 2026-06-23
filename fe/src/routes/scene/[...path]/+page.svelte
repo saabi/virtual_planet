@@ -121,6 +121,21 @@
 	// match the animation. The selected node, evaluated at the current time, gives the
 	// driven-channel values the TransformEditor displays.
 	let clock = $state(0);
+	// The single animation-clock advancer (shared by every viewport panel). One loop here,
+	// not one per SystemMapPanel, so subdividing the layout into multiple viewports does not
+	// multiply the clock rate; play/pause/speed are shared state bound into all panels.
+	let playing = $state(true);
+	let speed = $state(1);
+	$effect(() => {
+		if (!browser || !playing) return;
+		let last = 0;
+		let raf = requestAnimationFrame(function tick(ts: number) {
+			if (last) clock += ((ts - last) / 1000) * speed;
+			last = ts;
+			raf = requestAnimationFrame(tick);
+		});
+		return () => cancelAnimationFrame(raf);
+	});
 	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
 	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
 	let materialDebug = $state<MaterialDebugMode>('off');
@@ -274,6 +289,8 @@
 	{hasAppearance}
 	{driverValue}
 	bind:clock
+	bind:playing
+	bind:speed
 	bind:materialDebug
 	bind:lookMode
 	{focusedBody}

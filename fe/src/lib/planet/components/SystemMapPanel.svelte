@@ -18,23 +18,28 @@
 		scene: PlanetScene;
 		/** Shared with the scene tree: the selected node id. */
 		selectedId?: string | null;
-		/** Shared animation clock (seconds); the loop advances it. */
+		/** Shared animation clock (seconds); advanced by the route, read-only here. */
 		time?: number;
+		/** Shared play/pause + speed (the route owns the single clock advancer). */
+		playing?: boolean;
+		speed?: number;
 	}
 
-	let { scene, selectedId = $bindable(null), time = $bindable(0) }: Props = $props();
+	let {
+		scene,
+		selectedId = $bindable(null),
+		time = 0,
+		playing = $bindable(true),
+		speed = $bindable(1)
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
-	let playing = $state(true);
-	let speed = $state(1);
 	/** Body the map follows/zooms to; null = fit the whole system. */
 	let followId = $state<string | null>(null);
 	let canvasW = $state(1);
 	let canvasH = $state(1);
 
 	let screenPoints: ScreenPoint[] = [];
-	let raf = 0;
-	let lastTs = 0;
 
 	const BODY_STYLE: Record<BodyNode['bodyType'], { r: number; color: string }> = {
 		star: { r: 6, color: '#ffd27f' },
@@ -181,28 +186,10 @@
 		}
 	}
 
-	function loop(ts: number) {
-		if (lastTs) time += ((ts - lastTs) / 1000) * speed;
-		lastTs = ts;
-		draw();
-		raf = playing ? requestAnimationFrame(loop) : 0;
-	}
-
-	function startLoop() {
-		if (raf || !playing) return;
-		lastTs = 0;
-		raf = requestAnimationFrame(loop);
-	}
-
-	function stopLoop() {
-		if (raf) cancelAnimationFrame(raf);
-		raf = 0;
-	}
-
+	// Play/pause is shared state owned by the route (which runs the single clock advancer),
+	// so toggling here syncs every panel and doesn't multiply the clock rate.
 	function togglePlay() {
 		playing = !playing;
-		if (playing) startLoop();
-		else stopLoop();
 	}
 
 	function onPointerDown(e: PointerEvent) {
@@ -221,15 +208,16 @@
 		if (!playing) draw();
 	}
 
-	// Redraw when paused and inputs change (scene/selection/size). While playing the
-	// loop already redraws every frame.
+	// Render on demand: redraw whenever the clock advances (while playing) or any input
+	// changes. A paused clock stops advancing, so the map simply holds its last frame.
 	$effect(() => {
+		void time;
 		void scene;
 		void selectedId;
 		void followId;
 		void canvasW;
 		void canvasH;
-		if (!playing) draw();
+		draw();
 	});
 
 	onMount(() => {
@@ -240,18 +228,13 @@
 			canvasH = el.clientHeight || 1;
 			el.width = canvasW;
 			el.height = canvasH;
-			if (!playing) draw();
 		});
 		ro.observe(el);
 		canvasW = el.clientWidth || 1;
 		canvasH = el.clientHeight || 1;
 		el.width = canvasW;
 		el.height = canvasH;
-		startLoop();
-		return () => {
-			stopLoop();
-			ro.disconnect();
-		};
+		return () => ro.disconnect();
 	});
 </script>
 

@@ -32,6 +32,8 @@
 		hasAppearance: boolean;
 		driverValue: Record<string, unknown>;
 		clock: number;
+		playing: boolean;
+		speed: number;
 		materialDebug: MaterialDebugMode;
 		lookMode: OrbitLookMode;
 		focusedBody: BodyNode | null;
@@ -76,6 +78,8 @@
 		hasAppearance,
 		driverValue,
 		clock = $bindable(),
+		playing = $bindable(),
+		speed = $bindable(),
 		materialDebug = $bindable(),
 		lookMode = $bindable(),
 		focusedBody,
@@ -163,6 +167,8 @@
 		{scene}
 		bind:selectedId
 		bind:clock
+		bind:playing
+		bind:speed
 		{materialDebug}
 		{lookMode}
 		{focusedBody}

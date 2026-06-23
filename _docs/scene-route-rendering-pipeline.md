@@ -15,17 +15,22 @@ and `localStorage`.
 - Keeps `selectedId` synchronized with the URL path via `resolvePath()` and `pathOf()`.
 - Hosts the scene tree, node editors, body appearance/atmosphere editors, and the render
   surface.
-- Maintains a shared `clock`, driven by `SystemMapPanel`, and passes it to
-  `SceneViewport3D`.
+- Owns the shared `clock` plus `playing`/`speed`, and runs the **single** clock advancer
+  (one `requestAnimationFrame` loop: `clock += dt·speed` while `playing`). This lives at the
+  route, not per-panel, so subdividing the layout into multiple viewports does not multiply
+  the clock rate, and play/pause/speed are shared across panels.
+- Passes `clock` (read-only) and `bind:playing`/`bind:speed` down through `SceneEditorShell`
+  → `ViewportZone` to each `SceneViewport3D` (renders) and `SystemMapPanel` (draws +
+  hosts the shared play/pause/speed controls).
 
-The render area is:
+The viewport zone renders both the 3D view and the 2D map inset:
 
 ```svelte
 <SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
-<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
+<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
 ```
 
-The 2D map is an inset over the 3D viewport and also acts as the animation clock source.
+Both render on demand: a paused clock stops advancing, so nothing re-renders.
 
 ## Main 3D scene path
 

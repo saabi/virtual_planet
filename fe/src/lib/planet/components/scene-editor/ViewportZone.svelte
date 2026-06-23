@@ -7,6 +7,8 @@
 		scene: PlanetScene;
 		selectedId: string | null;
 		clock: number;
+		playing: boolean;
+		speed: number;
 		materialDebug: MaterialDebugMode;
 		lookMode: OrbitLookMode;
 		focusedBody: BodyNode | null;
@@ -23,6 +25,8 @@
 		scene,
 		selectedId = $bindable(),
 		clock = $bindable(),
+		playing = $bindable(),
+		speed = $bindable(),
 		materialDebug,
 		lookMode,
 		focusedBody,
@@ -33,7 +37,7 @@
 <div class="viewport-zone">
 	<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
 	<div class="map-inset">
-		<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
+		<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
 	</div>
 	{#if focusedBody}
 		<FocusedBodyView body={focusedBody} onclose={onCloseFocused} />
