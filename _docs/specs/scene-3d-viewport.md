@@ -55,6 +55,9 @@ PlanetScene ──evaluateScene(t)──▶ world transforms (getWorldTransform)
   ambient uniform for v1).
 - **Camera:** orbit controller — drag = azimuth/elevation, wheel = distance, target =
   selected body (or system center); `mat4` perspective/lookAt from `lib/planet/math`.
+  **Free Fly** (session-only): WASD translate, QE roll, pointer-lock mouse look —
+  shared logic in `camera/freeFly.ts`; procedural terrain uses
+  `bodyRelativeCameraFromWorld` so spheres and focused-body terrain stay aligned.
 - **Picking:** project body centers via view·projection, nearest within radius (the 2D
   map's `pickNearest` analog, depth-aware) → sets the shared `selectedId`. GPU id-pick
   is a later refinement.

@@ -34,6 +34,18 @@
 	} from '../scene/sceneDebug.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
 	import { viewportPrefsRenderDeps, type SceneViewportPrefs } from '../scene/viewportPrefs.js';
+	import {
+		applyFreeFlyLook,
+		buildSceneFreeFlyCameraState,
+		EMPTY_FREE_FLY_KEYS,
+		freeFlyKeysMoving,
+		freeFlyToOrbit,
+		orbitEyeToFreeFly,
+		sceneFreeFlySpeed,
+		stepFreeFly,
+		type FreeFlyKeys,
+		type FreeFlyState
+	} from '../camera/freeFly.js';
 
 	interface Props {
 		scene: PlanetScene;
@@ -92,10 +104,32 @@
 	// Orbit params; the target is computed each frame (follows the selection), so the
 	// camera tracks a body as it orbits. Stored target stays unused.
 	let camera = $state<OrbitCamera>({ azimuth: 0.7, elevation: 0.5, distance: 1.5e8, target: [0, 0, 0] });
+	let cameraMode = $state<'orbit' | 'freeFly'>('orbit');
+	let freeFly = $state<FreeFlyState>({ position: [0, 0, 0], rotation: [0, 0, 0, 1] });
+	let keysPressed = $state<FreeFlyKeys>({ ...EMPTY_FREE_FLY_KEYS });
 
 	/** Camera target: the selected node's live world position, else the system centre. */
 	function targetOf(animated: PlanetScene): Vec3 {
 		return selectedId ? getWorldTransform(animated, selectedId).position : [0, 0, 0];
+	}
+
+	function freeFlyRefRadius(animated: PlanetScene): number {
+		if (selectedId) {
+			const node = animated.nodes.get(selectedId);
+			if (node?.kind === 'body') return node.radiusMeters;
+		}
+		let max = 6.371e6;
+		for (const b of listBodies(animated)) {
+			max = Math.max(max, b.radiusMeters);
+		}
+		return max;
+	}
+
+	function resolveViewProjection(animated: PlanetScene, aspect: number): Float32Array {
+		if (cameraMode === 'freeFly') {
+			return buildSceneFreeFlyCameraState(freeFly, aspect).viewProjectionMatrix;
+		}
+		return viewProjection({ ...camera, target: targetOf(animated) }, aspect);
 	}
 
 
@@ -162,8 +196,9 @@
 	function render() {
 		if (!device || !context || !engine || !spheres) return;
 		const animated = evaluateScene(scene, time);
-		const cam = { ...camera, target: targetOf(animated) };
-		const vp = viewProjection(cam, w / h);
+		const aspect = w / h;
+		const vp = resolveViewProjection(animated, aspect);
+		const orbitCam = { ...camera, target: targetOf(animated) };
 		const drawList = buildDrawList(animated, vp, w, h, lodState);
 		const light = lighting(animated);
 		updateMarker(animated, vp);
@@ -182,14 +217,17 @@
 		const procInput = procActive
 			? buildProceduralRenderInput({
 					body: procBody!,
-					camera: cam,
+					sceneCamera:
+						cameraMode === 'freeFly'
+							? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect) }
+							: { mode: 'orbit', camera: orbitCam, lookMode },
+					bodyWorldPos: procWorldPos,
 					width: w,
 					height: h,
 					time,
 					lighting: procLighting,
 					planetRotation: procRotation,
 					materialDebug: terrainMaterialDebug,
-					lookMode,
 					viewportPrefs
 				})
 			: null;
@@ -303,12 +341,12 @@
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
 	function pick(clientX: number, clientY: number) {
-		if (!canvas) return;
+		if (!canvas || cameraMode === 'freeFly') return;
 		const rect = canvas.getBoundingClientRect();
 		const px = clientX - rect.left;
 		const py = clientY - rect.top;
 		const animated = evaluateScene(scene, time);
-		const vp = viewProjection({ ...camera, target: targetOf(animated) }, w / h);
+		const vp = resolveViewProjection(animated, w / h);
 		let best: { id: string; depth: number } | null = null;
 		for (const b of listBodies(animated)) {
 			const sp = projectToScreen(vp, getWorldTransform(animated, b.id).position, w, h);
@@ -328,6 +366,12 @@
 	let downX = 0;
 	let downY = 0;
 	function onPointerDown(e: PointerEvent) {
+		if (cameraMode === 'freeFly') {
+			if (document.pointerLockElement !== canvas) {
+				canvas?.requestPointerLock();
+			}
+			return;
+		}
 		dragging = true;
 		moved = false;
 		lastX = downX = e.clientX;
@@ -335,6 +379,16 @@
 		canvas?.setPointerCapture(e.pointerId);
 	}
 	function onPointerMove(e: PointerEvent) {
+		if (cameraMode === 'freeFly') {
+			if (document.pointerLockElement !== canvas) return;
+			freeFly = {
+				...freeFly,
+				rotation: applyFreeFlyLook(freeFly.rotation, e.movementX, e.movementY)
+			};
+			requestRender();
+			ensureFlyLoop();
+			return;
+		}
 		if (!dragging) return;
 		if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) moved = true; // drag, not a click
 		if (!moved) return;
@@ -349,13 +403,126 @@
 		};
 	}
 	function onPointerUp(e: PointerEvent) {
+		if (cameraMode === 'freeFly') return;
 		dragging = false;
 		canvas?.releasePointerCapture?.(e.pointerId);
 		if (!moved) pick(e.clientX, e.clientY); // a click → select
 	}
 	function onWheel(e: WheelEvent) {
+		if (cameraMode === 'freeFly') return;
 		e.preventDefault();
 		camera = { ...camera, distance: Math.max(1e5, camera.distance * (1 + Math.sign(e.deltaY) * 0.12)) };
+	}
+
+	function enterFreeFly() {
+		if (cameraMode === 'freeFly') return;
+		const animated = evaluateScene(scene, time);
+		freeFly = orbitEyeToFreeFly({ ...camera, target: targetOf(animated) });
+		cameraMode = 'freeFly';
+		keysPressed = { ...EMPTY_FREE_FLY_KEYS };
+		canvas?.requestPointerLock();
+		ensureFlyLoop();
+	}
+
+	function exitFreeFly() {
+		if (cameraMode !== 'freeFly') return;
+		document.exitPointerLock();
+	}
+
+	function toggleFreeFly() {
+		if (cameraMode === 'freeFly') exitFreeFly();
+		else enterFreeFly();
+	}
+
+	function handlePointerLockChange() {
+		if (document.pointerLockElement === canvas || cameraMode !== 'freeFly') return;
+		const animated = evaluateScene(scene, time);
+		camera = freeFlyToOrbit(freeFly, targetOf(animated));
+		cameraMode = 'orbit';
+		keysPressed = { ...EMPTY_FREE_FLY_KEYS };
+		requestRender();
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (cameraMode !== 'freeFly') return;
+		const key = e.key.toLowerCase();
+		if (e.key === 'Escape') {
+			exitFreeFly();
+			return;
+		}
+		let changed = false;
+		if (key === 'w' && !keysPressed.w) {
+			keysPressed.w = true;
+			changed = true;
+		}
+		if (key === 'a' && !keysPressed.a) {
+			keysPressed.a = true;
+			changed = true;
+		}
+		if (key === 's' && !keysPressed.s) {
+			keysPressed.s = true;
+			changed = true;
+		}
+		if (key === 'd' && !keysPressed.d) {
+			keysPressed.d = true;
+			changed = true;
+		}
+		if (key === 'q' && !keysPressed.q) {
+			keysPressed.q = true;
+			changed = true;
+		}
+		if (key === 'e' && !keysPressed.e) {
+			keysPressed.e = true;
+			changed = true;
+		}
+		if (e.shiftKey) keysPressed.shift = true;
+		if (changed) {
+			requestRender();
+			ensureFlyLoop();
+		}
+	}
+
+	function handleKeyUp(e: KeyboardEvent) {
+		if (cameraMode !== 'freeFly') return;
+		const key = e.key.toLowerCase();
+		if (key === 'w') keysPressed.w = false;
+		if (key === 'a') keysPressed.a = false;
+		if (key === 's') keysPressed.s = false;
+		if (key === 'd') keysPressed.d = false;
+		if (key === 'q') keysPressed.q = false;
+		if (key === 'e') keysPressed.e = false;
+		if (!e.shiftKey) keysPressed.shift = false;
+	}
+
+	let flyRaf = 0;
+	let lastFlyTime = 0;
+
+	function ensureFlyLoop() {
+		if (flyRaf || cameraMode !== 'freeFly') return;
+		lastFlyTime = performance.now();
+		const tick = (now: number) => {
+			if (cameraMode !== 'freeFly') {
+				flyRaf = 0;
+				return;
+			}
+			const dt = lastFlyTime > 0 ? (now - lastFlyTime) / 1000 : 0;
+			lastFlyTime = now;
+			if (dt > 0 && freeFlyKeysMoving(keysPressed)) {
+				const animated = evaluateScene(scene, time);
+				const speed = sceneFreeFlySpeed(freeFly.position, freeFlyRefRadius(animated));
+				freeFly = stepFreeFly(freeFly, keysPressed, dt, speed);
+				requestRender();
+			}
+			if (
+				freeFlyKeysMoving(keysPressed) ||
+				document.pointerLockElement === canvas
+			) {
+				flyRaf = requestAnimationFrame(tick);
+			} else {
+				flyRaf = 0;
+			}
+		};
+		flyRaf = requestAnimationFrame(tick);
 	}
 
 	// Render on demand: re-render only when an input actually changes. When the clock is
@@ -382,6 +549,9 @@
 		void lookMode;
 		viewportPrefsRenderDeps(viewportPrefs);
 		void camera;
+		void cameraMode;
+		void freeFly;
+		void keysPressed;
 		void w;
 		void h;
 		requestRender();
@@ -390,6 +560,9 @@
 	onMount(() => {
 		const el = canvas;
 		if (!el) return;
+		document.addEventListener('pointerlockchange', handlePointerLockChange);
+		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('keyup', handleKeyUp);
 		let disposed = false;
 		(async () => {
 			try {
@@ -426,6 +599,10 @@
 		return () => {
 			disposed = true;
 			cancelAnimationFrame(raf);
+			cancelAnimationFrame(flyRaf);
+			document.removeEventListener('pointerlockchange', handlePointerLockChange);
+			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('keyup', handleKeyUp);
 			ro.disconnect();
 			sceneAtmosphere?.destroy();
 			proceduralRenderer?.destroy();
@@ -453,6 +630,14 @@
 	{/if}
 	{#if !atmosphereDebugActive}
 		<button type="button" class="frame-btn" onclick={() => (selectedId = null)}>Frame all</button>
+		<button
+			type="button"
+			class="frame-btn fly-btn"
+			class:active={cameraMode === 'freeFly'}
+			onclick={toggleFreeFly}
+		>
+			{cameraMode === 'freeFly' ? 'Fly Mode: Active (Esc)' : 'Enter WASD Fly Mode'}
+		</button>
 	{/if}
 	{#if failed}
 		<div class="overlay">3D unavailable: {failed} — use the 2D map.</div>
@@ -501,6 +686,16 @@
 		background: rgba(26, 31, 48, 0.85);
 		color: #e8ecf8;
 		cursor: pointer;
+	}
+
+	.fly-btn {
+		left: auto;
+		right: 10px;
+	}
+
+	.fly-btn.active {
+		border-color: rgba(158, 192, 255, 0.55);
+		background: rgba(60, 90, 140, 0.9);
 	}
 
 	.overlay {

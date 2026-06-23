@@ -1,5 +1,8 @@
+import type { CameraState } from '../camera/cameraModes.js';
+import { geodeticToEcef } from '../math/geodetic.js';
 import type { Vec3 } from '../math/vec.js';
-import { cross3, normalize3, sub3 } from '../math/vec.js';
+import { cross3, len3, normalize3, sub3 } from '../math/vec.js';
+import { rotateVec3 } from '../scene/transform.js';
 
 // Orbit camera + the column-major 4x4 math the scene-3d pass needs (mat4.ts only has
 // invert4). WebGPU clip space: z ∈ [0, 1]. See scene-3d-viewport.md.
@@ -78,8 +81,12 @@ export function perspective(fovy: number, aspect: number, near: number, far: num
 
 /** The camera's near/far — shared by the scene view and per-body floating-origin views
  *  so their depth is directly comparable. */
-function nearFar(distance: number): [number, number] {
+export function orbitNearFar(distance: number): [number, number] {
 	return [Math.max(1, distance * 0.002), distance * 20];
+}
+
+function nearFar(distance: number): [number, number] {
+	return orbitNearFar(distance);
 }
 
 /** View·projection for the camera at the given aspect ratio. */
@@ -109,6 +116,53 @@ export function bodyRelativeView(
 	const view = lookAt(eye, target);
 	const [near, far] = nearFar(cam.distance);
 	return { viewProjection: multiply4(perspective(FOVY, aspect, near, far), view), eye };
+}
+
+/** Body-local view·projection for a world-space CameraState (free-fly path). */
+export function bodyRelativeViewFromCamera(
+	cam: CameraState,
+	bodyWorldPos: Vec3,
+	planetRadius: number,
+	_aspect: number
+): Float32Array {
+	return bodyRelativeCameraFromWorld(cam, bodyWorldPos, planetRadius, _aspect).viewProjectionMatrix;
+}
+
+/** Rebases a world free-fly camera into the body's local frame for terrain rendering. */
+export function bodyRelativeCameraFromWorld(
+	worldCam: CameraState,
+	bodyWorldPos: Vec3,
+	planetRadius: number,
+	_aspect: number
+): CameraState {
+	const eye = sub3(worldCam.position, bodyWorldPos);
+	const target = sub3(worldCam.target, bodyWorldPos);
+	const rot = worldCam.cameraRotation ?? [0, 0, 0, 1];
+	const up = rotateVec3(rot, [0, 1, 0]);
+	const view = lookAt(eye, target, up);
+	const projection = worldCam.projectionMatrix;
+	const viewProjection = multiply4(projection, view);
+	const dist = len3(eye);
+	const altitudeMeters = Math.max(dist - planetRadius, 0);
+	const outward = dist > 0 ? normalize3(eye) : ([0, 1, 0] as Vec3);
+	const geodetic = {
+		latRad: Math.asin(Math.max(-1, Math.min(1, outward[1]))),
+		lonRad: Math.atan2(outward[2], outward[0]),
+		altitudeMeters
+	};
+	return {
+		...worldCam,
+		position: eye,
+		target,
+		viewMatrix: view,
+		projectionMatrix: projection,
+		viewProjectionMatrix: viewProjection,
+		cameraRotation: rot,
+		altitudeMeters,
+		geodetic,
+		ecef: geodeticToEcef(geodetic),
+		mode: 'orbit'
+	};
 }
 
 // NOTE: building a full `CameraState` for a scene body is now `focusedBodyCamera()` in

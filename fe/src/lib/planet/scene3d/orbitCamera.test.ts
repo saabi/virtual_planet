@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	bodyRelativeCameraFromWorld,
 	bodyRelativeView,
+	bodyRelativeViewFromCamera,
 	cameraEye,
 	FOVY,
 	perspective,
@@ -8,6 +10,7 @@ import {
 	viewProjection,
 	type OrbitCamera
 } from './orbitCamera.js';
+import { buildSceneFreeFlyCameraState, orbitEyeToFreeFly } from '../camera/freeFly.js';
 import { createOrbitCamera, focusedBodyCamera, focusedBodyNearFar } from '../camera/orbitCamera.js';
 import { add3, type Vec3 } from '../math/vec.js';
 
@@ -113,5 +116,31 @@ describe('bodyRelativeView (floating origin)', () => {
 		expect(centre).not.toBeNull();
 		expect(centre!.x).toBeCloseTo(600, 0); // width / 2
 		expect(centre!.y).toBeCloseTo(400, 0); // height / 2
+	});
+
+	it('bodyRelativeViewFromCamera matches world projection for a free-fly camera', () => {
+		const aspect = 1.5;
+		const planetRadius = 5e5;
+		const bodyWorldPos: Vec3 = [1e6, 2e5, -5e5];
+		const fly = orbitEyeToFreeFly({ ...cam, target: bodyWorldPos });
+		const worldCam = buildSceneFreeFlyCameraState(fly, aspect);
+		const sceneVp = worldCam.viewProjectionMatrix;
+		const bodyVp = bodyRelativeViewFromCamera(worldCam, bodyWorldPos, planetRadius, aspect);
+
+		// Body-local origin must land where the body's world position lands under the scene camera.
+		const Q: Vec3 = [0, 0, 0];
+		const local = projectToScreen(bodyVp, Q, 1200, 800);
+		const world = projectToScreen(sceneVp, bodyWorldPos, 1200, 800);
+		expect(local).not.toBeNull();
+		expect(world).not.toBeNull();
+		expect(local!.x).toBeCloseTo(world!.x, 2);
+		expect(local!.y).toBeCloseTo(world!.y, 2);
+		expect(local!.depth / world!.depth).toBeCloseTo(1, 4);
+
+		const rebased = bodyRelativeCameraFromWorld(worldCam, bodyWorldPos, planetRadius, aspect);
+		expect(rebased.altitudeMeters).toBeGreaterThan(0);
+		for (let i = 0; i < 16; i++) {
+			expect(rebased.viewProjectionMatrix[i]).toBeCloseTo(bodyVp[i], 4);
+		}
 	});
 });

@@ -5,6 +5,13 @@
 	import type { CameraState } from '../camera/cameraModes.js';
 	import { selectRenderMode } from '../camera/cameraModes.js';
 	import { createOrbitCamera, quatFromAzimuthElevation, lookAt, perspective, multiply4 } from '../camera/orbitCamera.js';
+	import {
+		applyFreeFlyLook,
+		buildFreeFlyCameraState,
+		cameraStateToFreeFly,
+		planetFreeFlySpeed,
+		stepFreeFly
+	} from '../camera/freeFly.js';
 	import type { Quat } from '../scene/types.js';
 	import { quatFromAxisAngle, quatMultiply, rotateVec3, quatFromRotationMatrix } from '../scene/transform.js';
 	import { len3, normalize3, cross3, add3, dot3, sub3, scale3, type Vec3 } from '../math/vec.js';
@@ -619,55 +626,20 @@
 	}
 
 	function buildFreeFlyCamera(width: number, height: number, p: PlanetParameters): CameraState {
-		const aspect = width / Math.max(height, 1);
-		const dist = len3(freeFlyPosition);
-		const far = Math.max(p.radius * 20, dist * 4);
-		const fovDeg = 60;
-		const near = 0.1;
-
-		const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
-		const up = rotateVec3(freeFlyRotation, [0, 1, 0]);
-		const target = add3(freeFlyPosition, forward);
-
-		const view = lookAt(freeFlyPosition, target, up);
-		const projection = perspective(fovDeg, aspect, near, far);
-		const viewProjection = multiply4(projection, view);
-
-		const altitudeMetersVal = Math.max(dist - p.radius, 0);
-		const currentAzimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
-		const currentElevation = Math.asin(freeFlyPosition[1] / (dist || 1));
-
-		const geo = { latRad: currentElevation, lonRad: currentAzimuth, altitudeMeters: altitudeMetersVal };
-		const ecef = geodeticToEcef(geo);
-		const focalLengthPx = (0.5 * 1080) / Math.tan((fovDeg * Math.PI) / 360);
-
-		return {
-			mode: selectRenderMode(altitudeMetersVal, modeState, p.radius),
-			geodetic: geo,
-			ecef,
-			altitudeMeters: altitudeMetersVal,
-			viewMatrix: view,
-			projectionMatrix: projection,
-			viewProjectionMatrix: viewProjection,
-			focalLengthPx,
-			position: freeFlyPosition,
-			target,
-			cameraRotation: freeFlyRotation
-		};
+		return buildFreeFlyCameraState(
+			{ position: freeFlyPosition, rotation: freeFlyRotation },
+			width / Math.max(height, 1),
+			{ planet: { radius: p.radius, modeState } }
+		);
 	}
 
 	function enterFreeFly() {
 		if (freeFlyActive) return;
 
 		const camera = buildCamera(canvasWidth || 800, canvasHeight || 600, params);
-		freeFlyPosition = camera.position;
-
-		const vm = camera.viewMatrix;
-		const s: Vec3 = [vm[0], vm[4], vm[8]];
-		const u: Vec3 = [vm[1], vm[5], vm[9]];
-		const b: Vec3 = [vm[2], vm[6], vm[10]];
-
-		freeFlyRotation = quatFromRotationMatrix(s, u, b);
+		const fly = cameraStateToFreeFly(camera);
+		freeFlyPosition = fly.position;
+		freeFlyRotation = fly.rotation;
 		freeFlyActive = true;
 
 		// Lock keys
@@ -1530,9 +1502,7 @@
 				nextOffset = quatMultiply(nextOffset, qPitch);
 				mouseOffsetRot = nextOffset;
 			} else {
-				let nextRot = quatMultiply(freeFlyRotation, qYaw);
-				nextRot = quatMultiply(nextRot, qPitch);
-				freeFlyRotation = nextRot;
+				freeFlyRotation = applyFreeFlyLook(freeFlyRotation, dx, dy);
 			}
 
 			needsRender = true;
@@ -1609,39 +1579,32 @@
 		}
 
 		if (freeFlyActive && dt > 0) {
-			const altitude = Math.max(10, len3(freeFlyPosition) - params.radius);
-			let speed = altitude * 0.5;
-			if (keysPressed.shift) {
-				speed *= 5;
-			}
-
-			const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
-			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
-
-			let moveDir: Vec3 = [0, 0, 0];
-			if (keysPressed.w) moveDir = [moveDir[0] + forward[0], moveDir[1] + forward[1], moveDir[2] + forward[2]];
-			if (keysPressed.s) moveDir = [moveDir[0] - forward[0], moveDir[1] - forward[1], moveDir[2] - forward[2]];
-			if (keysPressed.d) moveDir = [moveDir[0] + right[0], moveDir[1] + right[1], moveDir[2] + right[2]];
-			if (keysPressed.a) moveDir = [moveDir[0] - right[0], moveDir[1] - right[1], moveDir[2] - right[2]];
-
-			const moveLen = len3(moveDir);
-			if (moveLen > 0) {
-				const dx = (moveDir[0] / moveLen) * speed * dt;
-				const dy = (moveDir[1] / moveLen) * speed * dt;
-				const dz = (moveDir[2] / moveLen) * speed * dt;
-				freeFlyPosition = [freeFlyPosition[0] + dx, freeFlyPosition[1] + dy, freeFlyPosition[2] + dz];
-				needsRender = true;
-			}
-
-			// QE roll: rotation around local Forward axis [0, 0, -1]
-			let rollDir = 0;
-			if (keysPressed.q) rollDir -= 1; // roll right (clockwise)
-			if (keysPressed.e) rollDir += 1; // roll left (counter-clockwise)
-
-			if (rollDir !== 0) {
-				const rollSpeed = 1.0;
-				const qRoll = quatFromAxisAngle([0, 0, -1], rollDir * rollSpeed * dt);
-				freeFlyRotation = quatMultiply(freeFlyRotation, qRoll);
+			const speed = planetFreeFlySpeed(freeFlyPosition, params.radius);
+			const stepped = stepFreeFly(
+				{ position: freeFlyPosition, rotation: freeFlyRotation },
+				{
+					w: keysPressed.w,
+					a: keysPressed.a,
+					s: keysPressed.s,
+					d: keysPressed.d,
+					q: keysPressed.q,
+					e: keysPressed.e,
+					shift: keysPressed.shift
+				},
+				dt,
+				speed
+			);
+			if (
+				stepped.position[0] !== freeFlyPosition[0] ||
+				stepped.position[1] !== freeFlyPosition[1] ||
+				stepped.position[2] !== freeFlyPosition[2] ||
+				stepped.rotation[0] !== freeFlyRotation[0] ||
+				stepped.rotation[1] !== freeFlyRotation[1] ||
+				stepped.rotation[2] !== freeFlyRotation[2] ||
+				stepped.rotation[3] !== freeFlyRotation[3]
+			) {
+				freeFlyPosition = stepped.position;
+				freeFlyRotation = stepped.rotation;
 				needsRender = true;
 			}
 		}

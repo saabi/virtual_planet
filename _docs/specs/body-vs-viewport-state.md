@@ -155,6 +155,8 @@ Same category — ephemeral in [`PlanetViewport.svelte`](../../fe/src/lib/planet
 - `cameraRotation`, free-fly position/rotation
 - Spaceflight modes, HUD, orbit predictor settings
 - `SceneViewport3D` orbit camera (`azimuth`, `elevation`, `distance`) — already not persisted
+- `cameraMode: 'orbit' | 'freeFly'` and free-fly pose (`freeFlyPosition` / quaternion) —
+  session viewport state in `SceneViewport3D` (v1: component-local; not in scene JSON)
 
 **Target type:** `ViewportState` (or `CameraBookmark`) keyed by `(route, focusedBodyId,
 viewMode)`. Restore from **session** only (`virtual-planet:session:v1` or a dedicated
