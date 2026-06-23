@@ -301,15 +301,33 @@
 		camera = { ...camera, distance: Math.max(1e5, camera.distance * (1 + Math.sign(e.deltaY) * 0.12)) };
 	}
 
-	// Continuous render loop — the sphere scene AND the procedural mask update every
-	// frame, in lockstep with the clock and the procedural layer. (A reactive $effect
-	// stalled once the heavy procedural layer mounted, freezing the mask while the
-	// planet kept moving.) render() no-ops until the device is ready.
+	// Render on demand: re-render only when an input actually changes. When the clock is
+	// paused it stops advancing, so nothing re-renders and the scene truly freezes (no
+	// wasted frames). The earlier continuous loop ran every frame regardless. Everything
+	// is now one pass in render() (spheres + terrain), so there's no separate layer to
+	// desync — the stall that motivated the old continuous loop is gone with the overlay.
 	let raf = 0;
-	function loop() {
-		render();
-		raf = requestAnimationFrame(loop);
+	function requestRender() {
+		if (raf) return; // a render is already queued for the next frame
+		raf = requestAnimationFrame(() => {
+			raf = 0;
+			render();
+		});
 	}
+
+	// Track every render input; any change schedules one render. The clock (`time`) is the
+	// playing-animation driver, so a paused clock yields no re-render.
+	$effect(() => {
+		void time;
+		void scene;
+		void selectedId;
+		void materialDebug;
+		void lookMode;
+		void camera;
+		void w;
+		void h;
+		requestRender();
+	});
 
 	onMount(() => {
 		const el = canvas;
@@ -330,6 +348,7 @@
 				await proceduralRenderer.init(null, device);
 				if (disposed) return;
 				frameAll();
+				requestRender(); // first paint now that the device is ready
 			} catch (err) {
 				failed = err instanceof Error ? err.message : 'WebGPU unavailable';
 			}
@@ -345,7 +364,6 @@
 		h = el.clientHeight || 1;
 		el.width = w;
 		el.height = h;
-		raf = requestAnimationFrame(loop);
 		return () => {
 			disposed = true;
 			cancelAnimationFrame(raf);
