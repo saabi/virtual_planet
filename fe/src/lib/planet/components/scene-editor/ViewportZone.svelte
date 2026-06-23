@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
+	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type { BodyNode, PlanetScene } from '$lib/planet/scene/types.js';
 
 	interface Props {
@@ -11,6 +12,7 @@
 		speed: number;
 		materialDebug: MaterialDebugMode;
 		lookMode: OrbitLookMode;
+		viewportPrefs: SceneViewportPrefs;
 		focusedBody: BodyNode | null;
 		onCloseFocused?: () => void;
 	}
@@ -29,13 +31,14 @@
 		speed = $bindable(),
 		materialDebug,
 		lookMode,
+		viewportPrefs = $bindable(),
 		focusedBody,
 		onCloseFocused
 	}: Props = $props();
 </script>
 
 <div class="viewport-zone">
-	<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
+	<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} bind:viewportPrefs />
 	<div class="map-inset">
 		<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
 	</div>

@@ -4,6 +4,7 @@
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { BodyAppearance, BodyLod, BodyNode } from '../scene/types.js';
+	import EditorSubsection from './scene-editor/EditorSubsection.svelte';
 
 	interface Props {
 		body: BodyNode;
@@ -13,8 +14,8 @@
 	let { body, onappearance, onlod }: Props = $props();
 
 	const PRESETS = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
-	// Appearance = the planet shape/materials params (not atmosphere/camera/tessellation).
-	const sections = PARAM_EDITOR_SECTIONS.filter((s) => s.group === 'shape' || s.group === 'materials');
+	const shapeSections = PARAM_EDITOR_SECTIONS.filter((s) => s.group === 'shape');
+	const materialSections = PARAM_EDITOR_SECTIONS.filter((s) => s.group === 'materials');
 
 	const appearance = $derived<BodyAppearance>(body.appearance ?? { preset: DEFAULT_PRESET });
 	const resolved = $derived(resolveBodyParams(body));
@@ -55,43 +56,74 @@
 		</button>
 	</div>
 
-	{#each sections as section (section.title)}
-		<span class="appr-sub">{section.title}</span>
-		{#each section.sliders as sl (sl.key)}
-			<label class="appr-row" class:overridden={isOverridden(sl.key)}>
-				<span class="appr-label">{sl.label}</span>
-				<input
-					type="range"
-					min={sl.min}
-					max={sl.max}
-					step={sl.step}
-					value={resolved[sl.key]}
-					oninput={(e) => setOverride(sl.key, Number(e.currentTarget.value))}
-				/>
-				<span class="appr-val">{round(resolved[sl.key])}</span>
-			</label>
-		{/each}
+	{#each shapeSections as section (section.title)}
+		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
+			{#each section.sliders as sl (sl.key)}
+				<label class="appr-row" class:overridden={isOverridden(sl.key)}>
+					<span class="appr-label">{sl.label}</span>
+					<input
+						type="range"
+						min={sl.min}
+						max={sl.max}
+						step={sl.step}
+						value={resolved[sl.key]}
+						oninput={(e) => setOverride(sl.key, Number(e.currentTarget.value))}
+					/>
+					<span class="appr-val">{round(resolved[sl.key])}</span>
+				</label>
+			{/each}
+			{#each section.toggles ?? [] as toggle (toggle.key)}
+				<label class="appr-row flag-row">
+					<span class="appr-label">{toggle.label}</span>
+					<input
+						type="checkbox"
+						checked={resolved[toggle.key] > 0.5}
+						onchange={(e) => setOverride(toggle.key, e.currentTarget.checked ? 1 : 0)}
+					/>
+				</label>
+			{/each}
+		</EditorSubsection>
 	{/each}
 
-	<span class="appr-sub">LOD (projected px)</span>
-	<label class="appr-row">
-		<span class="appr-label">sphere above</span>
-		<input
-			type="number"
-			step="any"
-			value={lod.sphereAbovePx ?? 2}
-			onchange={(e) => setLod({ sphereAbovePx: Number(e.currentTarget.value) })}
-		/>
-	</label>
-	<label class="appr-row">
-		<span class="appr-label">procedural above</span>
-		<input
-			type="number"
-			step="any"
-			value={lod.proceduralAbovePx ?? 240}
-			onchange={(e) => setLod({ proceduralAbovePx: Number(e.currentTarget.value) })}
-		/>
-	</label>
+	{#each materialSections as section (section.title)}
+		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
+			{#each section.sliders as sl (sl.key)}
+				<label class="appr-row" class:overridden={isOverridden(sl.key)}>
+					<span class="appr-label">{sl.label}</span>
+					<input
+						type="range"
+						min={sl.min}
+						max={sl.max}
+						step={sl.step}
+						value={resolved[sl.key]}
+						oninput={(e) => setOverride(sl.key, Number(e.currentTarget.value))}
+					/>
+					<span class="appr-val">{round(resolved[sl.key])}</span>
+				</label>
+			{/each}
+		</EditorSubsection>
+	{/each}
+
+	<EditorSubsection title="LOD (projected px)">
+		<label class="appr-row">
+			<span class="appr-label">sphere above</span>
+			<input
+				type="number"
+				step="any"
+				value={lod.sphereAbovePx ?? 2}
+				onchange={(e) => setLod({ sphereAbovePx: Number(e.currentTarget.value) })}
+			/>
+		</label>
+		<label class="appr-row">
+			<span class="appr-label">procedural above</span>
+			<input
+				type="number"
+				step="any"
+				value={lod.proceduralAbovePx ?? 240}
+				onchange={(e) => setLod({ proceduralAbovePx: Number(e.currentTarget.value) })}
+			/>
+		</label>
+	</EditorSubsection>
 </div>
 
 <style>
@@ -104,19 +136,11 @@
 	.appr-head {
 		display: flex;
 		gap: 5px;
-		margin-bottom: 2px;
+		margin-bottom: 4px;
 	}
 
 	.preset {
 		flex: 1;
-	}
-
-	.appr-sub {
-		font-size: 10px;
-		opacity: 0.55;
-		margin-top: 5px;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
 	}
 
 	.appr-row {
@@ -124,6 +148,10 @@
 		align-items: center;
 		gap: 5px;
 		font-size: 11px;
+	}
+
+	.appr-row.flag-row {
+		justify-content: flex-end;
 	}
 
 	.appr-label {

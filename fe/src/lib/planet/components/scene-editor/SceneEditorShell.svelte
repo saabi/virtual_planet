@@ -3,6 +3,7 @@
 	import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
 	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
+	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
@@ -36,6 +37,7 @@
 		speed: number;
 		materialDebug: MaterialDebugMode;
 		lookMode: OrbitLookMode;
+		viewportPrefs: SceneViewportPrefs;
 		focusedBody: BodyNode | null;
 		onSave?: () => void;
 		onReset?: () => void;
@@ -82,6 +84,7 @@
 		speed = $bindable(),
 		materialDebug = $bindable(),
 		lookMode = $bindable(),
+		viewportPrefs = $bindable(),
 		focusedBody,
 		onSave,
 		onReset,
@@ -159,7 +162,7 @@
 {/snippet}
 
 {#snippet renderSettings()}
-	<RenderSettingsPanel bind:materialDebug bind:lookMode />
+	<RenderSettingsPanel bind:materialDebug bind:lookMode bind:viewportPrefs />
 {/snippet}
 
 {#snippet viewport()}
@@ -171,6 +174,7 @@
 		bind:speed
 		{materialDebug}
 		{lookMode}
+		bind:viewportPrefs
 		{focusedBody}
 		{onCloseFocused}
 	/>

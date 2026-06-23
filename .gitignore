@@ -15,3 +15,6 @@ fe.old/__sapper__
 # Logs
 *.log
 npm-debug.log*
+
+# Windows "downloaded file" / NTFS ADS markers (WSL)
+*Zone.Identifier

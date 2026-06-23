@@ -4,6 +4,7 @@ import { resolveBodyParams } from '../scene/bodyParams.js';
 import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 import { DEFAULT_MATERIAL_OVERRIDES, type MaterialDebugMode } from '../material/biomes.js';
+import type { SceneViewportPrefs } from '../scene/viewportPrefs.js';
 import type { PlanetRenderInputs } from '../render/planetRenderer.js';
 import type { LightingUniforms } from '../render/uniformLayouts.js';
 import type { BodyNode, Quat } from '../scene/types.js';
@@ -26,6 +27,7 @@ export interface ProceduralRenderOpts {
 	planetRotation: Quat;
 	materialDebug?: MaterialDebugMode;
 	lookMode?: OrbitLookMode;
+	viewportPrefs?: SceneViewportPrefs;
 }
 
 export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRenderInputs {
@@ -39,16 +41,25 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		aspect: o.width / Math.max(o.height, 1),
 		lookMode: o.lookMode ?? 'planet-center'
 	});
+	const prefs = o.viewportPrefs;
 	return {
 		time: o.time,
 		camera,
 		width: o.width,
 		height: o.height,
 		params,
-		tessellation: DEFAULT_TESSELLATION,
-		debug: { wireframe: false, faceColors: false, showPatchBorders: false, showRingColors: false },
+		tessellation: prefs?.tessellation ?? DEFAULT_TESSELLATION,
+		debug: prefs?.debug ?? {
+			wireframe: false,
+			faceColors: false,
+			showPatchBorders: false,
+			showRingColors: false
+		},
 		lighting: o.lighting,
-		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES, materialDebug: o.materialDebug ?? 'off' },
+		materialOverrides: {
+			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
+			materialDebug: o.materialDebug ?? 'off'
+		},
 		atmosphere: bodyAtmosphereToParameters(resolveBodyAtmosphere(o.body)),
 		planetRotation: o.planetRotation
 	};

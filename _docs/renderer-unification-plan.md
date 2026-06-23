@@ -134,7 +134,12 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   `PlanetRenderer.recordInto()` / `WebGPUBackend.recordTerrainInto()`; the old
   `ProceduralBodyLayer`, CSS radial mask, second canvas, and render-to-texture
   composite pass were removed.
-- **Still pending:** depth-aware scene atmosphere for procedural terrain, eclipse shadows
+- **Phase 5 — depth-aware scene atmosphere (code done):** `SceneAtmospherePass` composites
+  the focused body's atmosphere as the engine's overlay pass — a body-local ray-march that
+  samples the shared scene depth (so nearer moons occlude the halo) and alpha-blends
+  `inscatter + sceneColor·avgT` over the scene. Restores the sky and fixes "atmosphere over
+  nearer moons."
+- **Still pending:** smooth sphere→terrain cross-fade (hard switch today), eclipse shadows
   (Phase 6), moving `illumination` out of `PlanetParameters`, optional
   `RenderQualitySettings`, and the graph compiler.
 

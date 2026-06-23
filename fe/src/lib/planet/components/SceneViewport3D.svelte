@@ -17,13 +17,18 @@
 	import type { LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
+	import { SceneAtmospherePass } from '../scene3d/sceneAtmospherePass.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
+	import { invert4 } from '../math/mat4.js';
+	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
+	import { toGpuAtmosphereParams } from '../params/atmosphereParams.js';
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
 	import type { MaterialDebugMode } from '../material/biomes.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
+	import type { SceneViewportPrefs } from '../scene/viewportPrefs.js';
 
 	interface Props {
 		scene: PlanetScene;
@@ -34,13 +39,16 @@
 		materialDebug?: MaterialDebugMode;
 		/** Focused-body look mode (viewport state). */
 		lookMode?: OrbitLookMode;
+		/** Tessellation, debug overlays, and material overrides (session viewport prefs). */
+		viewportPrefs?: SceneViewportPrefs;
 	}
 	let {
 		scene,
 		selectedId = $bindable(null),
 		time = 0,
 		materialDebug = 'off',
-		lookMode = 'planet-center'
+		lookMode = 'planet-center',
+		viewportPrefs = $bindable()
 	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -70,6 +78,7 @@
 	// The focused body's terrain is recorded directly into the engine's shared pass on the
 	// shared device (Phase 5 single-pass) — no offscreen texture, no CSS overlay.
 	let proceduralRenderer: PlanetRenderer | null = null;
+	let sceneAtmosphere: SceneAtmospherePass | null = null;
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
 		star: [1.0, 0.82, 0.5],
@@ -160,29 +169,61 @@
 
 		// Single pass: spheres + the focused body's terrain into one shared color+depth, so
 		// the terrain depth-tests against the moons. When a body renders procedurally we skip
-		// its sphere (the terrain replaces it). The atmosphere is not drawn yet — it returns
-		// as a depth-aware pass.
+		// its sphere (the terrain replaces it). The atmosphere then composites in a second
+		// pass that reads the shared depth, so nearer bodies occlude the halo.
 		const procActive = !!(procBody && procBlend > 0 && proceduralRenderer);
 		const instances = instancesFromDrawList(drawList, procActive ? procBody!.id : null);
-		engine.render(context.getCurrentTexture().createView(), w, h, (pass) => {
-			spheres!.record(pass, instances, vp, light);
-			if (procActive) {
-				proceduralRenderer!.recordInto(
-					pass,
-					buildProceduralRenderInput({
-						body: procBody!,
-						camera: cam,
-						width: w,
-						height: h,
-						time,
-						lighting: procLighting,
-						planetRotation: procRotation,
-						materialDebug,
-						lookMode
-					})
-				);
+
+		// Build the terrain input once and reuse its body-local camera for the atmosphere.
+		const procInput = procActive
+			? buildProceduralRenderInput({
+					body: procBody!,
+					camera: cam,
+					width: w,
+					height: h,
+					time,
+					lighting: procLighting,
+					planetRotation: procRotation,
+					materialDebug,
+					lookMode,
+					viewportPrefs
+				})
+			: null;
+
+		let atmoOverlay:
+			| ((pass: GPURenderPassEncoder, depthView: GPUTextureView) => void)
+			| undefined;
+		if (procActive && procInput && sceneAtmosphere) {
+			const bodyAtmo = resolveBodyAtmosphere(procBody!);
+			if (bodyAtmo.enabled) {
+				const camState = procInput.camera;
+				const atmoIn = {
+					invViewProjection: invert4(camState.viewProjectionMatrix),
+					cameraPos: camState.position,
+					atmosphere: toGpuAtmosphereParams(
+						bodyAtmosphereToParameters(bodyAtmo),
+						procBody!.radiusMeters,
+						[0, 0, 0]
+					),
+					lighting: procLighting,
+					materialOverrides: procInput.materialOverrides,
+					width: w,
+					height: h
+				};
+				atmoOverlay = (pass, depthView) => sceneAtmosphere!.record(pass, depthView, atmoIn);
 			}
-		});
+		}
+
+		engine.render(
+			context.getCurrentTexture().createView(),
+			w,
+			h,
+			(pass) => {
+				spheres!.record(pass, instances, vp, light);
+				if (procActive && procInput) proceduralRenderer!.recordInto(pass, procInput);
+			},
+			atmoOverlay
+		);
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
@@ -323,6 +364,7 @@
 		void selectedId;
 		void materialDebug;
 		void lookMode;
+		void viewportPrefs;
 		void camera;
 		void w;
 		void h;
@@ -342,6 +384,7 @@
 				context = configureWebGPUCanvas(device, el, format);
 				engine = new SceneEngine(device, format);
 				spheres = new SpherePass(device, format);
+				sceneAtmosphere = new SceneAtmospherePass(device, format);
 				// Offscreen procedural renderer adopting the shared device (no swapchain); its
 				// terrain is recorded straight into the engine pass via recordInto.
 				proceduralRenderer = new PlanetRenderer(new WebGPUBackend());
@@ -368,6 +411,7 @@
 			disposed = true;
 			cancelAnimationFrame(raf);
 			ro.disconnect();
+			sceneAtmosphere?.destroy();
 			proceduralRenderer?.destroy();
 			spheres?.destroy();
 			engine?.destroy();

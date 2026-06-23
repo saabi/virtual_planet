@@ -1,6 +1,5 @@
 <script module lang="ts">
 	import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
-	import { driverOutputs, driverSchemaFor } from '$lib/planet/scene/nodeSchemas.js';
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
@@ -44,12 +43,21 @@
 </script>
 
 <script lang="ts">
+	import { driverOutputs, driverSchemaFor } from '$lib/planet/scene/nodeSchemas.js';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
 	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
 	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
+	import EditorAccordionSection from './EditorAccordionSection.svelte';
+	import EditorSubsection from './EditorSubsection.svelte';
+	import {
+		PROPS_SUPER_SECTIONS,
+		defaultOpenPropsSection,
+		visiblePropsSections,
+		type PropsSuperSectionId
+	} from './propertiesSections.js';
 
 	let {
 		selectedId = $bindable(),
@@ -73,6 +81,34 @@
 		onOpenPlanet,
 		onOpenPlanetNewTab
 	}: Props = $props();
+
+	const visibleSections = $derived(
+		selectedNode
+			? visiblePropsSections(selectedNode, {
+					hasAppearance: Boolean(bodyNode && hasAppearance),
+					hasDriver: Boolean(selectedNode.driver),
+					editor
+				})
+			: []
+	);
+
+	const sectionMeta = $derived(
+		new Map(PROPS_SUPER_SECTIONS.map((s) => [s.id, s] as const))
+	);
+
+	let openSuperSection = $state<PropsSuperSectionId>('transform');
+
+	$effect(() => {
+		const visible = visibleSections;
+		if (visible.length === 0) return;
+		if (!visible.includes(openSuperSection)) {
+			openSuperSection = defaultOpenPropsSection(visible);
+		}
+	});
+
+	function onSuperToggle(id: PropsSuperSectionId) {
+		openSuperSection = id;
+	}
 </script>
 
 <div class="properties-panel">
@@ -86,66 +122,108 @@
 				</button>
 			{/each}
 		</nav>
-		<div class="node-editor">
-			<span class="edit-name">{selectedNode.name}</span>
-			<TransformEditor
-				node={selectedNode}
-				evaluated={evaluatedNode ?? selectedNode}
-				onchange={onTransformChange}
-			/>
-			{#if selectedNode.driver}
-				<div class="driver-section">
-					<span class="section-label">Driver · {selectedNode.driver.type}</span>
-					<SchemaForm
-						schema={driverSchemaFor(selectedNode.driver)}
-						value={driverValue}
-						onchange={onDriverChange}
-					/>
-					<span class="driver-outputs">
-						outputs: {driverOutputs(selectedNode.driver).join(', ')}
-					</span>
-				</div>
-			{/if}
-			<div class="dataflow-section">
-				<span class="section-label">Bindings</span>
-				<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
-			</div>
-			<div class="dataflow-section">
-				<span class="section-label">Constraints</span>
-				<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
-			</div>
-			{#if editor?.mode === 'schema'}
-				<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
-			{/if}
-			{#if bodyNode && hasAppearance}
-				<div class="appearance-section">
-					<span class="section-label">Appearance</span>
-					<AppearanceEditor
-						body={bodyNode}
-						onappearance={onAppearanceChange}
-						onlod={onLodChange}
-					/>
-					<span class="section-label">Atmosphere</span>
-					<AtmosphereEditor body={bodyNode} onatmosphere={(a) => onAtmosphereChange?.(a)} />
-					<button type="button" class="render-btn" onclick={onRenderProcedural}>
-						Render procedurally →
-					</button>
-					<div class="editor-handoff">
-						<button type="button" class="edit-link" onclick={onOpenPlanet}>
-							Edit in /planet →
-						</button>
-						<button
-							type="button"
-							class="edit-link new-tab"
-							title="Open in a new tab (compare side by side)"
-							aria-label="Open in planet editor in a new tab"
-							onclick={onOpenPlanetNewTab}
-						>
-							↗
-						</button>
-					</div>
-				</div>
-			{/if}
+		<span class="edit-name">{selectedNode.name}</span>
+
+		<div class="super-sections">
+			{#each visibleSections as sectionId (sectionId)}
+				{@const meta = sectionMeta.get(sectionId)}
+				{#if meta}
+					<EditorAccordionSection
+						title={meta.title}
+						open={openSuperSection === sectionId}
+						onToggle={() => onSuperToggle(sectionId)}
+					>
+						{#if sectionId === 'transform'}
+							<EditorSubsection title="Position" defaultOpen>
+								<TransformEditor
+									node={selectedNode}
+									evaluated={evaluatedNode ?? selectedNode}
+									channels="position"
+									onchange={onTransformChange}
+								/>
+							</EditorSubsection>
+							<EditorSubsection title="Rotation">
+								<TransformEditor
+									node={selectedNode}
+									evaluated={evaluatedNode ?? selectedNode}
+									channels="rotation"
+									onchange={onTransformChange}
+								/>
+							</EditorSubsection>
+							<EditorSubsection title="Scale">
+								<TransformEditor
+									node={selectedNode}
+									evaluated={evaluatedNode ?? selectedNode}
+									channels="scale"
+									onchange={onTransformChange}
+								/>
+							</EditorSubsection>
+						{:else if sectionId === 'node' && editor?.mode === 'schema'}
+							<EditorSubsection title="Fields" defaultOpen>
+								<SchemaForm
+									schema={editor.schema}
+									value={schemaValue}
+									onchange={onFieldChange}
+								/>
+							</EditorSubsection>
+						{:else if sectionId === 'motion'}
+							{#if selectedNode.driver}
+								<EditorSubsection title="Driver · {selectedNode.driver.type}" defaultOpen>
+									<SchemaForm
+										schema={driverSchemaFor(selectedNode.driver)}
+										value={driverValue}
+										onchange={onDriverChange}
+									/>
+									<span class="driver-outputs">
+										outputs: {driverOutputs(selectedNode.driver).join(', ')}
+									</span>
+								</EditorSubsection>
+							{/if}
+							<EditorSubsection title="Bindings" defaultOpen={!selectedNode.driver}>
+								<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
+							</EditorSubsection>
+							<EditorSubsection title="Constraints">
+								<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
+							</EditorSubsection>
+						{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
+							<AppearanceEditor
+								body={bodyNode}
+								onappearance={onAppearanceChange}
+								onlod={onLodChange}
+							/>
+						{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
+							<EditorSubsection title="Design" defaultOpen>
+								<AtmosphereEditor
+									body={bodyNode}
+									onatmosphere={(a) => onAtmosphereChange?.(a)}
+								/>
+							</EditorSubsection>
+						{:else if sectionId === 'actions' && bodyNode && hasAppearance}
+							<EditorSubsection title="Procedural" defaultOpen>
+								<button type="button" class="render-btn" onclick={onRenderProcedural}>
+									Render procedurally →
+								</button>
+							</EditorSubsection>
+							<EditorSubsection title="Handoff">
+								<div class="editor-handoff">
+									<button type="button" class="edit-link" onclick={onOpenPlanet}>
+										Edit in /planet →
+									</button>
+									<button
+										type="button"
+										class="edit-link new-tab"
+										title="Open in a new tab (compare side by side)"
+										aria-label="Open in planet editor in a new tab"
+										onclick={onOpenPlanetNewTab}
+									>
+										↗
+									</button>
+								</div>
+							</EditorSubsection>
+						{/if}
+					</EditorAccordionSection>
+				{/if}
+			{/each}
 		</div>
 	{:else}
 		<p class="empty-state">Select a node in the outliner or viewport to edit its properties.</p>
@@ -195,67 +273,27 @@
 		opacity: 0.4;
 	}
 
-	.node-editor {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 8px 10px;
-		background: rgba(8, 10, 20, 0.88);
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: 8px;
-	}
-
 	.edit-name {
 		font-weight: 600;
+		font-size: 13px;
 	}
 
-	.driver-section {
+	.super-sections {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
-		padding: 6px 8px;
-		background: rgba(124, 92, 255, 0.08);
-		border: 1px solid rgba(124, 92, 255, 0.25);
-		border-radius: 6px;
+		gap: 2px;
 	}
 
-	.section-label {
-		font-size: 11px;
-		font-weight: 600;
-		color: #c7a6ff;
-	}
-
-	.dataflow-section {
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-		padding: 6px 8px;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 6px;
-	}
-
-	.dataflow-section .section-label {
-		color: #aab2c8;
-	}
-
-	.appearance-section {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 6px 8px;
-		background: rgba(110, 160, 120, 0.08);
-		border: 1px solid rgba(110, 160, 120, 0.22);
-		border-radius: 6px;
-	}
-
-	.appearance-section .section-label {
-		color: #9fcfae;
+	.driver-outputs {
+		display: block;
+		margin-top: 4px;
+		font-family: ui-monospace, monospace;
+		font-size: 10px;
+		opacity: 0.6;
 	}
 
 	.render-btn {
 		align-self: flex-start;
-		margin-top: 4px;
 		font: 11px/1.2 system-ui, sans-serif;
 		padding: 3px 10px;
 		border-radius: 4px;
@@ -265,17 +303,10 @@
 		cursor: pointer;
 	}
 
-	.driver-outputs {
-		font-family: ui-monospace, monospace;
-		font-size: 10px;
-		opacity: 0.6;
-	}
-
 	.editor-handoff {
 		display: flex;
 		align-items: stretch;
 		gap: 4px;
-		margin-top: 2px;
 	}
 
 	.edit-link {

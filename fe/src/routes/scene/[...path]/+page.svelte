@@ -24,6 +24,7 @@
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
 	import SceneEditorShell from '$lib/planet/components/scene-editor/SceneEditorShell.svelte';
+	import { createDefaultViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import {
@@ -142,6 +143,7 @@
 	// Focused-body look mode — viewport state (not body data). planet-center targets the
 	// body; horizon aims along travel for low-orbit views, matching /planet's toggle.
 	let lookMode = $state<OrbitLookMode>('planet-center');
+	let viewportPrefs = $state(createDefaultViewportPrefs());
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
@@ -293,6 +295,7 @@
 	bind:speed
 	bind:materialDebug
 	bind:lookMode
+	bind:viewportPrefs
 	{focusedBody}
 	onSave={saveScene}
 	onReset={resetScene}

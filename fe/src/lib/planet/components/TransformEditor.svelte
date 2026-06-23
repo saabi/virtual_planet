@@ -7,10 +7,12 @@
 		node: SceneNode;
 		/** The node after evaluateScene — supplies live values for driven channels. */
 		evaluated: SceneNode;
+		/** Which transform channels to show; default all. */
+		channels?: 'all' | 'position' | 'rotation' | 'scale';
 		onchange?: (next: Transform) => void;
 	}
 
-	let { node, evaluated, onchange }: Props = $props();
+	let { node, evaluated, channels = 'all', onchange }: Props = $props();
 
 	const RAD2DEG = 180 / Math.PI;
 	const DEG2RAD = Math.PI / 180;
@@ -72,12 +74,18 @@
 {/snippet}
 
 <div class="transform-editor">
-	<span class="te-label">Position (km)</span>
-	{@render axisRow('position', (v) => v / 1000, (i, km) => setPos(i, km))}
-	<span class="te-label">Rotation (°)</span>
-	{@render axisRow('rotation', (v) => v * RAD2DEG, (i, deg) => setRot(i, deg))}
-	<span class="te-label">Scale</span>
-	{@render axisRow('scale', (v) => v, (i, v) => setScale(i, v))}
+	{#if channels === 'all' || channels === 'position'}
+		<span class="te-label">Position (km)</span>
+		{@render axisRow('position', (v) => v / 1000, (i, km) => setPos(i, km))}
+	{/if}
+	{#if channels === 'all' || channels === 'rotation'}
+		<span class="te-label">Rotation (°)</span>
+		{@render axisRow('rotation', (v) => v * RAD2DEG, (i, deg) => setRot(i, deg))}
+	{/if}
+	{#if channels === 'all' || channels === 'scale'}
+		<span class="te-label">Scale</span>
+		{@render axisRow('scale', (v) => v, (i, v) => setScale(i, v))}
+	{/if}
 </div>
 
 <style>

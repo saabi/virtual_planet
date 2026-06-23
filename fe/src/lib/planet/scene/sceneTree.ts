@@ -148,6 +148,47 @@ export function listSceneTreeRows(scene: PlanetScene): SceneTreeRow[] {
 	return rows;
 }
 
+/** True when no collapsed ancestor hides this node (root is always visible). */
+export function isSceneTreeRowVisible(
+	scene: PlanetScene,
+	nodeId: string,
+	collapsed: ReadonlySet<string>
+): boolean {
+	let id: string | null = nodeId;
+	while (id != null) {
+		const node = scene.nodes.get(id);
+		if (!node) return false;
+		if (id !== scene.rootId && collapsed.has(id)) return false;
+		id = node.parentId;
+	}
+	return true;
+}
+
+/** Depth-first rows omitting subtrees under collapsed nodes. */
+export function visibleSceneTreeRows(
+	scene: PlanetScene,
+	collapsed: ReadonlySet<string>
+): SceneTreeRow[] {
+	return listSceneTreeRows(scene).filter((row) =>
+		isSceneTreeRowVisible(scene, row.node.id, collapsed)
+	);
+}
+
+export function sceneTreeNodeHasChildren(scene: PlanetScene, nodeId: string): boolean {
+	return getChildren(scene, nodeId).length > 0;
+}
+
+/** Ancestor ids from parent up to (but not including) root. */
+export function ancestorIds(scene: PlanetScene, nodeId: string): string[] {
+	const out: string[] = [];
+	let id = scene.nodes.get(nodeId)?.parentId ?? null;
+	while (id != null && id !== scene.rootId) {
+		out.push(id);
+		id = scene.nodes.get(id)?.parentId ?? null;
+	}
+	return out;
+}
+
 export function setNodeEnabled(scene: PlanetScene, nodeId: string, enabled: boolean): PlanetScene {
 	const node = scene.nodes.get(nodeId);
 	if (!node || node.enabled === enabled) return scene;

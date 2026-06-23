@@ -23,23 +23,32 @@ export class SceneEngine {
 		this.depth = this.device.createTexture({
 			size: { width, height },
 			format: 'depth24plus',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT
+			// TEXTURE_BINDING: the overlay (atmosphere) pass samples this depth after the
+			// scene pass ends, to occlude the atmosphere against nearer bodies.
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 		});
 		this.depthW = width;
 		this.depthH = height;
 		return this.depth;
 	}
 
-	/** Open a frame's render pass (clear color + depth), record draws, submit. */
+	/**
+	 * Open a frame's render pass (clear color + depth), record the scene draws, submit.
+	 * If `recordOverlay` is given, a second pass runs after the scene pass *ends* — color
+	 * loaded (not cleared), no depth attachment — with the depth available as a sampleable
+	 * view (a depth texture can't be sampled while it's an active attachment). Used by the
+	 * atmosphere composite, which reads the scene depth for occlusion.
+	 */
 	render(
 		colorView: GPUTextureView,
 		width: number,
 		height: number,
-		record: (pass: GPURenderPassEncoder) => void
+		recordScene: (pass: GPURenderPassEncoder) => void,
+		recordOverlay?: (pass: GPURenderPassEncoder, depthView: GPUTextureView) => void
 	) {
 		const depth = this.ensureDepth(width, height);
 		const encoder = this.device.createCommandEncoder();
-		const pass = encoder.beginRenderPass({
+		const scenePass = encoder.beginRenderPass({
 			colorAttachments: [{ view: colorView, clearValue: CLEAR, loadOp: 'clear', storeOp: 'store' }],
 			depthStencilAttachment: {
 				view: depth.createView(),
@@ -48,8 +57,15 @@ export class SceneEngine {
 				depthStoreOp: 'store'
 			}
 		});
-		record(pass);
-		pass.end();
+		recordScene(scenePass);
+		scenePass.end();
+		if (recordOverlay) {
+			const overlayPass = encoder.beginRenderPass({
+				colorAttachments: [{ view: colorView, loadOp: 'load', storeOp: 'store' }]
+			});
+			recordOverlay(overlayPass, depth.createView());
+			overlayPass.end();
+		}
 		this.device.queue.submit([encoder.finish()]);
 	}
 

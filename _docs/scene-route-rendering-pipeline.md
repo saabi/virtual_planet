@@ -74,8 +74,10 @@ Each frame:
 
 For every frame it clears color to a dark background and clears depth to `1`. Spheres,
 dots, and the selected procedural body's terrain are recorded inside this pass, so the
-procedural terrain depth-tests against the rest of the scene. Atmosphere is not yet part
-of this shared pass.
+procedural terrain depth-tests against the rest of the scene. The depth texture is
+sampleable, and `render()` takes an optional overlay recorder that runs in a **second
+pass** after the scene pass ends (color loaded, no depth attachment) — the atmosphere
+composite, which samples the scene depth.
 
 ## Sphere pass
 
@@ -156,9 +158,12 @@ When the selected body is visible, is a planet/moon, and its draw item has `blen
 `PlanetRenderer.recordInto()` -> `buildRenderFrame()` ->
 `WebGPUBackend.recordTerrainInto()` -> `TerrainPass.renderInto()`.
 
-The single-pass scene path records terrain only. `AtmospherePass` still runs in the normal
-standalone `/planet` backend path, but not in `SceneEngine` yet. The next renderer step is
-a depth-aware scene atmosphere pass for the procedural body.
+`PlanetRenderer.recordInto()` records terrain only. The body's atmosphere is then composited
+by `SceneAtmospherePass` (`scene3d/sceneAtmospherePass.ts` + `gpu/wgsl/scene3d/sceneAtmosphere.wgsl`)
+as the engine's overlay pass: a fullscreen ray-march in the body-local (`focusedBodyCamera`)
+frame that samples the **shared scene depth** to limit the march, so nearer bodies occlude
+the halo, and alpha-blends `inscatter + sceneColor·avgTransmittance` over the scene. (The
+standalone `/planet` backend still uses its own `AtmospherePass`.)
 
 ## Focused body view
 

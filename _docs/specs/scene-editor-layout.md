@@ -25,7 +25,7 @@ registers snippets and labels:
 |----------|-------|---------|
 | `outliner` | Outliner | `SystemTreePanel` — scene tree, save/reset, add/delete |
 | `properties` | Properties | Node editor — fields, transform, drivers, appearance |
-| `renderSettings` | Render | Material debug + orbit look mode (view prefs) |
+| `renderSettings` | Render | Accordion: View (look + material debug), Quality (tessellation), Debug (overlays), Shading — session viewport prefs via `SceneViewportPrefs` |
 | `viewport` | Viewport | `SceneViewport3D`, map inset, optional `FocusedBodyView` |
 
 Default layout (`defaultSceneEditorLayout()`): horizontal split — left column
@@ -100,6 +100,9 @@ Dev playground: `/dev/subdivide` (`fe/src/routes/dev/subdivide/+page.svelte`).
 | `fe/src/lib/planet/components/scene-editor/PropertiesPanel.svelte` | Properties zone |
 | `fe/src/lib/planet/components/scene-editor/RenderSettingsPanel.svelte` | Render settings zone |
 | `fe/src/lib/planet/components/scene-editor/ViewportZone.svelte` | Viewport zone (3D + map + focused body) |
+| `fe/src/lib/planet/components/scene-editor/EditorAccordionSection.svelte` | Super-section accordion (scene styling) |
+| `fe/src/lib/planet/components/scene-editor/EditorSubsection.svelte` | `<details>` subsection wrapper |
+| `fe/src/lib/planet/components/scene-editor/propertiesSections.ts` | Properties super-section registry |
 | `fe/src/routes/scene/[...path]/+page.svelte` | Route page wrapping `SceneEditorShell` |
 
 ## Integration with routing
@@ -109,3 +112,54 @@ dispatches the editor by node kind. `SceneEditorShell` is the **chrome** around
 that dispatch: pane sizes and zone placement persist per browser; selection,
 camera, and body data follow routing and session rules in
 [body-vs-viewport-state.md](body-vs-viewport-state.md).
+
+## Panel collapse (parity with `/planet`)
+
+Collapse behavior matches `/planet` (accordion super-sections + independent
+`<details>` subsections) while keeping scene-editor colors.
+
+### Properties (`PropertiesPanel`)
+
+Fixed header: breadcrumb + node name. Below, one **super-section** accordion is
+open at a time (`openSuperSection`; clicking a section header switches to it,
+does not close the open section). Super-sections are pruned by node kind via
+`visiblePropsSections()` in `propertiesSections.ts`:
+
+| Super-section | When visible | Subsections |
+|---------------|--------------|-------------|
+| Transform | node selected | Position · Rotation · Scale (`TransformEditor` channels) |
+| Node | `editor.mode === 'schema'` | Schema fields (`SchemaForm`) |
+| Motion | node selected | Driver · Bindings · Constraints |
+| Appearance | body with appearance | Preset row in header; shape/material blocks from `PARAM_EDITOR_SECTIONS` (`EditorSubsection`); LOD |
+| Atmosphere | body with appearance | Design (`AtmosphereEditor`) |
+| Actions | body with appearance | Procedural render · Handoff to `/planet` |
+
+Default open super-section: `transform`.
+
+### Outliner (`SystemTreePanel`)
+
+Parent nodes show a chevron (▸/▾). Chevron toggles collapse; name click
+selects. Descendants of any collapsed ancestor are hidden (`visibleSceneTreeRows`
+in `sceneTree.ts`). On selection change, all ancestors of the selected node are
+expanded. Collapse state is session-only (`collapsedIds` in the panel).
+
+### Render (`RenderSettingsPanel`)
+
+Super-sections: **View** (default), **Quality**, **Debug**, **Shading**. Each
+contains `<details>` subsections (multiple may stay open).
+
+| Super-section | Subsections | State owner |
+|---------------|-------------|-------------|
+| View | Look (`lookMode`) · Material view (`materialDebug`) | Page `$state` |
+| Quality | Tessellation (detail, budget, max res/depth) | `viewportPrefs.tessellation` |
+| Debug | Wireframe · face colors · patch borders · ring colors | `viewportPrefs.debug` |
+| Shading | Shadows · exposure · roughness · water gloss · fog | `viewportPrefs.materialOverrides` |
+
+`SceneViewportPrefs` (`viewportPrefs.ts`) is owned by `+page.svelte` and passed
+through `SceneEditorShell` → `RenderSettingsPanel` / `ViewportZone` →
+`SceneViewport3D` → `buildProceduralRenderInput`. Not persisted in v1; see
+[body-vs-viewport-state.md](body-vs-viewport-state.md) for session vs document
+ownership.
+
+Shared primitives: `EditorAccordionSection.svelte`, `EditorSubsection.svelte` in
+`scene-editor/`.
