@@ -24,7 +24,10 @@
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
 	import SceneEditorShell from '$lib/planet/components/scene-editor/SceneEditorShell.svelte';
-	import { createDefaultViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
+	import {
+		loadSceneViewSettings,
+		saveSceneViewSettings
+	} from '$lib/planet/scene/sceneViewSettings.js';
 	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import {
@@ -136,13 +139,28 @@
 		});
 		return () => cancelAnimationFrame(raf);
 	});
+	// Global render/view settings, restored from localStorage (vp.sceneViewSettings).
+	const initialViewSettings = loadSceneViewSettings();
 	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
 	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
-	let materialDebug = $state<SceneDebugMode>('off');
+	let materialDebug = $state<SceneDebugMode>(initialViewSettings.materialDebug);
 	// Focused-body look mode — viewport state (not body data). planet-center targets the
 	// body; horizon aims along travel for low-orbit views, matching /planet's toggle.
-	let lookMode = $state<OrbitLookMode>('planet-center');
-	let viewportPrefs = $state(createDefaultViewportPrefs());
+	let lookMode = $state<OrbitLookMode>(initialViewSettings.lookMode);
+	let viewportPrefs = $state(initialViewSettings.viewportPrefs);
+
+	// Persist the render/view settings on change (trailing-edge debounce so dragging a
+	// slider doesn't hammer localStorage). Serializing inside the effect registers every
+	// nested field as a dependency, so any change re-runs it.
+	$effect(() => {
+		if (!browser) return;
+		void JSON.stringify({ viewportPrefs, materialDebug, lookMode });
+		const id = setTimeout(
+			() => saveSceneViewSettings({ viewportPrefs, materialDebug, lookMode }),
+			200
+		);
+		return () => clearTimeout(id);
+	});
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;

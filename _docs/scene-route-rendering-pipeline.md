@@ -23,6 +23,20 @@ and `localStorage`.
   → `ViewportZone` to each `SceneViewport3D` (renders) and `SystemMapPanel` (draws +
   hosts the shared play/pause/speed controls).
 
+### Persistence (localStorage)
+
+Everything global that should survive a reload is persisted; transport/transient state is not:
+
+| State | Key | Persisted? |
+| --- | --- | --- |
+| Scene document | `vp.systemScene` | yes (`serializeScene`) |
+| Panel layout (subdivisions) | `vp.sceneLayout` | yes (`layoutStorage`) |
+| Render/view settings — `viewportPrefs` (quality: LOD, tessellation, atmosphere; debug flags; material overrides), `materialDebug`, `lookMode` | `vp.sceneViewSettings` | yes (`sceneViewSettings.ts`, trailing-edge debounced save; load merges onto current defaults so new fields are forward-compatible) |
+| Device-calibrated tessellation | `vp.deviceTessellation` | yes |
+| `clock`, `playing`, `speed` | — | no (playback transport — always starts running) |
+| Focused-body overlay (`focusedBodyId`) | — | no (transient UI) |
+| Selection (`selectedId`) | URL path | via URL, not localStorage |
+
 The viewport zone renders both the 3D view and the 2D map inset:
 
 ```svelte
