@@ -38,7 +38,7 @@ struct MaterialOverrides {
   fog_density: f32,
   shadows_enabled: f32,
   shadow_fill: f32,
-  _pad2: f32,
+  object_opacity: f32,
 }
 
 fn biome_props(biome_id: u32) -> BiomeProps {

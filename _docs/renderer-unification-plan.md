@@ -139,9 +139,12 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   samples the shared scene depth (so nearer moons occlude the halo) and alpha-blends
   `inscatter + sceneColor·avgT` over the scene. Restores the sky and fixes "atmosphere over
   nearer moons."
-- **Still pending:** smooth sphere→terrain cross-fade (hard switch today), eclipse shadows
-  (Phase 6), moving `illumination` out of `PlanetParameters`, optional
-  `RenderQualitySettings`, and the graph compiler.
+- **Phase 5 — sphere→terrain cross-fade (code done):** `objectOpacity` on `MaterialOverrides`
+  drives the terrain fragment alpha; the terrain color target alpha-blends (opaque at
+  `objectOpacity = 1`, so `/planet` is unchanged). `/scene` feeds the LOD `proceduralBlend`
+  as `objectOpacity`, so the planet dissolves in over the background instead of popping.
+- **Still pending:** eclipse shadows (Phase 6), moving `illumination` out of
+  `PlanetParameters`, optional `RenderQualitySettings`, and the graph compiler.
 
 ## 5. Contradictions resolved
 

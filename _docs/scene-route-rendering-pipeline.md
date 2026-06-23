@@ -141,8 +141,10 @@ LOD rules come from `fe/src/lib/planet/scene/bodyParams.ts`:
 - Above `sphereAbovePx`, render as a sphere.
 - Above `proceduralAbovePx`, begin the procedural path.
 - `proceduralBlend()` returns an activation/blend value across the next 50% of
-  projected-size growth. The current single-pass `/scene` path uses `blend > 0` to switch
-  the selected body from sphere to procedural terrain; smooth opacity fade is deferred.
+  projected-size growth. `/scene` skips the selected body's sphere once `blend > 0` and
+  passes the blend as the terrain's `objectOpacity` (a `MaterialOverrides` field), so the
+  terrain fragment alpha-blends in over the background as it zooms in. `/planet` keeps
+  `objectOpacity = 1` (opaque, unchanged).
 
 ## Procedural terrain path
 

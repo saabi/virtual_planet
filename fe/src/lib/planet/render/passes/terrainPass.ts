@@ -261,7 +261,17 @@ export class TerrainPass {
 				module,
 				entryPoint: 'fs_main',
 				targets: [
-					{ format: this.format, writeMask: surfaceOnly ? 0 : GPUColorWrite.ALL },
+					{
+						format: this.format,
+						writeMask: surfaceOnly ? 0 : GPUColorWrite.ALL,
+						// objectOpacity cross-fade: src-alpha over. At opacity 1 (/planet) this is
+						// fully opaque, so /planet is unchanged; /scene fades terrain in over the
+						// background. The surface-distance target (1) keeps writing un-blended.
+						blend: {
+							color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+							alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }
+						}
+					},
 					{ format: SURFACE_DISTANCE_FORMAT }
 				]
 			},

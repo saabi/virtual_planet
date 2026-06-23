@@ -68,6 +68,10 @@ export interface MaterialOverrides {
 	shadows: boolean;
 	/** Sun light retained inside shadows (0 = black, 1 = none); fakes scattered fill past the fold. */
 	shadowFill: number;
+	/** Terrain fragment alpha (0..1) for the sphere→terrain cross-fade. 1 = fully opaque
+	 *  (/planet, and the procedural body once fully zoomed in). /scene sets it to the LOD
+	 *  blend so the planet dissolves in over the background instead of popping. */
+	objectOpacity: number;
 }
 
 export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
@@ -77,5 +81,6 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	materialDebug: 'off',
 	fogDensity: 0.8,
 	shadows: true,
-	shadowFill: 0.15
+	shadowFill: 0.15,
+	objectOpacity: 1.0
 };

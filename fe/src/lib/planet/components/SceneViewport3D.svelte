@@ -229,7 +229,8 @@
 					lighting: procLighting,
 					planetRotation: procRotation,
 					materialDebug: terrainMaterialDebug,
-					viewportPrefs
+					viewportPrefs,
+					blend: procBlend
 				})
 			: null;
 

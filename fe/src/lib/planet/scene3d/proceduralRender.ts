@@ -34,6 +34,8 @@ export interface ProceduralRenderOpts {
 	planetRotation: Quat;
 	materialDebug?: MaterialDebugMode;
 	viewportPrefs?: SceneViewportPrefs;
+	/** Terrain alpha (0..1) for the sphere→terrain cross-fade; the LOD blend. Default 1. */
+	blend?: number;
 }
 
 export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRenderInputs {
@@ -73,7 +75,8 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		lighting: o.lighting,
 		materialOverrides: {
 			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
-			materialDebug: o.materialDebug ?? 'off'
+			materialDebug: o.materialDebug ?? 'off',
+			objectOpacity: o.blend ?? 1
 		},
 		atmosphere: bodyAtmosphereToParameters(
 			resolveBodyAtmosphere(o.body),

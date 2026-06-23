@@ -145,7 +145,8 @@ fn fs_main(in: VSOut) -> FSOut {
   }
 
   var out: FSOut;
-  out.color = vec4f(col, 1.0);
+  // Alpha = objectOpacity drives the sphere→terrain cross-fade (1 = opaque on /planet).
+  out.color = vec4f(col, mat_overrides.object_opacity);
   out.surface_t = length(in.world_pos - view_u.camera_pos.xyz);
   return out;
 }
