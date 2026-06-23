@@ -1,7 +1,7 @@
 import { focusedBodyCamera, type OrbitLookMode } from '../camera/orbitCamera.js';
 import type { CameraState } from '../camera/cameraModes.js';
 import { bodyRelativeCameraFromWorld, type OrbitCamera } from './orbitCamera.js';
-import { resolveBodyParams } from '../scene/bodyParams.js';
+import { fadeOpacity, resolveBodyParams } from '../scene/bodyParams.js';
 import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 import { DEFAULT_MATERIAL_OVERRIDES, type MaterialDebugMode } from '../material/biomes.js';
@@ -76,7 +76,7 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		materialOverrides: {
 			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
 			materialDebug: o.materialDebug ?? 'off',
-			objectOpacity: o.blend ?? 1
+			objectOpacity: fadeOpacity(o.blend ?? 1)
 		},
 		atmosphere: bodyAtmosphereToParameters(
 			resolveBodyAtmosphere(o.body),

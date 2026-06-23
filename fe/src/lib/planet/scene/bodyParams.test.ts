@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_LOD_THRESHOLDS,
 	diffAppearanceOverrides,
+	fadeOpacity,
 	proceduralBlend,
 	resolveBodyParams,
 	selectLod
@@ -85,5 +86,20 @@ describe('proceduralBlend', () => {
 		expect(proceduralBlend(125, t)).toBeCloseTo(0.5, 6); // mid-fade
 		expect(proceduralBlend(150, t)).toBe(1); // fully procedural
 		expect(proceduralBlend(400, t)).toBe(1); // clamped
+	});
+});
+
+describe('fadeOpacity', () => {
+	it('preserves the endpoints and biases toward the sphere mid-transition', () => {
+		expect(fadeOpacity(0)).toBe(0);
+		expect(fadeOpacity(1)).toBe(1);
+		// gamma > 1 ⇒ opacity sits below the linear blend everywhere in between
+		expect(fadeOpacity(0.5)).toBeLessThan(0.5);
+		expect(fadeOpacity(0.8)).toBeLessThan(0.8);
+	});
+
+	it('clamps out-of-range input', () => {
+		expect(fadeOpacity(-1)).toBe(0);
+		expect(fadeOpacity(2)).toBe(1);
 	});
 });

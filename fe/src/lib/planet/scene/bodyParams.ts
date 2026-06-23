@@ -77,3 +77,14 @@ export function proceduralBlend(projectedRadiusPx: number, t: LodThresholds): nu
 	const band = Math.max(1, procAbove * PROCEDURAL_FADE_BAND);
 	return Math.max(0, Math.min(1, (projectedRadiusPx - procAbove) / band));
 }
+
+/** Gamma applied to the linear cross-fade `blend` to get the terrain's draw opacity.
+ *  >1 biases visibility toward the base sphere: the terrain stays faint over the sphere
+ *  through most of the transition and only becomes opaque near the end (blend→1).
+ *  Endpoints are preserved (0→0, 1→1), so the sphere-drop and activation thresholds that
+ *  read the linear blend are unaffected. */
+const PROCEDURAL_FADE_GAMMA = 2.5;
+
+export function fadeOpacity(blend: number): number {
+	return Math.pow(Math.max(0, Math.min(1, blend)), PROCEDURAL_FADE_GAMMA);
+}
