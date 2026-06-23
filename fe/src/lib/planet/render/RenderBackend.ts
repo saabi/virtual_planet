@@ -72,10 +72,14 @@ export interface RenderBackend {
 	onDeviceLost?: (reason: string) => void;
 	/** `sharedDevice` adopts an existing GPUDevice (the host owns its lifetime) instead of
 	 *  creating one — lets `/scene` render spheres and the procedural body on one device so
-	 *  they can share depth. Ignored by backends that don't use WebGPU. */
-	init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void>;
+	 *  they can share depth. A `null` canvas inits offscreen-only (no swapchain; render via
+	 *  `renderToTexture`). Both are ignored by backends that don't use WebGPU. */
+	init(canvas: HTMLCanvasElement | null, sharedDevice?: GPUDevice): Promise<void>;
 	resize(width: number, height: number): void;
 	render(frame: RenderFrame): RenderStats;
+	/** Render into an external color target (e.g. the scene's offscreen layer). Optional —
+	 *  only the WebGPU backend implements it. */
+	renderToTexture?(target: GPUTexture, frame: RenderFrame): RenderStats;
 	destroy(): void;
 	/** Deferred — stub only */
 	renderPickingPass?(_frame: RenderFrame, _screenX: number, _screenY: number): PickingResult;

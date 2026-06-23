@@ -23,7 +23,7 @@ export class WebGPUBackend implements RenderBackend {
 	/** False when init adopted a shared device — destroy() must not destroy it. */
 	private ownsDevice = true;
 
-	async init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void> {
+	async init(canvas: HTMLCanvasElement | null, sharedDevice?: GPUDevice): Promise<void> {
 		const device = sharedDevice ?? (await requestWebGPUDevice()).device;
 		this.ownsDevice = !sharedDevice;
 		this.device = device;
@@ -35,7 +35,9 @@ export class WebGPUBackend implements RenderBackend {
 			this.onDeviceLost?.(info.reason ?? 'unknown');
 		});
 		this.format = navigator.gpu!.getPreferredCanvasFormat();
-		this.context = configureWebGPUCanvas(device, canvas, this.format);
+		// Offscreen-only (canvas === null): no swapchain; the host composites the result of
+		// renderToTexture(). Used by /scene's in-engine procedural layer.
+		this.context = canvas ? configureWebGPUCanvas(device, canvas, this.format) : null;
 		this.terrain = new TerrainPass(device, this.format);
 		this.atmosphere = new AtmospherePass(device, this.format);
 	}

@@ -5,8 +5,8 @@ export class WebGLBackend implements RenderBackend {
 	readonly kind = 'webgl' as const;
 	private gl: WebGL2RenderingContext | null = null;
 
-	async init(canvas: HTMLCanvasElement): Promise<void> {
-		const gl = canvas.getContext('webgl2');
+	async init(canvas: HTMLCanvasElement | null): Promise<void> {
+		const gl = canvas?.getContext('webgl2');
 		if (!gl) throw new Error('WebGL2 not available');
 		this.gl = gl;
 	}

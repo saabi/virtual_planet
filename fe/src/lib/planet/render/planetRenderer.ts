@@ -17,7 +17,7 @@ export class PlanetRenderer {
 
 	constructor(private readonly backend: RenderBackend) {}
 
-	async init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void> {
+	async init(canvas: HTMLCanvasElement | null, sharedDevice?: GPUDevice): Promise<void> {
 		await this.backend.init(canvas, sharedDevice);
 	}
 
@@ -30,6 +30,17 @@ export class PlanetRenderer {
 		this.modeState = r.modeState;
 		this.localFrame = r.localFrame;
 		return this.backend.render(r.frame);
+	}
+
+	/** Like {@link render}, but into an external color target (the scene's offscreen layer)
+	 *  instead of a swapchain — for in-engine compositing. Requires a backend that supports
+	 *  it (WebGPU). */
+	renderToTexture(target: GPUTexture, input: PlanetRenderInputs): RenderStats {
+		if (!this.backend.renderToTexture) throw new Error('backend has no renderToTexture');
+		const r = buildRenderFrame({ ...input, modeState: this.modeState, localFrame: this.localFrame });
+		this.modeState = r.modeState;
+		this.localFrame = r.localFrame;
+		return this.backend.renderToTexture(target, r.frame);
 	}
 
 	destroy(): void {

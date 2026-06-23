@@ -16,7 +16,10 @@
 	import { packSceneLighting } from '../scene/packLighting.js';
 	import type { LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
-	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
+	import { CompositePass } from '../scene3d/compositePass.js';
+	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
+	import { PlanetRenderer } from '../render/planetRenderer.js';
+	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
@@ -62,8 +65,27 @@
 
 	let device = $state<GPUDevice | null>(null);
 	let context: GPUCanvasContext | null = null;
+	let format: GPUTextureFormat = 'bgra8unorm';
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
+	// Procedural body rendered into its own offscreen layer on the shared device, then
+	// composited into the engine pass (Phase 5) — replaces the old CSS overlay canvas.
+	let proceduralRenderer: PlanetRenderer | null = null;
+	let composite: CompositePass | null = null;
+	let procColorTex: GPUTexture | null = null;
+
+	function ensureProcTex(width: number, height: number): GPUTexture {
+		if (procColorTex && procColorTex.width === width && procColorTex.height === height) {
+			return procColorTex;
+		}
+		procColorTex?.destroy();
+		procColorTex = device!.createTexture({
+			size: { width, height },
+			format,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+		});
+		return procColorTex;
+	}
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
 		star: [1.0, 0.82, 0.5],
@@ -149,11 +171,38 @@
 		const drawList = buildDrawList(animated, vp, w, h, lodState);
 		const instances = instancesFromDrawList(drawList);
 		const light = lighting(animated);
-		engine.render(context.getCurrentTexture().createView(), w, h, (pass) => {
-			spheres!.record(pass, instances, vp, light);
-		});
 		updateMarker(animated, vp);
 		updateProcedural(animated, drawList);
+
+		// Render the procedural body to its offscreen layer first (separate submit), so the
+		// composite can sample it inside the engine pass.
+		let procView: GPUTextureView | null = null;
+		if (procBody && procBlend > 0 && procMask && proceduralRenderer) {
+			const tex = ensureProcTex(w, h);
+			proceduralRenderer.resize(w, h);
+			proceduralRenderer.renderToTexture(
+				tex,
+				buildProceduralRenderInput({
+					body: procBody,
+					camera: cam,
+					width: w,
+					height: h,
+					time,
+					lighting: procLighting,
+					planetRotation: procRotation,
+					materialDebug,
+					lookMode
+				})
+			);
+			procView = tex.createView();
+		}
+
+		engine.render(context.getCurrentTexture().createView(), w, h, (pass) => {
+			spheres!.record(pass, instances, vp, light);
+			if (procView && procMask && composite) {
+				composite.record(pass, procView, procMask, procBlend, w, h);
+			}
+		});
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
@@ -214,12 +263,6 @@
 		procBody = null;
 		procMask = null;
 	}
-
-	const procStyle = $derived.by(() => {
-		if (!procMask) return `opacity:${procBlend}`;
-		const g = `radial-gradient(circle at ${procMask.x}px ${procMask.y}px, #000 ${procMask.r0}px, transparent ${procMask.r1}px)`;
-		return `opacity:${procBlend}; mask-image:${g}; -webkit-mask-image:${g};`;
-	});
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
 	function pick(clientX: number, clientY: number) {
@@ -297,10 +340,15 @@
 				const r = await requestWebGPUDevice();
 				if (disposed) return;
 				device = r.device;
-				const format = navigator.gpu.getPreferredCanvasFormat();
+				format = navigator.gpu.getPreferredCanvasFormat();
 				context = configureWebGPUCanvas(device, el, format);
 				engine = new SceneEngine(device, format);
 				spheres = new SpherePass(device, format);
+				composite = new CompositePass(device, format);
+				// Offscreen procedural renderer adopting the shared device (no swapchain).
+				proceduralRenderer = new PlanetRenderer(new WebGPUBackend());
+				await proceduralRenderer.init(null, device);
+				if (disposed) return;
 				frameAll();
 			} catch (err) {
 				failed = err instanceof Error ? err.message : 'WebGPU unavailable';
@@ -322,6 +370,9 @@
 			disposed = true;
 			cancelAnimationFrame(raf);
 			ro.disconnect();
+			composite?.destroy();
+			proceduralRenderer?.destroy();
+			procColorTex?.destroy();
 			spheres?.destroy();
 			engine?.destroy();
 		};
@@ -338,20 +389,6 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
-	{#if procBody && procBlend > 0}
-		<div class="proc-wrap" style={procStyle}>
-			<ProceduralBodyLayer
-				body={procBody}
-				{camera}
-				bodyWorldPos={procWorldPos}
-				planetRotation={procRotation}
-				lighting={procLighting}
-				{materialDebug}
-				{lookMode}
-				sharedDevice={device}
-			/>
-		</div>
-	{/if}
 	{#if marker}
 		<div
 			class="sel-ring"
@@ -384,12 +421,6 @@
 
 	.canvas3d:active {
 		cursor: grabbing;
-	}
-
-	.proc-wrap {
-		position: absolute;
-		inset: 0;
-		pointer-events: none;
 	}
 
 	.sel-ring {
