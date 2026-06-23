@@ -35,6 +35,22 @@ describe('applyParamsToSceneJson (scene save-back)', () => {
 		expect(reloaded.rootId).toBe(scene.rootId);
 	});
 
+	it('writes atmosphere onto the body when provided', () => {
+		const atmosphere = {
+			enabled: true,
+			shellHeightMeters: 100000,
+			scaleHeightMeters: 50000,
+			rayleighStrength: 0.4,
+			mieStrength: 0.2,
+			mieG: 0.7,
+			groundFogDensity: 0.3,
+			sunDiskIntensity: 25
+		};
+		const next = applyParamsToSceneJson(json, planet.id, 'desert', PLANET_PRESETS.desert, atmosphere)!;
+		const node = deserializeScene(next)!.nodes.get(planet.id) as BodyNode;
+		expect(node.atmosphere).toEqual(atmosphere);
+	});
+
 	it('returns null for a missing id', () => {
 		expect(applyParamsToSceneJson(json, 'nope', 'desert', PLANET_PRESETS.desert)).toBeNull();
 	});

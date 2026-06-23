@@ -3,6 +3,7 @@ import type { PlanetPresetName } from '../params/presets.js';
 import { deserializeScene, serializeScene } from './sceneDocument.js';
 import { getNode } from './sceneTree.js';
 import { diffAppearanceOverrides } from './bodyParams.js';
+import type { BodyAtmosphere } from './types.js';
 
 // Round-trip handoff between /scene and /planet. /scene writes /planet's session with a
 // body's resolved params (so PlanetViewport hydrates them as usual) plus this persistent
@@ -76,13 +77,15 @@ export function applyParamsToSceneJson(
 	sceneJson: string,
 	bodyId: string,
 	preset: PlanetPresetName,
-	params: PlanetParameters
+	params: PlanetParameters,
+	atmosphere?: BodyAtmosphere
 ): string | null {
 	const scene = deserializeScene(sceneJson);
 	if (!scene) return null;
 	const node = getNode(scene, bodyId);
 	if (!node || node.kind !== 'body') return null;
 	node.appearance = { preset, overrides: diffAppearanceOverrides(params, preset) };
+	if (atmosphere) node.atmosphere = atmosphere;
 	return serializeScene(scene);
 }
 
@@ -90,13 +93,14 @@ export function applyParamsToSceneJson(
 export function saveParamsToSceneBody(
 	bodyId: string,
 	preset: PlanetPresetName,
-	params: PlanetParameters
+	params: PlanetParameters,
+	atmosphere?: BodyAtmosphere
 ): boolean {
 	if (!hasLocalStorage()) return false;
 	try {
 		const json = localStorage.getItem(SCENE_KEY);
 		if (!json) return false;
-		const next = applyParamsToSceneJson(json, bodyId, preset, params);
+		const next = applyParamsToSceneJson(json, bodyId, preset, params, atmosphere);
 		if (!next) return false;
 		localStorage.setItem(SCENE_KEY, next);
 		return true;

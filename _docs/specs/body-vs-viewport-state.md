@@ -271,7 +271,12 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
 
 5. Split `AtmosphereParameters` → `BodyAtmosphere` + `RenderQualitySettings`; remove
    `integrateSteps` from body type.
-6. Add `atmosphere?: BodyAtmosphere` to `BodyNode`; bump `SCENE_DOC_VERSION`.
+6. ✅ Add `atmosphere?: BodyAtmosphere` to `BodyNode`. **No `SCENE_DOC_VERSION` bump** —
+   the field is optional and `deserializeScene` hard-rejects a mismatched version (no
+   migration path), so bumping would silently drop every existing scene; an optional field
+   is backward-compatible (old scenes load, atmosphere absent → radius-derived defaults).
+   Done: `BodyAtmosphere` type, `resolveBodyAtmosphere`/bridge converters, per-body
+   `AtmosphereEditor`, `ProceduralBodyLayer`/`FocusedBodyView` wiring, handoff round-trip.
 7. Introduce `RenderQualitySettings` + device/session persist (mirror
    [device-tessellation-defaults.md](device-tessellation-defaults.md) pattern); wire
    `terrainPass` / `atmospherePass` to pass external step count into

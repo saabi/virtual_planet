@@ -4,7 +4,7 @@
 	import { PlanetRenderer } from '../render/planetRenderer.js';
 	import { focusedBodyCamera } from '../camera/orbitCamera.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
-	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
+	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
 	import { collectSceneLighting } from '../scene/collectLights.js';
@@ -63,7 +63,7 @@
 				debug: { wireframe: false, faceColors: false, showPatchBorders: false, showRingColors: false },
 				lighting,
 				materialOverrides: DEFAULT_MATERIAL_OVERRIDES,
-				atmosphere: defaultAtmosphereParams(params.radius),
+				atmosphere: bodyAtmosphereToParameters(resolveBodyAtmosphere(body)),
 				planetRotation: [0, 0, 0, 1]
 			});
 		}

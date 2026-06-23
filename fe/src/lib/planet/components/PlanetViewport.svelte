@@ -57,6 +57,7 @@
 		saveParamsToSceneBody,
 		type ScenePlanetHandoff
 	} from '../scene/planetHandoff.js';
+	import { bodyAtmosphereFromParameters } from '../scene/bodyAtmosphere.js';
 	import { createDefaultPlanetScene } from '../scene/defaults.js';
 	import { collectSceneLighting } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
@@ -296,7 +297,8 @@
 	// Round-trip with /scene: save the current params back into the linked body, or detach.
 	function saveToScene() {
 		if (!linkedScene) return;
-		if (saveParamsToSceneBody(linkedScene.bodyId, linkedScene.presetName, $state.snapshot(params))) {
+		const bodyAtmo = bodyAtmosphereFromParameters($state.snapshot(atmosphere));
+		if (saveParamsToSceneBody(linkedScene.bodyId, linkedScene.presetName, $state.snapshot(params), bodyAtmo)) {
 			savedToScene = true;
 			window.setTimeout(() => (savedToScene = false), 1600);
 		}

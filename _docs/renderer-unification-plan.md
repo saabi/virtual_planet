@@ -115,8 +115,14 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   Phase 2, and Phase 3 — confirm the lat/long grid stays put under a tessellation sweep,
   and that one atmosphere strength looks the same at radius 100 and at world scale (no
   overexposure). The author has no GPU.
-- **Not started:** `BodyAtmosphere` data (Phase 4), single-engine composite (Phase 5),
-  eclipse shadows (Phase 6), the graph compiler.
+- **Phase 4 — atmosphere as body data (code done):** `BodyAtmosphere` on `BodyNode`
+  (optional field, no doc-version bump → existing scenes load unchanged), a per-body
+  `AtmosphereEditor` on `/scene`, `ProceduralBodyLayer`/`FocusedBodyView` consume
+  `resolveBodyAtmosphere(body)`, and the global route-debug atmosphere knobs are retired.
+  Atmosphere now round-trips through the `/scene`↔`/planet` handoff. `integrateSteps` stays
+  a default (the `RenderQualitySettings`/`ViewportState` split is the remaining Phase-4 bit).
+- **Not started:** `RenderQualitySettings`/`ViewportState` split (rest of Phase 4),
+  single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph compiler.
 
 ## 5. Contradictions resolved
 
@@ -156,9 +162,12 @@ shader's backwards β factor is removed; `/scene` strength sliders restored to `
 ~1.0 scale (the route-debug guesswork retired). Verify on GPU: one strength, same look at
 radius 100 and world scale.
 
-**Phase 4 — Body / view / quality split.** `BodyAtmosphere` on `BodyNode`,
-`RenderQualitySettings`, `ViewportState`; move atmosphere off route-debug knobs onto
-body data; `SCENE_DOC_VERSION` bump. (body-vs-viewport Phases A–B.)
+**Phase 4 — Body / view / quality split.** *Atmosphere-as-body-data ✅ done:*
+`BodyAtmosphere` on `BodyNode` (optional → no `SCENE_DOC_VERSION` bump needed; the
+hard-reject deserializer would otherwise drop existing scenes), per-body
+`AtmosphereEditor`, procedural/focused render consume it, round-trips through the handoff.
+*Remaining:* `RenderQualitySettings` (move `integrateSteps` off the default) +
+`ViewportState` (keep camera/look-mode out of named saves). (body-vs-viewport Phases A–B.)
 
 **Phase 5 — Single engine.** Move procedural terrain + atmosphere into `SceneEngine`'s
 shared color+depth via `bodyRelativeView`; `objectOpacity` cross-fade (sphere fades out,

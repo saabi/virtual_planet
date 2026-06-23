@@ -5,7 +5,7 @@
 	import { focusedBodyCamera, type OrbitLookMode } from '../camera/orbitCamera.js';
 	import type { OrbitCamera } from '../scene3d/orbitCamera.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
-	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
+	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 	import { DEFAULT_MATERIAL_OVERRIDES, type MaterialDebugMode } from '../material/biomes.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
@@ -19,12 +19,6 @@
 	// (per-pixel occlusion) is the later GPU step; this is the cross-fade. See
 	// _docs/specs/scene-procedural-rendering.md.
 
-	interface AtmoDebug {
-		enabled: boolean;
-		rayleigh: number;
-		mie: number;
-		fog: number;
-	}
 	interface Props {
 		body: BodyNode;
 		/** The scene orbit camera (azimuth/elevation/distance); the body is the target. */
@@ -35,8 +29,6 @@
 		planetRotation: Quat;
 		/** Packed scene lighting (sun toward Sol, in the body frame) from the host. */
 		lighting: LightingUniforms;
-		/** Live atmosphere debug knobs from the editor (strengths are world-scale). */
-		atmo: AtmoDebug;
 		/** Material debug view (parity diagnostic), mirrors /planet's dropdown. */
 		materialDebug?: MaterialDebugMode;
 		/** Look mode (viewport state, not body data); default targets the body. */
@@ -48,7 +40,6 @@
 		bodyWorldPos,
 		planetRotation,
 		lighting,
-		atmo,
 		materialDebug = 'off',
 		lookMode = 'planet-center'
 	}: Props = $props();
@@ -78,15 +69,10 @@
 				aspect: w / Math.max(h, 1),
 				lookMode
 			});
-			// Atmosphere geometry (shell/scale heights) scales with radius; the strengths
-			// are world-scale and tuned live via the editor (the optical depth's radius
-			// coupling is non-linear, so expose the knobs rather than guess a factor).
-			const atmosphere = {
-				...defaultAtmosphereParams(body.radiusMeters, atmo.fog),
-				enabled: atmo.enabled,
-				rayleighStrength: atmo.rayleigh,
-				mieStrength: atmo.mie
-			};
+			// Atmosphere is body data now (resolveBodyAtmosphere → defaults from radiusMeters
+			// when unset); strengths are radius-invariant after Phase 3, so they render the
+			// same here as in /planet.
+			const atmosphere = bodyAtmosphereToParameters(resolveBodyAtmosphere(body));
 			renderer.render({
 				time: ts * 0.001,
 				camera: cam,

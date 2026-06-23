@@ -187,6 +187,22 @@ export interface BodyAppearance {
 	overrides?: Partial<PlanetParameters>;
 }
 
+/**
+ * Intrinsic atmosphere *design* saved on the body (see body-vs-viewport-state.md). Mirrors
+ * AtmosphereParameters minus `integrateSteps` — the ray-march step count is render quality
+ * (GPU cost), not body data, so it stays a device/session pref, not a node field.
+ */
+export interface BodyAtmosphere {
+	enabled: boolean;
+	shellHeightMeters: number;
+	scaleHeightMeters: number;
+	rayleighStrength: number;
+	mieStrength: number;
+	mieG: number;
+	groundFogDensity: number;
+	sunDiskIntensity: number;
+}
+
 /** Render-LOD thresholds (projected px): below sphere → dot, above procedural → terrain. */
 export interface BodyLod {
 	sphereAbovePx?: number;
@@ -205,6 +221,8 @@ export interface BodyNode extends SceneNodeBase {
 	standIn: boolean;
 	/** Procedural appearance (planet/moon). Absent → the default preset. */
 	appearance?: BodyAppearance;
+	/** Atmosphere design (planet/moon). Absent → radius-derived defaults. */
+	atmosphere?: BodyAtmosphere;
 	/** Per-body render-LOD thresholds; absent → defaults. */
 	lod?: BodyLod;
 }

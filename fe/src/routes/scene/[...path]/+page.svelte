@@ -12,7 +12,6 @@
 	import { toSnapshot } from '$lib/planet/documents/snapshot.js';
 	import { writeSession } from '$lib/planet/documents/storage.js';
 	import { CURRENT_SNAPSHOT_VERSION } from '$lib/planet/documents/types.js';
-	import { defaultAtmosphereParams } from '$lib/planet/params/atmosphereParams.js';
 	import { DEFAULT_PRESET } from '$lib/planet/params/presets.js';
 	import {
 		addChild,
@@ -37,9 +36,15 @@
 	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
+	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
 	import FocusedBodyView from '$lib/planet/components/FocusedBodyView.svelte';
+	import {
+		resolveBodyAtmosphere,
+		bodyAtmosphereToParameters
+	} from '$lib/planet/scene/bodyAtmosphere.js';
 	import type {
 		BodyAppearance,
+		BodyAtmosphere,
 		BodyLod,
 		Constraint,
 		FieldTerm,
@@ -128,8 +133,6 @@
 	// match the animation. The selected node, evaluated at the current time, gives the
 	// driven-channel values the TransformEditor displays.
 	let clock = $state(0);
-	// Live atmosphere debug knobs for the procedural render (world-scale strengths).
-	let atmo = $state({ enabled: true, rayleigh: 1.0, mie: 1.0, fog: 0.8 });
 	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
 	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
 	let materialDebug = $state<MaterialDebugMode>('off');
@@ -197,6 +200,9 @@
 	function onLodChange(l: BodyLod) {
 		if (selectedId) scene = updateNode(scene, selectedId, { lod: l });
 	}
+	function onAtmosphereChange(a: BodyAtmosphere) {
+		if (selectedId) scene = updateNode(scene, selectedId, { atmosphere: a });
+	}
 
 	// Hand the selected body off to the /planet editor: copy its resolved params into
 	// /planet's session (so PlanetViewport hydrates them) + a persistent "link" record so
@@ -212,7 +218,7 @@
 			snapshot: toSnapshot({
 				presetName,
 				params,
-				atmosphere: defaultAtmosphereParams(params.radius),
+				atmosphere: bodyAtmosphereToParameters(resolveBodyAtmosphere(bodyNode)),
 				camera: {
 					azimuth: 0.6,
 					elevation: 0.35,
@@ -326,6 +332,8 @@
 							onappearance={onAppearanceChange}
 							onlod={onLodChange}
 						/>
+						<span class="section-label">Atmosphere</span>
+						<AtmosphereEditor body={bodyNode} onatmosphere={onAtmosphereChange} />
 						<button type="button" class="render-btn" onclick={() => (focusedBodyId = bodyNode.id)}>
 							Render procedurally →
 						</button>
@@ -348,23 +356,7 @@
 			</div>
 		{/if}
 		<div class="atmo-debug">
-			<label class="atmo-head">
-				<input type="checkbox" bind:checked={atmo.enabled} /> Atmosphere (debug)
-			</label>
-			<!-- Strengths are radius-invariant now (normalized by R_ref/radius), so these
-			     are authored on /planet's ~1.0 scale, not the old world-scale workaround. -->
-			<label class="atmo-row">
-				<span>rayleigh {atmo.rayleigh.toFixed(2)}</span>
-				<input type="range" min="0" max="2" step="0.01" bind:value={atmo.rayleigh} />
-			</label>
-			<label class="atmo-row">
-				<span>mie {atmo.mie.toFixed(2)}</span>
-				<input type="range" min="0" max="2" step="0.01" bind:value={atmo.mie} />
-			</label>
-			<label class="atmo-row">
-				<span>fog {atmo.fog.toFixed(2)}</span>
-				<input type="range" min="0" max="1" step="0.01" bind:value={atmo.fog} />
-			</label>
+			<span class="view-debug-label">View / debug</span>
 			<label class="atmo-row">
 				<span>debug view</span>
 				<select bind:value={materialDebug}>
@@ -384,7 +376,7 @@
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} {materialDebug} {lookMode} />
+		<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>
@@ -643,9 +635,9 @@
 		opacity: 0.8;
 	}
 
-	.atmo-row input[type='range'] {
-		flex: 1;
-		min-width: 0;
+	.view-debug-label {
+		font-weight: 600;
+		color: #c7a6ff;
 	}
 
 	.hint {

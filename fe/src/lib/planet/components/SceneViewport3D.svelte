@@ -23,19 +23,11 @@
 	import type { MaterialDebugMode } from '../material/biomes.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
 
-	interface AtmoDebug {
-		enabled: boolean;
-		rayleigh: number;
-		mie: number;
-		fog: number;
-	}
 	interface Props {
 		scene: PlanetScene;
 		selectedId?: string | null;
 		/** Shared animation clock; re-renders as it advances (driven by the 2D map loop). */
 		time?: number;
-		/** Live atmosphere debug knobs (passed to the procedural layer). */
-		atmo: AtmoDebug;
 		/** Material debug view for the procedural layer (parity diagnostic). */
 		materialDebug?: MaterialDebugMode;
 		/** Focused-body look mode (viewport state). */
@@ -45,7 +37,6 @@
 		scene,
 		selectedId = $bindable(null),
 		time = 0,
-		atmo,
 		materialDebug = 'off',
 		lookMode = 'planet-center'
 	}: Props = $props();
@@ -355,7 +346,6 @@
 				bodyWorldPos={procWorldPos}
 				planetRotation={procRotation}
 				lighting={procLighting}
-				{atmo}
 				{materialDebug}
 				{lookMode}
 			/>
