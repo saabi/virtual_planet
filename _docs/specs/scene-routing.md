@@ -4,7 +4,9 @@
 `routes/scene/[...path]`, a `scene/scenePath.ts` resolver, a node-type → editor
 registry, plus a model refinement (orbit-as-node). **Supersedes** the ad-hoc
 `/system` route. Related: [solar-system-model.md](solar-system-model.md),
-[solar-system-scene.md](solar-system-scene.md).
+[solar-system-scene.md](solar-system-scene.md),
+[scene-editor-layout.md](scene-editor-layout.md) (resizable pane layout for the
+scene editor shell).
 
 ## Decision
 

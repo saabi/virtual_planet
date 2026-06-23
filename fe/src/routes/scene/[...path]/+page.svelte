@@ -20,24 +20,12 @@
 		makeGroup,
 		removeSubtree
 	} from '$lib/planet/scene/sceneEdit.js';
-	import { driverOutputs, driverSchemaFor, editorForKind } from '$lib/planet/scene/nodeSchemas.js';
+	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
-	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
-	import SceneViewport3D from '$lib/planet/components/SceneViewport3D.svelte';
-	import {
-		MATERIAL_DEBUG_LABELS,
-		type MaterialDebugMode
-	} from '$lib/planet/material/biomes.js';
+	import SceneEditorShell from '$lib/planet/components/scene-editor/SceneEditorShell.svelte';
+	import type { MaterialDebugMode } from '$lib/planet/material/biomes.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
-	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
-	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
-	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
-	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
-	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
-	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
-	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
-	import FocusedBodyView from '$lib/planet/components/FocusedBodyView.svelte';
 	import {
 		resolveBodyAtmosphere,
 		bodyAtmosphereToParameters
@@ -268,381 +256,43 @@
 		scene = removeSubtree(scene, selectedId);
 		selectedId = parentId && parentId !== scene.rootId ? parentId : null;
 	}
+
+	function renderProcedural() {
+		if (bodyNode) focusedBodyId = bodyNode.id;
+	}
 </script>
 
-<div class="system-page">
-	<aside class="system-sidebar">
-		<div class="doc-controls">
-			<button type="button" onclick={saveScene}>Save</button>
-			<button type="button" onclick={resetScene}>Reset</button>
-		</div>
-		<SystemTreePanel bind:scene bind:selectedId />
-		<div class="edit-actions">
-			<button type="button" onclick={() => addUnder('group')}>+ Group</button>
-			<button type="button" onclick={() => addUnder('body')}>+ Body</button>
-			<button type="button" onclick={() => addUnder('orbit')}>+ Orbit</button>
-			<button type="button" onclick={deleteSelected} disabled={!selectedId}>Delete</button>
-		</div>
-		{#if selectedNode}
-			<nav class="breadcrumb" aria-label="Scene path">
-				<button type="button" class="crumb" onclick={() => (selectedId = null)}>/</button>
-				{#each breadcrumb as crumb (crumb.id)}
-					<span class="crumb-sep">/</span>
-					<button type="button" class="crumb" onclick={() => (selectedId = crumb.id)}>
-						{crumb.name}
-					</button>
-				{/each}
-			</nav>
-			<div class="node-editor">
-				<span class="edit-name">{selectedNode.name}</span>
-				<TransformEditor
-					node={selectedNode}
-					evaluated={evaluatedNode ?? selectedNode}
-					onchange={onTransformChange}
-				/>
-				{#if selectedNode.driver}
-					<div class="driver-section">
-						<span class="section-label">Driver · {selectedNode.driver.type}</span>
-						<SchemaForm
-							schema={driverSchemaFor(selectedNode.driver)}
-							value={driverValue}
-							onchange={onDriverChange}
-						/>
-						<span class="driver-outputs">
-							outputs: {driverOutputs(selectedNode.driver).join(', ')}
-						</span>
-					</div>
-				{/if}
-				<div class="dataflow-section">
-					<span class="section-label">Bindings</span>
-					<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
-				</div>
-				<div class="dataflow-section">
-					<span class="section-label">Constraints</span>
-					<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
-				</div>
-				{#if editor?.mode === 'schema'}
-					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
-				{/if}
-				{#if bodyNode && hasAppearance}
-					<div class="appearance-section">
-						<span class="section-label">Appearance</span>
-						<AppearanceEditor
-							body={bodyNode}
-							onappearance={onAppearanceChange}
-							onlod={onLodChange}
-						/>
-						<span class="section-label">Atmosphere</span>
-						<AtmosphereEditor body={bodyNode} onatmosphere={onAtmosphereChange} />
-						<button type="button" class="render-btn" onclick={() => (focusedBodyId = bodyNode.id)}>
-							Render procedurally →
-						</button>
-						<div class="editor-handoff">
-							<button type="button" class="edit-link" onclick={() => openInPlanetEditor(false)}>
-								Edit in /planet →
-							</button>
-							<button
-								type="button"
-								class="edit-link new-tab"
-								title="Open in a new tab (compare side by side)"
-								aria-label="Open in planet editor in a new tab"
-								onclick={() => openInPlanetEditor(true)}
-							>
-								↗
-							</button>
-						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
-		<div class="atmo-debug">
-			<span class="view-debug-label">View / debug</span>
-			<label class="atmo-row">
-				<span>debug view</span>
-				<select bind:value={materialDebug}>
-					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
-						<option value={opt.value}>{opt.label}</option>
-					{/each}
-				</select>
-			</label>
-			<label class="atmo-head">
-				<input
-					type="checkbox"
-					checked={lookMode === 'horizon'}
-					onchange={(e) => (lookMode = e.currentTarget.checked ? 'horizon' : 'planet-center')}
-				/> Horizon look
-			</label>
-		</div>
-		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
-	</aside>
-	<main class="system-main">
-		<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} />
-		<div class="map-inset">
-			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
-		</div>
-		{#if focusedBody}
-			<FocusedBodyView body={focusedBody} onclose={() => (focusedBodyId = null)} />
-		{/if}
-	</main>
-</div>
-
-<style>
-	.system-page {
-		display: flex;
-		width: 100vw;
-		height: 100vh;
-		overflow: hidden;
-		background: #05070e;
-		color: #e8ecf8;
-		font: 13px/1.4 system-ui, sans-serif;
-	}
-
-	.system-sidebar {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		width: 300px;
-		flex-shrink: 0;
-		padding: 12px;
-		box-sizing: border-box;
-		overflow-y: auto;
-		border-right: 1px solid rgba(255, 255, 255, 0.1);
-	}
-
-	.system-main {
-		position: relative;
-		flex: 1;
-		min-width: 0;
-		padding: 12px;
-		box-sizing: border-box;
-	}
-
-	/* 2D map as an inset minimap over the 3D view (doubles as the HUD-element use). */
-	.map-inset {
-		position: absolute;
-		right: 18px;
-		bottom: 18px;
-		width: 300px;
-		max-width: 40%;
-		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
-		border-radius: 8px;
-	}
-
-	.map-inset :global(.map-canvas) {
-		height: 180px;
-	}
-
-	.doc-controls {
-		display: flex;
-		gap: 6px;
-	}
-
-	.doc-controls button {
-		flex: 1;
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 4px 6px;
-		border-radius: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		background: #1a1f30;
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.doc-controls button:hover {
-		background: #252d45;
-	}
-
-	.edit-actions {
-		display: flex;
-		gap: 6px;
-	}
-
-	.edit-actions button {
-		flex: 1;
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 4px 6px;
-		border-radius: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		background: #1a1f30;
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.edit-actions button:hover:not(:disabled) {
-		background: #252d45;
-	}
-
-	.edit-actions button:disabled {
-		opacity: 0.45;
-		cursor: default;
-	}
-
-	.breadcrumb {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 2px;
-		font-size: 11px;
-		opacity: 0.85;
-	}
-
-	.crumb {
-		background: none;
-		border: none;
-		padding: 0 1px;
-		color: #9ec0ff;
-		cursor: pointer;
-		font: inherit;
-	}
-
-	.crumb:hover {
-		text-decoration: underline;
-	}
-
-	.crumb-sep {
-		opacity: 0.4;
-	}
-
-	.node-editor {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 8px 10px;
-		background: rgba(8, 10, 20, 0.88);
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: 8px;
-	}
-
-	.edit-name {
-		font-weight: 600;
-	}
-
-	.driver-section {
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-		padding: 6px 8px;
-		background: rgba(124, 92, 255, 0.08);
-		border: 1px solid rgba(124, 92, 255, 0.25);
-		border-radius: 6px;
-	}
-
-	.section-label {
-		font-size: 11px;
-		font-weight: 600;
-		color: #c7a6ff;
-	}
-
-	.dataflow-section {
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-		padding: 6px 8px;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 6px;
-	}
-
-	.dataflow-section .section-label {
-		color: #aab2c8;
-	}
-
-	.appearance-section {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 6px 8px;
-		background: rgba(110, 160, 120, 0.08);
-		border: 1px solid rgba(110, 160, 120, 0.22);
-		border-radius: 6px;
-	}
-
-	.appearance-section .section-label {
-		color: #9fcfae;
-	}
-
-	.render-btn {
-		align-self: flex-start;
-		margin-top: 4px;
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 3px 10px;
-		border-radius: 4px;
-		border: 1px solid rgba(110, 160, 120, 0.4);
-		background: rgba(110, 160, 120, 0.15);
-		color: #cfedd6;
-		cursor: pointer;
-	}
-
-	.driver-outputs {
-		font-family: ui-monospace, monospace;
-		font-size: 10px;
-		opacity: 0.6;
-	}
-
-	.editor-handoff {
-		display: flex;
-		align-items: stretch;
-		gap: 4px;
-		margin-top: 2px;
-	}
-
-	.edit-link {
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 3px 10px;
-		border-radius: 4px;
-		border: 1px solid rgba(158, 192, 255, 0.4);
-		background: rgba(158, 192, 255, 0.12);
-		color: #cfe0ff;
-		cursor: pointer;
-	}
-
-	.edit-link:hover {
-		background: rgba(158, 192, 255, 0.22);
-	}
-
-	.edit-link.new-tab {
-		padding: 3px 8px;
-	}
-
-	.atmo-debug {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 6px 8px;
-		background: rgba(124, 92, 255, 0.06);
-		border: 1px solid rgba(124, 92, 255, 0.2);
-		border-radius: 6px;
-		font-size: 11px;
-	}
-
-	.atmo-head {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		font-weight: 600;
-		color: #c7a6ff;
-	}
-
-	.atmo-row {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.atmo-row span {
-		flex: 0 0 38%;
-		font-variant-numeric: tabular-nums;
-		opacity: 0.8;
-	}
-
-	.view-debug-label {
-		font-weight: 600;
-		color: #c7a6ff;
-	}
-
-	.hint {
-		margin: 0;
-		font-size: 11px;
-		opacity: 0.6;
-	}
-</style>
+<SceneEditorShell
+	bind:scene
+	bind:selectedId
+	{selectedNode}
+	{evaluatedNode}
+	{breadcrumb}
+	{editor}
+	{schemaValue}
+	{bodyNode}
+	{hasAppearance}
+	{driverValue}
+	bind:clock
+	bind:materialDebug
+	bind:lookMode
+	{focusedBody}
+	onSave={saveScene}
+	onReset={resetScene}
+	onAddGroup={() => addUnder('group')}
+	onAddBody={() => addUnder('body')}
+	onAddOrbit={() => addUnder('orbit')}
+	onDelete={deleteSelected}
+	{onFieldChange}
+	{onTransformChange}
+	{onDriverChange}
+	{onBindingsChange}
+	{onConstraintsChange}
+	{onAppearanceChange}
+	{onLodChange}
+	{onAtmosphereChange}
+	onRenderProcedural={renderProcedural}
+	onOpenPlanet={() => openInPlanetEditor(false)}
+	onOpenPlanetNewTab={() => openInPlanetEditor(true)}
+	onCloseFocused={() => (focusedBodyId = null)}
+/>

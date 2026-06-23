@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@virtual-planet/schema": "^0.0.0",
+		"@virtual-planet/subdivide": "^0.0.0",
 		"three": "^0.175.0"
 	},
 	"devDependencies": {

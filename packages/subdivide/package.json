@@ -1,0 +1,25 @@
+{
+	"name": "@virtual-planet/subdivide",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Blender-style resizable pane layouts for Svelte 5 — layout tree engine ported from saabi/svelte-subdivide.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./Subdivide.svelte": "./src/Subdivide.svelte",
+		"./Pane.svelte": "./src/Pane.svelte",
+		"./Divider.svelte": "./src/Divider.svelte",
+		"./PaneHeader.svelte": "./src/PaneHeader.svelte"
+	},
+	"scripts": {
+		"check": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9"
+	}
+}

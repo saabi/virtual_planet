@@ -95,7 +95,7 @@
 	const DOT_RADIUS_PX = 2.5;
 	const lodState = new Map<string, LodLevel>();
 
-	function instancesFromDrawList(drawList: DrawItem[], excludeId?: string | null): BodyInstance[] {
+	function instancesFromDrawList(drawList: DrawItem[], excludeId: string | null = null): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
 		const out: BodyInstance[] = [];
 		for (const it of drawList) {
