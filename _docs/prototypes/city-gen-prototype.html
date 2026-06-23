@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procedural City Prototype</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: #ddd;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+    }
+    #info {
+      padding: 10px;
+    }
+    canvas {
+      border: 1px solid #555;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <p>Click on the map to flatten an area for a city footprint. Height values are visualized as greyscale.</p>
+  </div>
+  <canvas id="map" width="300" height="300"></canvas>
+
+  <script>
+    const canvas = document.getElementById('map');
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width; // assume square
+    const gridSize = 150; // logical grid resolution
+    const cellSize = size / gridSize;
+
+    // Seeded pseudo-random function based on coordinate
+    function pseudoRandom(x, y, seed = 12345) {
+      let n = x * 374761393 + y * 668265263 + seed * 0x27d4eb2d;
+      n = (n ^ (n >> 13)) >>> 0;
+      n = (n * 1274126177) >>> 0;
+      return ((n ^ (n >> 16)) >>> 0) / 4294967296;
+    }
+
+    function smoothstep(t) {
+      return t * t * (3 - 2 * t);
+    }
+
+    // 2D value noise for given frequency
+    function valueNoise2D(x, y, freq, seed) {
+      const xf = x * freq;
+      const yf = y * freq;
+      const xi = Math.floor(xf);
+      const yi = Math.floor(yf);
+      const tx = xf - xi;
+      const ty = yf - yi;
+      // random values at grid corners
+      const v00 = pseudoRandom(xi, yi, seed);
+      const v10 = pseudoRandom(xi + 1, yi, seed);
+      const v01 = pseudoRandom(xi, yi + 1, seed);
+      const v11 = pseudoRandom(xi + 1, yi + 1, seed);
+      // interpolate
+      const wx = smoothstep(tx);
+      const wy = smoothstep(ty);
+      const a = v00 * (1 - wx) + v10 * wx;
+      const b = v01 * (1 - wx) + v11 * wx;
+      return a * (1 - wy) + b * wy;
+    }
+
+    function generateHeightMap() {
+      const heights = new Array(gridSize * gridSize);
+      const amplitudes = [1, 0.5, 0.25, 0.125];
+      const totalAmp = amplitudes.reduce((a, b) => a + b, 0);
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          let h = 0;
+          amplitudes.forEach((amp, octave) => {
+            const freq = Math.pow(2, octave) / gridSize;
+            h += amp * valueNoise2D(x / gridSize, y / gridSize, Math.pow(2, octave), 1234);
+          });
+          heights[y * gridSize + x] = h / totalAmp;
+        }
+      }
+      return heights;
+    }
+
+    let heightMap = generateHeightMap();
+
+    // Generate a second noise map for zone assignment
+    function generateDensityMap() {
+      const densities = new Array(gridSize * gridSize);
+      const amps = [1, 0.5, 0.25];
+      const total = amps.reduce((a, b) => a + b, 0);
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          let d = 0;
+          amps.forEach((amp, octave) => {
+            const freq = Math.pow(2, octave) / gridSize;
+            d += amp * valueNoise2D(x / gridSize, y / gridSize, Math.pow(2, octave), 5678);
+          });
+          densities[y * gridSize + x] = d / total;
+        }
+      }
+      return densities;
+    }
+
+    let densityMap = generateDensityMap();
+
+    // Zone definitions
+    const ZONE = {
+      RESIDENTIAL: 0,
+      COMMERCIAL: 1,
+      INDUSTRIAL: 2,
+      SLUM: 3,
+    };
+    const ZONE_COLORS = {
+      0: 'rgba(34,139,34,0.4)',    // green for residential
+      1: 'rgba(30,144,255,0.4)',    // blue for commercial
+      2: 'rgba(255,165,0,0.4)',    // orange for industrial
+      3: 'rgba(139,69,19,0.4)',    // brown for slum
+    };
+
+    function generateZoneMap() {
+      const zones = new Array(gridSize * gridSize);
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const h = heightMap[y * gridSize + x];
+          const d = densityMap[y * gridSize + x];
+          let zone;
+          if (h > 0.6 && d > 0.5) {
+            zone = ZONE.RESIDENTIAL;
+          } else if (h > 0.4 && d > 0.3) {
+            zone = ZONE.COMMERCIAL;
+          } else if (h < 0.3) {
+            zone = ZONE.SLUM;
+          } else {
+            zone = ZONE.INDUSTRIAL;
+          }
+          zones[y * gridSize + x] = zone;
+        }
+      }
+      return zones;
+    }
+
+    let zoneMap = generateZoneMap();
+
+    // Facilities definitions
+    const FACILITIES = [
+      { type: 'warehouse', zone: ZONE.INDUSTRIAL, color: 'yellow' },
+      { type: 'bar', zone: ZONE.COMMERCIAL, color: 'magenta' },
+      { type: 'shipyard', zone: ZONE.INDUSTRIAL, color: 'cyan' },
+    ];
+
+    // Place facilities on the map; returns array of objects {x, y, type, color}
+    function placeFacilities() {
+      const placements = [];
+      FACILITIES.forEach((facility) => {
+        // collect possible cells
+        const cells = [];
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            if (zoneMap[y * gridSize + x] === facility.zone) {
+              cells.push({ x, y });
+            }
+          }
+        }
+        if (cells.length > 0) {
+          const idx = Math.floor(Math.random() * cells.length);
+          const cell = cells[idx];
+          placements.push({ x: cell.x, y: cell.y, type: facility.type, color: facility.color });
+        }
+      });
+      return placements;
+    }
+
+    let facilityMap = placeFacilities();
+
+    // Road spacing by zone: smaller numbers produce denser roads
+    const ZONE_SPACING = {
+      [ZONE.RESIDENTIAL]: 8,
+      [ZONE.COMMERCIAL]: 5,
+      [ZONE.INDUSTRIAL]: 10,
+      [ZONE.SLUM]: 12,
+    };
+
+    // Generate road network based on primary roads and zone-specific secondary roads
+    function generateRoadMap(zones) {
+      const roads = new Array(gridSize * gridSize).fill(0);
+      // Randomly choose positions for primary roads
+      const primaryCountX = 3 + Math.floor(Math.random() * 3); // 3–5
+      const primaryCountY = 3 + Math.floor(Math.random() * 3);
+      const primaryX = [];
+      const primaryY = [];
+      // pick random x positions ensuring they are spaced apart
+      function choosePositions(count) {
+        const positions = [];
+        const minSpacing = 12;
+        while (positions.length < count) {
+          const pos = Math.floor(Math.random() * gridSize);
+          // ensure far from edges
+          if (pos < 3 || pos > gridSize - 4) continue;
+          // ensure spacing
+          let ok = true;
+          for (const p of positions) {
+            if (Math.abs(p - pos) < minSpacing) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) positions.push(pos);
+        }
+        return positions;
+      }
+      primaryX.push(...choosePositions(primaryCountX));
+      primaryY.push(...choosePositions(primaryCountY));
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const idx = y * gridSize + x;
+          // primary roads along selected axes
+          if (primaryX.includes(x) || primaryY.includes(y)) {
+            roads[idx] = 2; // primary road
+          } else {
+            // zone-specific secondary roads
+            const zone = zones[idx];
+            const spacing = ZONE_SPACING[zone];
+            if (x % spacing === 0 || y % spacing === 0) {
+              roads[idx] = 1; // secondary road
+            }
+          }
+        }
+      }
+      return roads;
+    }
+
+    let roadMap = generateRoadMap(zoneMap);
+
+    function drawHeightMap() {
+      const img = ctx.getImageData(0, 0, size, size);
+      const data = img.data;
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const h = heightMap[y * gridSize + x];
+          // convert to grayscale; darker values for lower terrain
+          const value = Math.floor(h * 255);
+          // fill cellSize x cellSize block
+          for (let dy = 0; dy < cellSize; dy++) {
+            for (let dx = 0; dx < cellSize; dx++) {
+              const px = Math.floor(x * cellSize + dx);
+              const py = Math.floor(y * cellSize + dy);
+              const idx = (py * size + px) * 4;
+              data[idx] = value;
+              data[idx + 1] = value;
+              data[idx + 2] = value;
+              data[idx + 3] = 255;
+            }
+          }
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+
+      // draw zone overlay
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const zone = zoneMap[y * gridSize + x];
+          ctx.fillStyle = ZONE_COLORS[zone];
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+
+      // draw roads on top
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const roadType = roadMap[y * gridSize + x];
+          if (roadType === 1) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          } else if (roadType === 2) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+
+      // draw facility markers
+      facilityMap.forEach((fac) => {
+        ctx.fillStyle = fac.color;
+        const cx = fac.x * cellSize + cellSize / 2;
+        const cy = fac.y * cellSize + cellSize / 2;
+        const radius = Math.max(2, cellSize / 4);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    drawHeightMap();
+
+    // Flatten area at given canvas coordinates
+    function flatten(xPixel, yPixel) {
+      const gx = Math.floor(xPixel / cellSize);
+      const gy = Math.floor(yPixel / cellSize);
+      const radius = 15; // radius in grid units
+      // compute average height in area to flatten to
+      let sum = 0;
+      let count = 0;
+      for (let yy = -radius; yy <= radius; yy++) {
+        for (let xx = -radius; xx <= radius; xx++) {
+          const dx = gx + xx;
+          const dy = gy + yy;
+          if (dx < 0 || dy < 0 || dx >= gridSize || dy >= gridSize) continue;
+          const dist = Math.sqrt(xx * xx + yy * yy);
+          if (dist <= radius) {
+            sum += heightMap[dy * gridSize + dx];
+            count++;
+          }
+        }
+      }
+      const targetHeight = sum / count;
+      // apply flattening
+      for (let yy = -radius; yy <= radius; yy++) {
+        for (let xx = -radius; xx <= radius; xx++) {
+          const dx = gx + xx;
+          const dy = gy + yy;
+          if (dx < 0 || dy < 0 || dx >= gridSize || dy >= gridSize) continue;
+          const dist = Math.sqrt(xx * xx + yy * yy);
+          if (dist <= radius) {
+            const weight = 1 - dist / radius;
+            const index = dy * gridSize + dx;
+            heightMap[index] = heightMap[index] * (1 - weight) + targetHeight * weight;
+          }
+        }
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      flatten(x, y);
+      // regenerate zone and facility maps after flattening
+      zoneMap = generateZoneMap();
+      facilityMap = placeFacilities();
+      // regenerate roads based on new zones
+      roadMap = generateRoadMap(zoneMap);
+      drawHeightMap();
+    });
+  </script>
+</body>
+</html>
