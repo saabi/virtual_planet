@@ -33,6 +33,8 @@ export interface SceneAtmosphereInput {
 	height: number;
 	/** Scene atmosphere debug mode encoded for sceneAtmosphere.wgsl. */
 	debugMode: number;
+	/** LOD cross-fade opacity for normal atmosphere compositing. */
+	atmosphereOpacity: number;
 }
 
 export class SceneAtmospherePass {
@@ -109,6 +111,7 @@ export class SceneAtmospherePass {
 		view.setFloat32(144, input.width, true);
 		view.setFloat32(148, input.height, true);
 		view.setFloat32(160, input.debugMode, true);
+		view.setFloat32(164, input.atmosphereOpacity, true);
 		this.device.queue.writeBuffer(this.frameBuffer, 0, frame);
 
 		const lightingStaging = new ArrayBuffer(LIGHTING_UNIFORM_SIZE);

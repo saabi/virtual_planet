@@ -261,7 +261,8 @@
 					materialOverrides: procInput.materialOverrides,
 					width: w,
 					height: h,
-					debugMode: sceneAtmosphereDebugToGpu(materialDebug)
+					debugMode: sceneAtmosphereDebugToGpu(materialDebug),
+					atmosphereOpacity: atmosphereDebugActive ? 1 : procInput.materialOverrides.objectOpacity
 				};
 				atmoOverlay = (overlay) =>
 					sceneAtmosphere!.record(
@@ -367,11 +368,15 @@
 	}
 
 	let dragging = false;
+	let dollyDrag = false;
 	let moved = false;
 	let lastX = 0;
 	let lastY = 0;
 	let downX = 0;
 	let downY = 0;
+	const MIN_ORBIT_DISTANCE = 1e5;
+	const DOLLY_DRAG_SENSITIVITY = 0.005;
+
 	function onPointerDown(e: PointerEvent) {
 		if (cameraMode === 'freeFly') {
 			if (document.pointerLockElement !== canvas) {
@@ -380,6 +385,7 @@
 			return;
 		}
 		dragging = true;
+		dollyDrag = e.ctrlKey;
 		moved = false;
 		lastX = downX = e.clientX;
 		lastY = downY = e.clientY;
@@ -403,22 +409,36 @@
 		const dy = e.clientY - lastY;
 		lastX = e.clientX;
 		lastY = e.clientY;
-		camera = {
-			...camera,
-			azimuth: camera.azimuth - dx * 0.01,
-			elevation: clampElevation(camera.elevation + dy * 0.01)
-		};
+		if (dollyDrag) {
+			camera = {
+				...camera,
+				distance: Math.max(
+					MIN_ORBIT_DISTANCE,
+					camera.distance * (1 + dy * DOLLY_DRAG_SENSITIVITY)
+				)
+			};
+		} else {
+			camera = {
+				...camera,
+				azimuth: camera.azimuth - dx * 0.01,
+				elevation: clampElevation(camera.elevation + dy * 0.01)
+			};
+		}
 	}
 	function onPointerUp(e: PointerEvent) {
 		if (cameraMode === 'freeFly') return;
 		dragging = false;
+		dollyDrag = false;
 		canvas?.releasePointerCapture?.(e.pointerId);
 		if (!moved) pick(e.clientX, e.clientY); // a click → select
 	}
 	function onWheel(e: WheelEvent) {
 		if (cameraMode === 'freeFly') return;
 		e.preventDefault();
-		camera = { ...camera, distance: Math.max(1e5, camera.distance * (1 + Math.sign(e.deltaY) * 0.12)) };
+		camera = {
+			...camera,
+			distance: Math.max(MIN_ORBIT_DISTANCE, camera.distance * (1 + Math.sign(e.deltaY) * 0.12))
+		};
 	}
 
 	function enterFreeFly() {

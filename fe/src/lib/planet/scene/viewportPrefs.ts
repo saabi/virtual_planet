@@ -84,5 +84,6 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void p.atmosphereIntegrateSteps;
 	void p.lod.sphereAboveRadiusPx;
 	void p.lod.proceduralAboveRadiusPx;
+	void p.lod.proceduralFullRadiusPx;
 	void p.lod.fadeGamma;
 }

@@ -97,6 +97,7 @@ fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f 
   let eye = atmo_frame.camera_pos.xyz;
   let omega = world_ray(uv);
   let debug_mode = u32(atmo_frame.debug.x + 0.5);
+  let atmosphere_opacity = clamp(atmo_frame.debug.y, 0.0, 1.0);
   let surface_t = selected_surface_t_at(uv);
 
   if (debug_mode == ATMOS_DEBUG_SURFACE_MASK) {
@@ -160,10 +161,12 @@ fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f 
   if (debug_mode == ATMOS_DEBUG_TRANSMITTANCE) {
     return vec4f(vec3f(scatter.a), 1.0);
   }
+  let inscatter_faded = inscatter * atmosphere_opacity;
+  let transmittance_faded = mix(1.0, scatter.a, atmosphere_opacity);
   if (hardware_alpha) {
-    return vec4f(inscatter, clamp(1.0 - scatter.a, 0.0, 1.0));
+    return vec4f(inscatter_faded, clamp(1.0 - transmittance_faded, 0.0, 1.0));
   }
-  let out_rgb = scene_rgb * scatter.a + inscatter;
+  let out_rgb = scene_rgb * transmittance_faded + inscatter_faded;
   return vec4f(out_rgb, 1.0);
 }
 

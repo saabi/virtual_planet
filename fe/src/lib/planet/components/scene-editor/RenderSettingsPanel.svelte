@@ -88,7 +88,7 @@
 						<ul class="slider-list">
 							<Range
 								id="lod-sphere"
-								label="Sphere above (radius px)"
+								label="Sphere starts (radius px)"
 								min={0}
 								max={20}
 								step={0.5}
@@ -97,12 +97,21 @@
 							/>
 							<Range
 								id="lod-procedural"
-								label="Procedural above (radius px)"
+								label="Terrain starts (radius px)"
 								min={10}
 								max={600}
 								step={5}
 								variant="scene"
 								bind:value={viewportPrefs.lod.proceduralAboveRadiusPx}
+							/>
+							<Range
+								id="lod-procedural-full"
+								label="Terrain full (radius px)"
+								min={10}
+								max={900}
+								step={5}
+								variant="scene"
+								bind:value={viewportPrefs.lod.proceduralFullRadiusPx}
 							/>
 							<Range
 								id="lod-fade-gamma"

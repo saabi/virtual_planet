@@ -157,19 +157,25 @@ Quality section, not per-body):
 - Below `sphereAboveRadiusPx`, render as a dot.
 - Above `sphereAboveRadiusPx`, render as a sphere.
 - Above `proceduralAboveRadiusPx`, begin the procedural path.
-- `proceduralBlend()` returns an activation/blend value across the next 50% of
-  projected-size growth. `/scene` passes `fadeOpacity(blend, lod.fadeGamma)` — the blend
-  through a gamma (>=1, a Render-panel slider next to the LOD thresholds; >1 biases
-  visibility toward the base sphere, so the terrain stays faint through most of the
-  transition and only takes over near `blend → 1`) — as the terrain's
-  `objectOpacity` (a `MaterialOverrides` field) and keeps the selected body's **base sphere
-  drawn until `blend` reaches 1**. (The gamma preserves the 0/1 endpoints, so the
-  sphere-drop and activation thresholds that read the linear blend are unaffected.) So during the fade the terrain alpha-blends over the solid sphere
+- At `proceduralFullRadiusPx`, the procedural terrain is fully visible and the base sphere
+  is dropped.
+- `proceduralBlend()` returns an activation/blend value across the explicit
+  `proceduralAboveRadiusPx → proceduralFullRadiusPx` projected-size range. `/scene` passes
+  `fadeOpacity(blend, lod.fadeGamma)` — the blend through a gamma (>=1, a Render-panel
+  slider next to the LOD thresholds; >1 biases visibility toward the base sphere, so the
+  terrain stays faint through most of the transition and only takes over near
+  `blend → 1`) — as the terrain's `objectOpacity` (a `MaterialOverrides` field) and keeps
+  the selected body's **base sphere drawn until `blend` reaches 1**. (The gamma preserves
+  the 0/1 endpoints, so the sphere-drop and activation thresholds that read the linear
+  blend are unaffected.) So during the fade the terrain alpha-blends over the solid sphere
   (raised terrain wins the depth test; valleys keep the sphere) rather than dissolving from
   the background; the sphere is dropped only once the terrain is fully opaque. The scene
-  atmosphere falls back to the analytic base-sphere surface where the terrain wrote no
-  surface distance (fade-valley fragments), so it doesn't march through the planet. `/planet`
-  keeps `objectOpacity = 1` (opaque, unchanged).
+  atmosphere uses the same gamma-adjusted opacity for normal compositing, fading both
+  in-scattering and extinction from 0 to full strength across the LOD range; debug views
+  ignore this fade so diagnostics show the raw atmosphere signal. The scene atmosphere
+  falls back to the analytic base-sphere surface where the terrain wrote no surface
+  distance (fade-valley fragments), so it doesn't march through the planet. `/planet` keeps
+  `objectOpacity = 1` (opaque, unchanged).
 
 ## Procedural terrain path
 

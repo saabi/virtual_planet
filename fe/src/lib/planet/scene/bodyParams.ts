@@ -47,13 +47,16 @@ export type LodLevel = 'dot' | 'sphere' | 'procedural';
 export interface LodThresholds {
 	/** Above this projected radius (px) a body renders as a sphere; below it, a dot. */
 	sphereAboveRadiusPx: number;
-	/** Above this projected radius (px) a body renders procedural terrain. */
+	/** Above this projected radius (px) procedural terrain starts fading in over the sphere. */
 	proceduralAboveRadiusPx: number;
+	/** At this projected radius (px) procedural terrain is fully visible and the sphere is dropped. */
+	proceduralFullRadiusPx: number;
 }
 
 export const DEFAULT_LOD_THRESHOLDS: LodThresholds = {
 	sphereAboveRadiusPx: 1,
-	proceduralAboveRadiusPx: 120
+	proceduralAboveRadiusPx: 120,
+	proceduralFullRadiusPx: 180
 };
 
 /**
@@ -67,15 +70,12 @@ export function selectLod(projectedRadiusPx: number, t: LodThresholds): LodLevel
 }
 
 /** Fraction (0..1) the procedural body is fade-composited over its sphere across the
- *  band starting at `proceduralAboveRadiusPx`. 0 below the threshold; ramps to 1 over the
- *  next `PROCEDURAL_FADE_BAND` of growth. Lets the planet dissolve in over the sphere
- *  instead of popping. */
-const PROCEDURAL_FADE_BAND = 0.5; // fade over the next +50% of projected size
-
+ *  explicit terrain-start → terrain-full range. Lets the planet dissolve in over the
+ *  sphere instead of popping. */
 export function proceduralBlend(projectedRadiusPx: number, t: LodThresholds): number {
-	const procAbove = t.proceduralAboveRadiusPx;
-	const band = Math.max(1, procAbove * PROCEDURAL_FADE_BAND);
-	return Math.max(0, Math.min(1, (projectedRadiusPx - procAbove) / band));
+	const start = t.proceduralAboveRadiusPx;
+	const band = Math.max(1, t.proceduralFullRadiusPx - start);
+	return Math.max(0, Math.min(1, (projectedRadiusPx - start) / band));
 }
 
 /** Default gamma for the cross-fade opacity (see `fadeOpacity`). */

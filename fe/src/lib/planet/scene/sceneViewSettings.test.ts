@@ -16,6 +16,7 @@ describe('coerceViewportPrefs', () => {
 		const d = createDefaultViewportPrefs();
 		const got = coerceViewportPrefs({ lod: { proceduralAboveRadiusPx: 50 } });
 		expect(got.lod.proceduralAboveRadiusPx).toBe(50);
+		expect(got.lod.proceduralFullRadiusPx).toBe(75);
 		// missing siblings fall back to defaults
 		expect(got.lod.sphereAboveRadiusPx).toBe(d.lod.sphereAboveRadiusPx);
 		expect(got.tessellation).toEqual(d.tessellation);
@@ -33,7 +34,16 @@ describe('coerceViewportPrefs', () => {
 		expect(got.atmosphere.blendMode).toBe(d.atmosphere.blendMode);
 		expect(got.atmosphereIntegrateSteps).toBe(d.atmosphereIntegrateSteps);
 		expect(got.lod.proceduralAboveRadiusPx).toBe(d.lod.proceduralAboveRadiusPx);
+		expect(got.lod.proceduralFullRadiusPx).toBe(d.lod.proceduralFullRadiusPx);
 		expect('junk' in got).toBe(false);
+	});
+
+	it('keeps terrain full after terrain start', () => {
+		const got = coerceViewportPrefs({
+			lod: { proceduralAboveRadiusPx: 200, proceduralFullRadiusPx: 150 }
+		});
+		expect(got.lod.proceduralAboveRadiusPx).toBe(200);
+		expect(got.lod.proceduralFullRadiusPx).toBe(201);
 	});
 
 	it('keeps valid hardware-alpha blend mode', () => {

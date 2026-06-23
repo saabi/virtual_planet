@@ -45,6 +45,8 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 	const tessellation = (r.tessellation ?? {}) as Record<string, unknown>;
 	const materialOverrides = (r.materialOverrides ?? {}) as Record<string, unknown>;
 	const lod = (r.lod ?? {}) as Record<string, unknown>;
+	const proceduralStart = num(lod.proceduralAboveRadiusPx, d.lod.proceduralAboveRadiusPx);
+	const proceduralFull = num(lod.proceduralFullRadiusPx, proceduralStart * 1.5);
 	return {
 		debug: {
 			wireframe: !!(debug.wireframe ?? d.debug.wireframe),
@@ -66,7 +68,8 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 		atmosphereIntegrateSteps: num(r.atmosphereIntegrateSteps, d.atmosphereIntegrateSteps),
 		lod: {
 			sphereAboveRadiusPx: num(lod.sphereAboveRadiusPx, d.lod.sphereAboveRadiusPx),
-			proceduralAboveRadiusPx: num(lod.proceduralAboveRadiusPx, d.lod.proceduralAboveRadiusPx),
+			proceduralAboveRadiusPx: proceduralStart,
+			proceduralFullRadiusPx: Math.max(proceduralStart + 1, proceduralFull),
 			fadeGamma: num(lod.fadeGamma, d.lod.fadeGamma)
 		}
 	};

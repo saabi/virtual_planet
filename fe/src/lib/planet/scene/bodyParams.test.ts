@@ -71,7 +71,7 @@ describe('selectLod', () => {
 	});
 
 	it('honours the given thresholds', () => {
-		const t = { sphereAboveRadiusPx: 10, proceduralAboveRadiusPx: 100 };
+		const t = { sphereAboveRadiusPx: 10, proceduralAboveRadiusPx: 100, proceduralFullRadiusPx: 150 };
 		expect(selectLod(5, t)).toBe('dot');
 		expect(selectLod(50, t)).toBe('sphere');
 		expect(selectLod(150, t)).toBe('procedural');
@@ -79,8 +79,8 @@ describe('selectLod', () => {
 });
 
 describe('proceduralBlend', () => {
-	it('ramps 0→1 over the fade band above the procedural threshold', () => {
-		const t = { sphereAboveRadiusPx: 1, proceduralAboveRadiusPx: 100 }; // band = 50px → full at 150
+	it('ramps 0→1 over the explicit terrain start/full band', () => {
+		const t = { sphereAboveRadiusPx: 1, proceduralAboveRadiusPx: 100, proceduralFullRadiusPx: 150 };
 		expect(proceduralBlend(80, t)).toBe(0); // below threshold: sphere only
 		expect(proceduralBlend(100, t)).toBe(0); // at threshold: just starting
 		expect(proceduralBlend(125, t)).toBeCloseTo(0.5, 6); // mid-fade
