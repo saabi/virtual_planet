@@ -2,6 +2,7 @@
 #include "../planet/normal.wgsl"
 #include "../planet/lighting.wgsl"
 #include "../planet/shadow.wgsl"
+#include "../planet/eclipse.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
 #include "../common/idealSphere.wgsl"
@@ -21,6 +22,7 @@ struct ViewUniforms {
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
 @group(0) @binding(3) var<uniform> atmo: AtmosphereParams;
+@group(0) @binding(4) var<uniform> eclipse: EclipseUniforms;
 @group(1) @binding(0) var<uniform> planet: PlanetParams;
 @group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
 @group(3) @binding(0) var<storage, read> patches: array<CubeSpherePatchGpu>;
@@ -112,10 +114,16 @@ fn fs_main(in: VSOut) -> FSOut {
     n = rotate_vector_by_quat(view_u.planet_rot, n_body);
     let v = view_u.camera_pos.xyz - in.world_pos;
     var sun_shadow = 1.0;
-    if (mat_overrides.shadows_enabled > 0.5 && lighting.light_count > 0u) {
-      let raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot);
+    if (lighting.light_count > 0u) {
+      // Terrain self-shadow (relief) is gated by the toggle; body eclipse (occluding
+      // moons/planets) always applies. They operate at different scales and multiply.
+      var raw_shadow = 1.0;
+      if (mat_overrides.shadows_enabled > 0.5) {
+        raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot);
+      }
+      let eclipse_visibility = body_eclipse_visibility(in.world_pos, eclipse);
       // Lift shadows back toward full sun by shadow_fill, faking scattered fill past the fold.
-      sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow);
+      sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow * eclipse_visibility);
     }
     lit = evaluate_pbr(
       material,

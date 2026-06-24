@@ -1,6 +1,7 @@
 # Eclipse shadows — analytic umbra/penumbra without shadow maps
 
-**Status:** proposal · **Scope:** `scene/` (occluder query + sun as extended source),
+**Status:** increment 1 implemented · reworked onto the multi-body renderer (every in-view
+procedural body is an eclipse receiver) · **Scope:** `scene/` (occluder query + sun as extended source),
 `gpu/wgsl/planet/` (obscuration in lighting), `render/` (uniform packing), tests ·
 **Driver:** multi-body rendering needs bodies to block each other’s sunlight (moon
 eclipses, planetary transits, ring-adjacent occlusion). Shadow maps break at
@@ -31,6 +32,41 @@ This matches the terrain self-shadow philosophy in [`shadow.wgsl`](../../fe/src/
 (analytic geometry in the shader, no depth buffer) and the ring shadow notes in
 [planetary-rings.md](planetary-rings.md) (ray–sphere / ray–plane tests, multiply into
 the sun term).
+
+## Current implementation
+
+The implementation is analytic and WebGPU-only. It runs for **every in-view procedural
+body** in `/scene` (each is its own eclipse receiver), composited in the shared multi-body
+terrain pass:
+
+- `scene/eclipseOccluders.ts` finds the primary star body, broad-phase culls spherical
+  body occluders by angular proximity to the sun at the receiver center, sorts by
+  estimated obscuration, and caps the list at `MAX_ECLIPSE_OCCLUDERS = 4`.
+- `scene/packEclipse.ts` packs sun position/radius plus occluder center/radius values
+  into a separate terrain uniform block. `/planet` callers omit this input and receive
+  disabled eclipse uniforms.
+- `SceneViewport3D.svelte` calls `collectEclipseOccluders(animated, body.id)` for each
+  procedural target body; `buildProceduralRenderInput(...)` rebases that world-space set
+  into the receiver's body-local render frame (`receiverLocalEclipseSet`, alongside the
+  body-local camera) and packs it onto the per-body `RenderFrame.eclipse`.
+- `render/passes/terrainPass.ts` binds the per-body eclipse uniform at frame group
+  binding 4 and writes it each draw (mirrors the per-body atmosphere/lighting buffers).
+- `gpu/wgsl/planet/eclipse.wgsl` computes finite-sun disk obscuration per fragment and
+  returns direct-sun visibility. Multiple occluders currently combine by maximum
+  obscuration, not disk union.
+- `cubeSphereVertex.wgsl` and `surfacePatchVertex.wgsl` multiply eclipse visibility with
+  terrain self-shadow before applying `shadowFill` once. Eclipse applies even when the
+  terrain self-shadow toggle is off (the two layers are independent).
+
+Current limitations:
+
+- Base sphere LOD bodies are not eclipse-shaded yet; only procedural terrain receives
+  the eclipse factor.
+- The direct sun used by procedural terrain remains packed as a directional light toward
+  the star from the receiver center. Eclipse geometry itself uses the finite star
+  position/radius per fragment.
+- Ring shadows, multi-star lighting, disk-union of overlapping occluders, and map debug
+  overlays remain deferred.
 
 ## Two shadow layers (compose, don’t conflate)
 
@@ -186,40 +222,40 @@ Point/ scoped moon lights: **unshadowed** in MVP (same as terrain self-shadow to
 
 ## Implementation plan
 
-### Increment 0 — prerequisites (may overlap other tracks)
+### Increment 0 — prerequisites (done for the toy system)
 
-- [ ] Point sun at Sol in the toy preset + `collectLightsForBody` (scene document v6).
-- [ ] Multi-body / focused-body render path can supply **world-space** surface
+- [x] Point sun at Sol in the toy preset + `collectLightsForBody` (scene document v6).
+- [x] Multi-body / focused-body render path can supply **world-space** surface
   positions and per-body lighting ([unified-scene-renderer.md](unified-scene-renderer.md)
   increment 2+).
 
-### Increment 1 — hard eclipse (umbra only)
+### Increment 1 — first analytic eclipse (done; uses penumbra disk overlap)
 
 **Goal:** Moon fully blocks sun → direct light goes to zero on the night side of the
 umbra; no penumbra yet.
 
-- [ ] `scene/eclipseOccluders.ts` — query + cull + tests (synthetic two-body layouts).
-- [ ] `scene/packEclipse.ts` — GPU struct packing.
-- [ ] `gpu/wgsl/planet/eclipse.wgsl` — `ray_sphere_occludes(P, ω, C, R)` toward sun:
-  if ray from `P` along `ω` hits occluder sphere before escaping to infinity (or
-  before sun distance), factor = 0. Single occluder.
-- [ ] Wire into cube-sphere vertex path; multiply with existing `terrain_sun_shadow`.
-- [ ] Visual test: toy system, Ferro surface, Luna-F transit — umbra patch visible.
+- [x] `scene/eclipseOccluders.ts` — query + cull + tests (toy-system layout).
+- [x] `scene/packEclipse.ts` — GPU struct packing.
+- [x] `gpu/wgsl/planet/eclipse.wgsl` — finite-sun disk overlap visibility.
+- [x] Wire into cube-sphere and surface-patch terrain paths; multiply with existing
+  `terrain_sun_shadow`.
+- [ ] Visual test: toy system, Ferro surface, Luna-F transit — umbra/penumbra visible.
 
-### Increment 2 — penumbra (extended sun)
+### Increment 2 — validation and debug
 
-**Goal:** Partial solar eclipses with smooth edges.
+**Goal:** Make the implemented penumbra easy to inspect and tune.
 
-- [ ] Replace ray hit with `disk_obscuration(α, β, δ)` in `eclipse.wgsl` (document
-  formula; reference implementation in TS for tests).
-- [ ] Use real `R☉` and distance `d` for `α`.
-- [ ] Tests: compare TS oracle vs WGSL for fixed layouts (headless numeric parity
-  samples, not full GPU CI).
+- [ ] Add an eclipse visibility material debug mode.
+- [ ] Add a scripted visual test time/camera note for Luna-F eclipsing Ferro.
+- [ ] Tests: compare TS oracle vs WGSL for fixed layouts if/when a compute test hook
+  exists; current tests cover the TS oracle and occluder query.
 
 ### Increment 3 — multi-occluder + integration polish
 
-- [ ] CPU: up to N occluders, sorted; union or dominant-occluder policy.
-- [ ] Surface-patch vertex path (same factor as cube-sphere).
+- [x] CPU: up to N occluders, sorted; dominant-occluder policy.
+- [x] Surface-patch vertex path (same factor as cube-sphere).
+- [ ] Disk union or stronger conservative multi-occluder policy.
+- [ ] Eclipse shade base sphere LOD, or document why terrain-only is acceptable.
 - [ ] System map optional overlay: umbra outline at receiver (debug / preview).
 
 ### Increment 4 — extensions (deferred)

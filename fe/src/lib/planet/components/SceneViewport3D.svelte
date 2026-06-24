@@ -21,6 +21,7 @@
 	import { DEFAULT_LOD_THRESHOLDS, sphereFadeScale, type LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
+	import { collectEclipseOccluders } from '../scene/eclipseOccluders.js';
 	import {
 		MAX_PROCEDURAL_BODIES,
 		packBodyTerrainLighting,
@@ -371,7 +372,8 @@
 					target.id,
 					primaryTarget?.id ?? null,
 					terrainTargets.length
-				)
+				),
+				eclipseOccluders: collectEclipseOccluders(animated, target.body.id)
 			});
 		}
 

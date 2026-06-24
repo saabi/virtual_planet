@@ -8,6 +8,7 @@ import type { TessellationSettings } from '../patches/tessellationSettings.js';
 import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { Quat } from '../scene/types.js';
+import { DEFAULT_ECLIPSE_UNIFORMS, type EclipseUniforms } from '../scene/packEclipse.js';
 import type { LightingUniforms } from './uniformLayouts.js';
 import type { OrbitScheduleMeta, RenderFrame } from './RenderBackend.js';
 
@@ -39,6 +40,8 @@ export interface BuildRenderFrameInputs {
 	lighting: LightingUniforms;
 	materialOverrides: MaterialOverrides;
 	atmosphere: AtmosphereParameters;
+	/** Per-receiver eclipse occluders (body-local). Omitted ⇒ disabled (e.g. /planet). */
+	eclipse?: EclipseUniforms;
 	planetRotation: Quat;
 }
 
@@ -113,6 +116,7 @@ export function buildRenderFrame(input: BuildRenderFrameInputs): BuildRenderFram
 		lighting: input.lighting,
 		materialOverrides: input.materialOverrides,
 		atmosphere: input.atmosphere,
+		eclipse: input.eclipse ?? DEFAULT_ECLIPSE_UNIFORMS,
 		planetRotation: input.planetRotation
 	};
 	return { frame, modeState, localFrame };

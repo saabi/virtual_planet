@@ -5,6 +5,7 @@ import type { PackedBucket, SurfacePatch } from '../patches/types.js';
 import type { LightingUniforms } from './uniformLayouts.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { AtmosphereParameters } from '../params/atmosphereParams.js';
+import type { EclipseUniforms } from '../scene/packEclipse.js';
 import type { Quat } from '../scene/types.js';
 
 export interface OrbitScheduleMeta {
@@ -40,6 +41,9 @@ export interface RenderFrame {
 	lighting: LightingUniforms;
 	materialOverrides: MaterialOverrides;
 	atmosphere: AtmosphereParameters;
+	/** Body-to-body eclipse occluders (sun + spheres), rebased to the receiver body-local
+	 *  frame. Defaults to disabled (/planet has no occluders). */
+	eclipse: EclipseUniforms;
 	/** Planet rotation quaternion: [qx, qy, qz, qw]. Rotates terrain; sun/camera stay fixed. */
 	planetRotation: Quat;
 }

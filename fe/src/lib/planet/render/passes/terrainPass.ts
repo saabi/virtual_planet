@@ -35,6 +35,7 @@ import {
 	toGpuAtmosphereParams,
 	writeAtmosphereParamsToBuffer
 } from '../../params/atmosphereParams.js';
+import { ECLIPSE_UNIFORM_SIZE, writeEclipseUniforms } from '../../scene/packEclipse.js';
 import { invert4 } from '../../math/mat4.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
 import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
@@ -60,6 +61,7 @@ export class TerrainPass {
 	readonly lightingBuffer: GPUBuffer;
 	readonly materialOverridesBuffer: GPUBuffer;
 	readonly atmosphereBuffer: GPUBuffer;
+	readonly eclipseBuffer: GPUBuffer;
 	readonly planetBuffer: GPUBuffer;
 	readonly scaleBuffer: GPUBuffer;
 	readonly localFrameBuffer: GPUBuffer;
@@ -102,6 +104,10 @@ export class TerrainPass {
 			size: ATMOSPHERE_UNIFORM_SIZE,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
+		this.eclipseBuffer = device.createBuffer({
+			size: ECLIPSE_UNIFORM_SIZE,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
 		this.planetBuffer = createPlanetParamsBuffer(device);
 		this.scaleBuffer = createScaleContextBuffer(device);
 		this.localFrameBuffer = createLocalFrameBuffer(device);
@@ -124,7 +130,8 @@ export class TerrainPass {
 				{ binding: 0, resource: { buffer: this.viewBuffer } },
 				{ binding: 1, resource: { buffer: this.lightingBuffer } },
 				{ binding: 2, resource: { buffer: this.materialOverridesBuffer } },
-				{ binding: 3, resource: { buffer: this.atmosphereBuffer } }
+				{ binding: 3, resource: { buffer: this.atmosphereBuffer } },
+				{ binding: 4, resource: { buffer: this.eclipseBuffer } }
 			]
 		});
 		this.cubePlanetBg = device.createBindGroup({
@@ -201,6 +208,11 @@ export class TerrainPass {
 				},
 				{
 					binding: 3,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: { type: 'uniform' }
+				},
+				{
+					binding: 4,
 					visibility: GPUShaderStage.FRAGMENT,
 					buffer: { type: 'uniform' }
 				}
@@ -397,6 +409,10 @@ export class TerrainPass {
 		writeAtmosphereParamsToBuffer(atmoStaging, 0, atmoGpu);
 		this.device.queue.writeBuffer(this.atmosphereBuffer, 0, atmoStaging);
 
+		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
+		writeEclipseUniforms(eclipseStaging, frame.eclipse);
+		this.device.queue.writeBuffer(this.eclipseBuffer, 0, eclipseStaging);
+
 		const dist = Math.hypot(...frame.camera.position);
 		const scaleCtx = buildScaleContext(
 			frame.camera.mode,
@@ -550,6 +566,7 @@ export class TerrainPass {
 		this.lightingBuffer.destroy();
 		this.materialOverridesBuffer.destroy();
 		this.atmosphereBuffer.destroy();
+		this.eclipseBuffer.destroy();
 		this.planetBuffer.destroy();
 		this.scaleBuffer.destroy();
 		this.localFrameBuffer.destroy();

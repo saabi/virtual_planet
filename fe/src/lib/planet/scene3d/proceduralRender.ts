@@ -10,6 +10,8 @@ import {
 } from './orbitCamera.js';
 import { fadeOpacity, resolveBodyParams } from '../scene/bodyParams.js';
 import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
+import { receiverLocalEclipseSet, type EclipseOccluderSet } from '../scene/eclipseOccluders.js';
+import { packEclipseUniforms } from '../scene/packEclipse.js';
 import { DEFAULT_TESSELLATION, type TessellationSettings } from '../patches/tessellationSettings.js';
 import { DEFAULT_MATERIAL_OVERRIDES, type MaterialDebugMode } from '../material/biomes.js';
 import type { SceneViewportPrefs } from '../scene/viewportPrefs.js';
@@ -51,6 +53,9 @@ export interface ProceduralRenderOpts {
 	/** Scene-bounds-fit depth range, shared with the sphere/atmosphere passes for depth
 	 *  parity. Falls back to the focused-body distance range when omitted. */
 	nearFar?: [number, number];
+	/** World-space eclipse occluders for this receiver body (sun + occluding spheres);
+	 *  rebased to the body-local render frame here. Omitted ⇒ no eclipse. */
+	eclipseOccluders?: EclipseOccluderSet;
 }
 
 function cameraTargetsBody(cam: OrbitCamera, bodyWorldPos: Vec3, planetRadius: number): boolean {
@@ -131,6 +136,9 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		atmosphere: bodyAtmosphereToParameters(
 			resolveBodyAtmosphere(o.body),
 			prefs?.atmosphereIntegrateSteps
+		),
+		eclipse: packEclipseUniforms(
+			o.eclipseOccluders ? receiverLocalEclipseSet(o.eclipseOccluders, o.bodyWorldPos) : undefined
 		),
 		planetRotation: o.planetRotation
 	};
