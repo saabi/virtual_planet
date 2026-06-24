@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
-	import { SceneEngine, type SceneOverlayContext } from '../scene3d/sceneEngine.js';
+	import { SceneEngine, type SceneOverlayFn } from '../scene3d/sceneEngine.js';
 	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
 	import {
 		clampElevation,
+		cameraEye,
 		FOVY,
 		projectToScreen,
 		viewProjection,
@@ -13,19 +14,27 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
-	import { packSceneLighting } from '../scene/packLighting.js';
 	import { DEFAULT_LOD_THRESHOLDS, type LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
+	import {
+		MAX_PROCEDURAL_BODIES,
+		packBodyTerrainLighting,
+		selectProceduralTargets,
+		sortProceduralDrawOrder,
+		tessellationBudgetScaleForBody,
+		type ProceduralRenderTarget
+	} from '../scene3d/proceduralBodies.js';
 	import { SceneAtmospherePass } from '../scene3d/sceneAtmospherePass.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { invert4 } from '../math/mat4.js';
+	import { sub3 } from '../math/vec.js';
+	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
 	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 	import { toGpuAtmosphereParams } from '../params/atmosphereParams.js';
-	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
-	import type { LightingUniforms } from '../render/uniformLayouts.js';
-	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
+	import type { Vec3 } from '../math/vec.js';
+	import type { BodyNode, PlanetScene } from '../scene/types.js';
 	import {
 		isSceneAtmosphereDebugMode,
 		sceneAtmosphereDebugToGpu,
@@ -76,23 +85,17 @@
 	let failed = $state<string | null>(null);
 	/** Selection ring overlay (screen px), null when nothing is selected/visible. */
 	let marker = $state<{ x: number; y: number; r: number } | null>(null);
-	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
-	let procBody = $state<BodyNode | null>(null);
-	let procBlend = $state(0);
-	let procWorldPos = $state<Vec3>([0, 0, 0]);
-	/** The selected body's evaluated body-space rotation (spin/tilt), for terrain sampling. */
-	let procRotation = $state<Quat>([0, 0, 0, 1]);
-	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
-	let procLighting = $state<LightingUniforms>(packSceneLighting({ ambient: [0, 0, 0], lights: [] }));
+	/** Procedural terrain targets for this frame (up to two bodies). */
+	let procTargets = $state<ProceduralRenderTarget[]>([]);
 
 	let device = $state<GPUDevice | null>(null);
 	let context: GPUCanvasContext | null = null;
 	let format: GPUTextureFormat = 'bgra8unorm';
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
-	// The focused body's terrain is recorded directly into the engine's shared pass on the
-	// shared device (Phase 5 single-pass) — no offscreen texture, no CSS overlay.
-	let proceduralRenderer: PlanetRenderer | null = null;
+	// Pool of offscreen procedural renderers — one per visible terrain body (independent
+	// mode/local-frame state). Terrain records into the shared scene pass via recordInto.
+	let proceduralRendererPool: PlanetRenderer[] = [];
 	let sceneAtmosphere: SceneAtmospherePass | null = null;
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
@@ -141,12 +144,15 @@
 	const DOT_RADIUS_PX = 2.5;
 	const lodState = new Map<string, LodLevel>();
 
-	function instancesFromDrawList(drawList: DrawItem[], excludeId: string | null = null): BodyInstance[] {
+	function instancesFromDrawList(
+		drawList: DrawItem[],
+		excludeIds: ReadonlySet<string> = new Set()
+	): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
 		const out: BodyInstance[] = [];
 		for (const it of drawList) {
 			if (!it.screen) continue; // off-screen → cull
-			if (it.id === excludeId) continue; // rendered procedurally instead of as a sphere
+			if (excludeIds.has(it.id)) continue; // rendered procedurally instead of as a sphere
 			const radius = it.lod === 'dot' ? (DOT_RADIUS_PX * it.screen.depth) / screenScale : it.radiusMeters;
 			out.push({
 				position: it.worldPos,
@@ -206,71 +212,92 @@
 		updateProcedural(animated, drawList);
 		const terrainMaterialDebug = sceneMaterialDebugMode(materialDebug);
 
-		// Single pass: spheres + the focused body's terrain into one shared color+depth, so
-		// the terrain depth-tests against the moons. When a body renders procedurally we skip
-		// its sphere (the terrain replaces it). The atmosphere then composites in a second
-		// pass: selected-body surface-distance target for march end, shared scene depth for
-		// foreground occlusion by moons and other rendered bodies.
-		const procActive = !!(procBody && procBlend > 0 && proceduralRenderer);
-		// Keep the base sphere drawn through the cross-fade so the terrain alpha-blends over a
-		// solid body, not the background: raised terrain wins the depth test over the sphere
-		// while valleys keep showing it. Drop the sphere only once the terrain is fully opaque.
-		const hideSphere = procActive && procBlend >= 1;
-		const instances = instancesFromDrawList(drawList, hideSphere ? procBody!.id : null);
+		// Single pass: spheres + every visible procedural body into shared color+depth.
+		const terrainTargets = procTargets;
+		const procActive =
+			terrainTargets.length > 0 && proceduralRendererPool.length >= terrainTargets.length;
+		const hideSphereIds = new Set(
+			terrainTargets.filter((t) => t.blend >= 1).map((t) => t.id)
+		);
+		const instances = instancesFromDrawList(drawList, hideSphereIds);
 
-		// Build the terrain input once and reuse its body-local camera for the atmosphere.
-		const procInput = procActive
-			? buildProceduralRenderInput({
-					body: procBody!,
-					sceneCamera:
-						cameraMode === 'freeFly'
-							? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect) }
-							: { mode: 'orbit', camera: orbitCam, lookMode },
-					bodyWorldPos: procWorldPos,
-					width: w,
-					height: h,
-					time,
-					lighting: procLighting,
-					planetRotation: procRotation,
-					materialDebug: terrainMaterialDebug,
-					viewportPrefs,
-					blend: procBlend
-				})
-			: null;
+		const primaryTarget =
+			(selectedId ? terrainTargets.find((t) => t.id === selectedId) : undefined) ??
+			terrainTargets[0];
 
-		let atmoOverlay:
-			| ((overlay: SceneOverlayContext) => void)
-			| undefined;
+		function proceduralInputFor(target: ProceduralRenderTarget) {
+			return buildProceduralRenderInput({
+				body: target.body,
+				sceneCamera:
+					cameraMode === 'freeFly'
+						? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect) }
+						: { mode: 'orbit', camera: orbitCam, lookMode },
+				bodyWorldPos: target.worldPos,
+				width: w,
+				height: h,
+				time,
+				lighting: packBodyTerrainLighting(animated, target.worldPos),
+				planetRotation: target.rotation,
+				materialDebug: terrainMaterialDebug,
+				viewportPrefs,
+				blend: target.blend,
+				tessellationBudgetScale: tessellationBudgetScaleForBody(
+					target.id,
+					primaryTarget?.id ?? null,
+					terrainTargets.length
+				)
+			});
+		}
+
+		let atmoOverlay: SceneOverlayFn | undefined;
 		const atmosphereBlendMode = atmosphereDebugActive
 			? 'explicit-composite'
 			: (viewportPrefs?.atmosphere.blendMode ?? 'explicit-composite');
-		if (procActive && procInput && sceneAtmosphere) {
-			const bodyAtmo = resolveBodyAtmosphere(procBody!);
-			if (bodyAtmo.enabled) {
-				const camState = procInput.camera;
-				const atmoIn = {
-					invViewProjection: invert4(camState.viewProjectionMatrix),
-					viewProjection: camState.viewProjectionMatrix,
-					camera: camState,
-					atmosphere: toGpuAtmosphereParams(
-						bodyAtmosphereToParameters(bodyAtmo, viewportPrefs?.atmosphereIntegrateSteps),
-						procBody!.radiusMeters,
-						[0, 0, 0]
-					),
-					lighting: procLighting,
-					materialOverrides: procInput.materialOverrides,
-					width: w,
-					height: h,
-					debugMode: sceneAtmosphereDebugToGpu(materialDebug),
-					atmosphereOpacity: atmosphereDebugActive ? 1 : procInput.materialOverrides.objectOpacity
-				};
+		if (procActive && sceneAtmosphere) {
+			const atmoCandidates = sortProceduralDrawOrder(terrainTargets).filter((t) =>
+				resolveBodyAtmosphere(t.body).enabled
+			);
+			const atmoTargets =
+				primaryTarget && atmoCandidates.some((t) => t.id === primaryTarget.id)
+					? [primaryTarget, ...atmoCandidates.filter((t) => t.id !== primaryTarget.id)]
+					: atmoCandidates;
+			if (atmoTargets.length > 0) {
+				const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
 				atmoOverlay = (overlay) =>
 					sceneAtmosphere!.record(
 						overlay.pass,
-						overlay.sceneColorView,
+						overlay.compositeSourceView,
 						overlay.depthView,
 						overlay.surfaceDistanceView,
-						atmoIn,
+						{
+							invViewProjection: invert4(vp),
+							viewProjection: vp,
+							cameraWorldPos: eye,
+							bodies: atmoTargets.map((target) => {
+								const input = proceduralInputFor(target);
+								return {
+									atmosphere: toGpuAtmosphereParams(
+										bodyAtmosphereToParameters(
+											resolveBodyAtmosphere(target.body),
+											viewportPrefs?.atmosphereIntegrateSteps
+										),
+										target.body.radiusMeters,
+										sub3(target.worldPos, eye)
+									),
+									opacity: atmosphereDebugActive
+										? 1
+										: input.materialOverrides.objectOpacity
+								};
+							}),
+							lighting: packBodyTerrainLighting(animated, eye),
+							materialOverrides: {
+								...(viewportPrefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
+								materialDebug: terrainMaterialDebug
+							},
+							width: w,
+							height: h,
+							debugMode: sceneAtmosphereDebugToGpu(materialDebug)
+						},
 						overlay.mode
 					);
 			}
@@ -282,8 +309,16 @@
 			h,
 			(pass) => {
 				if (!atmosphereOnWhite) spheres!.record(pass, instances, vp, light);
-				if (procActive && procInput) {
-					proceduralRenderer!.recordInto(pass, procInput, { surfaceOnly: atmosphereOnWhite });
+				if (procActive) {
+					const drawOrder = sortProceduralDrawOrder(terrainTargets);
+					for (let i = 0; i < drawOrder.length; i++) {
+						const target = drawOrder[i]!;
+						proceduralRendererPool[i]!.recordInto(
+							pass,
+							proceduralInputFor(target),
+							{ surfaceOnly: atmosphereOnWhite }
+						);
+					}
 				}
 			},
 			atmoOverlay,
@@ -309,42 +344,9 @@
 		marker = { x: sp.x, y: sp.y, r: Math.max(screenR, 8) + 5 };
 	}
 
-	/** Procedural cross-fade for the selected planet/moon, from its draw-list item (uses
-	 *  the stable scene node so the layer's body prop doesn't churn each frame). */
+	/** Procedural terrain targets: every planet/moon in view with an active LOD cross-fade. */
 	function updateProcedural(animated: PlanetScene, drawList: DrawItem[]) {
-		const item = selectedId ? drawList.find((d) => d.id === selectedId) : undefined;
-		const node = selectedId ? scene.nodes.get(selectedId) : null;
-		if (
-			item?.screen &&
-			node?.kind === 'body' &&
-			(node.bodyType === 'planet' || node.bodyType === 'moon')
-		) {
-			procBlend = item.blend;
-			procBody = item.blend > 0 ? node : null;
-			procWorldPos = item.worldPos;
-			procRotation = getWorldTransform(animated, node.id).rotation;
-			if (procBody) {
-				// Sun as a directional light toward Sol, in the body's (untilted) frame.
-				const col = collectSceneLights(animated);
-				const sun = col.lights.find((l) => l.kind === 'point') ?? col.lights[0];
-				const sunDir: Vec3 = sun ? normalize3(sub3(sun.directionOrPosition, item.worldPos)) : [0, 1, 0];
-				procLighting = packSceneLighting({
-					ambient: col.ambient,
-					lights: [
-						{
-							kind: 'directional',
-							directionOrPosition: sunDir,
-							color: sun?.color ?? [1, 1, 1],
-							intensity: sun?.intensity ?? 3,
-							range: 0
-						}
-					]
-				});
-			}
-			return;
-		}
-		procBlend = 0;
-		procBody = null;
+		procTargets = selectProceduralTargets(drawList, scene, animated, selectedId ?? null);
 	}
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
@@ -601,10 +603,13 @@
 				engine = new SceneEngine(device, format);
 				spheres = new SpherePass(device, format);
 				sceneAtmosphere = new SceneAtmospherePass(device, format);
-				// Offscreen procedural renderer adopting the shared device (no swapchain); its
-				// terrain is recorded straight into the engine pass via recordInto.
-				proceduralRenderer = new PlanetRenderer(new WebGPUBackend());
-				await proceduralRenderer.init(null, device);
+				const pool: PlanetRenderer[] = [];
+				for (let i = 0; i < MAX_PROCEDURAL_BODIES; i++) {
+					const renderer = new PlanetRenderer(new WebGPUBackend());
+					await renderer.init(null, device);
+					pool.push(renderer);
+				}
+				proceduralRendererPool = pool;
 				if (disposed) return;
 				frameAll();
 				requestRender(); // first paint now that the device is ready
@@ -632,7 +637,8 @@
 			window.removeEventListener('keyup', handleKeyUp);
 			ro.disconnect();
 			sceneAtmosphere?.destroy();
-			proceduralRenderer?.destroy();
+			for (const renderer of proceduralRendererPool) renderer.destroy();
+			proceduralRendererPool = [];
 			spheres?.destroy();
 			engine?.destroy();
 		};

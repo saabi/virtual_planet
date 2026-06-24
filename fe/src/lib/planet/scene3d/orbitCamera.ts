@@ -3,6 +3,7 @@ import { geodeticToEcef } from '../math/geodetic.js';
 import type { Vec3 } from '../math/vec.js';
 import { cross3, len3, normalize3, sub3 } from '../math/vec.js';
 import { rotateVec3 } from '../scene/transform.js';
+import { quatFromAzimuthElevation } from '../camera/orbitCamera.js';
 
 // Orbit camera + the column-major 4x4 math the scene-3d pass needs (mat4.ts only has
 // invert4). WebGPU clip space: z ∈ [0, 1]. See scene-3d-viewport.md.
@@ -162,6 +163,45 @@ export function bodyRelativeCameraFromWorld(
 		geodetic,
 		ecef: geodeticToEcef(geodetic),
 		mode: 'orbit'
+	};
+}
+
+/** Rebases a scene orbit camera into a body's local frame for shared-depth terrain. */
+export function bodyRelativeCameraFromOrbit(
+	cam: OrbitCamera,
+	bodyWorldPos: Vec3,
+	planetRadius: number,
+	aspect: number,
+	viewportHeightPx: number
+): CameraState {
+	const eye = sub3(cameraEye(cam), bodyWorldPos);
+	const target = sub3(cam.target, bodyWorldPos);
+	const view = lookAt(eye, target);
+	const [near, far] = nearFar(cam.distance);
+	const projection = perspective(FOVY, aspect, near, far);
+	const viewProjection = multiply4(projection, view);
+	const dist = len3(eye);
+	const altitudeMeters = Math.max(dist - planetRadius, 0);
+	const outward = dist > 0 ? normalize3(eye) : ([0, 1, 0] as Vec3);
+	const geodetic = {
+		latRad: Math.asin(Math.max(-1, Math.min(1, outward[1]))),
+		lonRad: Math.atan2(outward[2], outward[0]),
+		altitudeMeters
+	};
+	const azimuth = Math.atan2(eye[2], eye[0]);
+	const elevation = Math.asin(Math.max(-1, Math.min(1, eye[1] / (dist || 1))));
+	return {
+		mode: 'orbit',
+		geodetic,
+		ecef: geodeticToEcef(geodetic),
+		altitudeMeters,
+		viewMatrix: view,
+		projectionMatrix: projection,
+		viewProjectionMatrix: viewProjection,
+		focalLengthPx: (0.5 * viewportHeightPx) / Math.tan(FOVY / 2),
+		position: eye,
+		target,
+		cameraRotation: quatFromAzimuthElevation(azimuth, elevation)
 	};
 }
 

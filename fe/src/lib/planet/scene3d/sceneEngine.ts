@@ -10,11 +10,16 @@ export type SceneOverlayCompositeMode = 'explicit-composite' | 'hardware-alpha';
 
 export interface SceneOverlayContext {
 	pass: GPURenderPassEncoder;
+	/** Offscreen scene color from the geometry pass (explicit-composite only). */
 	sceneColorView: GPUTextureView | null;
+	/** Scene layer this overlay pass samples for compositing. */
+	compositeSourceView: GPUTextureView;
 	depthView: GPUTextureView;
 	surfaceDistanceView: GPUTextureView;
 	mode: SceneOverlayCompositeMode;
 }
+
+export type SceneOverlayFn = (overlay: SceneOverlayContext) => void;
 
 export class SceneEngine {
 	readonly device: GPUDevice;
@@ -41,7 +46,7 @@ export class SceneEngine {
 			size: { width, height },
 			format: 'depth24plus',
 			// TEXTURE_BINDING: the overlay atmosphere pass samples this after the scene pass
-			// ends, so nearer bodies can occlude the selected body's atmosphere.
+			// ends, so nearer bodies can occlude atmosphere halos.
 			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 		});
 		this.depthW = width;
@@ -94,7 +99,7 @@ export class SceneEngine {
 		width: number,
 		height: number,
 		recordScene: (pass: GPURenderPassEncoder) => void,
-		recordOverlay?: (overlay: SceneOverlayContext) => void,
+		recordOverlay?: SceneOverlayFn,
 		clearColor: ClearColor = CLEAR,
 		overlayMode: SceneOverlayCompositeMode = 'explicit-composite'
 	) {
@@ -125,6 +130,7 @@ export class SceneEngine {
 		recordScene(scenePass);
 		scenePass.end();
 		if (recordOverlay) {
+			const readView = useOffscreenSceneColor ? sceneColorView : colorView;
 			const overlayPass = encoder.beginRenderPass({
 				colorAttachments: [
 					{
@@ -138,6 +144,7 @@ export class SceneEngine {
 			recordOverlay({
 				pass: overlayPass,
 				sceneColorView: useOffscreenSceneColor ? sceneColorView : null,
+				compositeSourceView: readView,
 				depthView: depth.createView(),
 				surfaceDistanceView: surfaceDistance.createView(),
 				mode: overlayMode

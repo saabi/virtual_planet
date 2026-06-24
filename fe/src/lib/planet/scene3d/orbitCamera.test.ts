@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	bodyRelativeCameraFromOrbit,
 	bodyRelativeCameraFromWorld,
 	bodyRelativeView,
 	bodyRelativeViewFromCamera,
@@ -116,6 +117,22 @@ describe('bodyRelativeView (floating origin)', () => {
 		expect(centre).not.toBeNull();
 		expect(centre!.x).toBeCloseTo(600, 0); // width / 2
 		expect(centre!.y).toBeCloseTo(400, 0); // height / 2
+	});
+
+	it('bodyRelativeCameraFromOrbit matches bodyRelativeView clip transform', () => {
+		const bodyWorldPos: Vec3 = [1e6, 2e5, -5e5];
+		const aspect = 1.5;
+		const orbitCam = { ...cam, target: [0, 0, 0] as Vec3 };
+		const { viewProjection: vp } = bodyRelativeView(orbitCam, bodyWorldPos, aspect);
+		const cs = bodyRelativeCameraFromOrbit(orbitCam, bodyWorldPos, 5e5, aspect, 800);
+		for (const Q of [[0, 0, 0], [1e4, -5e3, 2e4], [-3e4, 1e4, 8e3]] as Vec3[]) {
+			const a = projectToScreen(vp, Q, 1200, 800);
+			const b = projectToScreen(cs.viewProjectionMatrix as Float32Array, Q, 1200, 800);
+			expect(a).not.toBeNull();
+			expect(b).not.toBeNull();
+			expect(b!.x).toBeCloseTo(a!.x, 0);
+			expect(b!.y).toBeCloseTo(a!.y, 0);
+		}
 	});
 
 	it('bodyRelativeViewFromCamera matches world projection for a free-fly camera', () => {
