@@ -37,9 +37,19 @@ export interface SceneAtmosphereSettings {
 	blendMode: SceneAtmosphereBlendMode;
 }
 
+export type OrbitPathOverlayMode = 'off' | 'all' | 'selected';
+
+export interface SceneOverlaySettings {
+	/** View filter: hide atmosphere shells without mutating body data. */
+	showAtmospheres: boolean;
+	/** Which orbit ellipse overlays to draw in 3D/2D. */
+	orbitPaths: OrbitPathOverlayMode;
+}
+
 export interface SceneViewportPrefs {
 	debug: ViewportDebugSettings;
 	atmosphere: SceneAtmosphereSettings;
+	overlays: SceneOverlaySettings;
 	tessellation: TessellationSettings;
 	materialOverrides: MaterialOverrides;
 	/** Ray-march step count for the atmosphere volume integral (global render quality). */
@@ -58,6 +68,10 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		},
 		atmosphere: {
 			blendMode: 'explicit-composite'
+		},
+		overlays: {
+			showAtmospheres: true,
+			orbitPaths: 'all'
 		},
 		tessellation: { ...DEFAULT_TESSELLATION },
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES },
@@ -79,6 +93,8 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void d.showPatchBorders;
 	void d.showRingColors;
 	void a.blendMode;
+	void p.overlays.showAtmospheres;
+	void p.overlays.orbitPaths;
 	void t.detail;
 	void t.vertexBudgetMillions;
 	void t.maxPatchResolution;

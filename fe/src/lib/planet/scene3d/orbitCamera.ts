@@ -101,13 +101,27 @@ export const MAX_DEPTH_RATIO = 1e6;
  */
 export function sceneNearFar(
 	eye: Vec3,
-	bodies: { center: Vec3; radius: number }[]
+	bodies: { center: Vec3; radius: number }[],
+	/** Extra world points (e.g. orbit ellipse samples) that must stay inside the frustum. */
+	extraPoints: Vec3[] = [],
+	/** Large envelopes that may contain the eye (orbit a(1+e) shells) — extend far only. */
+	farExtents: { center: Vec3; radius: number }[] = []
 ): [number, number] {
+	if (extraPoints.length > 0) {
+		bodies = [
+			...bodies,
+			...extraPoints.map((center) => ({ center, radius: 0 }))
+		];
+	}
 	let nearD = Infinity;
 	let farD = 0;
 	for (const b of bodies) {
 		const d = len3(sub3(eye, b.center));
 		nearD = Math.min(nearD, d - b.radius);
+		farD = Math.max(farD, d + b.radius);
+	}
+	for (const b of farExtents) {
+		const d = len3(sub3(eye, b.center));
 		farD = Math.max(farD, d + b.radius);
 	}
 	if (!isFinite(nearD)) return orbitNearFar(1e7); // empty scene fallback

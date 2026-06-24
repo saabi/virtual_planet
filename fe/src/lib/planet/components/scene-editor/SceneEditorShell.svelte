@@ -12,7 +12,8 @@
 		FieldTerm,
 		PlanetScene,
 		SceneNode,
-		Transform
+		Transform,
+		NodeDisplay
 	} from '$lib/planet/scene/types.js';
 
 	interface BreadcrumbCrumb {
@@ -51,6 +52,7 @@
 		onConstraintsChange?: (next: Constraint[]) => void;
 		onAppearanceChange?: (a: BodyAppearance) => void;
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
+		onDisplayChange?: (patch: Partial<NodeDisplay>) => void;
 		onRenderProcedural?: () => void;
 		onOpenPlanet?: () => void;
 		onOpenPlanetNewTab?: () => void;
@@ -97,6 +99,7 @@
 		onConstraintsChange,
 		onAppearanceChange,
 		onAtmosphereChange,
+		onDisplayChange,
 		onRenderProcedural,
 		onOpenPlanet,
 		onOpenPlanetNewTab,
@@ -151,6 +154,7 @@
 		{onConstraintsChange}
 		{onAppearanceChange}
 		{onAtmosphereChange}
+		{onDisplayChange}
 		{onRenderProcedural}
 		{onOpenPlanet}
 		{onOpenPlanetNewTab}

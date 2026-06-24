@@ -45,8 +45,10 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 	const tessellation = (r.tessellation ?? {}) as Record<string, unknown>;
 	const materialOverrides = (r.materialOverrides ?? {}) as Record<string, unknown>;
 	const lod = (r.lod ?? {}) as Record<string, unknown>;
+	const overlays = (r.overlays ?? {}) as Record<string, unknown>;
 	const proceduralStart = num(lod.proceduralAboveRadiusPx, d.lod.proceduralAboveRadiusPx);
 	const proceduralFull = num(lod.proceduralFullRadiusPx, proceduralStart * 1.5);
+	const orbitPaths = overlays.orbitPaths;
 	return {
 		debug: {
 			wireframe: !!(debug.wireframe ?? d.debug.wireframe),
@@ -59,6 +61,13 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 				atmosphere.blendMode === 'hardware-alpha' || atmosphere.blendMode === 'explicit-composite'
 					? atmosphere.blendMode
 					: d.atmosphere.blendMode
+		},
+		overlays: {
+			showAtmospheres: !!(overlays.showAtmospheres ?? d.overlays.showAtmospheres),
+			orbitPaths:
+				orbitPaths === 'off' || orbitPaths === 'all' || orbitPaths === 'selected'
+					? orbitPaths
+					: d.overlays.orbitPaths
 		},
 		tessellation: { ...d.tessellation, ...tessellation } as SceneViewportPrefs['tessellation'],
 		materialOverrides: {

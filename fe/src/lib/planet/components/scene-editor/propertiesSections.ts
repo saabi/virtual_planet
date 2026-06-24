@@ -5,6 +5,7 @@ export type PropsSuperSectionId =
 	| 'transform'
 	| 'node'
 	| 'motion'
+	| 'display'
 	| 'appearance'
 	| 'atmosphere'
 	| 'actions';
@@ -19,6 +20,7 @@ export const PROPS_SUPER_SECTIONS: PropsSectionDef[] = [
 	{ id: 'transform', title: 'Transform', defaultOpen: true },
 	{ id: 'node', title: 'Node' },
 	{ id: 'motion', title: 'Motion' },
+	{ id: 'display', title: 'Display' },
 	{ id: 'appearance', title: 'Appearance' },
 	{ id: 'atmosphere', title: 'Atmosphere' },
 	{ id: 'actions', title: 'Actions' }
@@ -41,6 +43,10 @@ export function visiblePropsSections(
 	}
 
 	out.push('motion');
+
+	if (node.driver?.type === 'kepler' || node.orbit) {
+		out.push('display');
+	}
 
 	if (ctx.hasAppearance) {
 		out.push('appearance', 'atmosphere', 'actions');

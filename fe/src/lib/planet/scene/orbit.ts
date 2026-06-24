@@ -25,6 +25,29 @@ function eccentricAnomaly(meanAnomaly: number, e: number): number {
 	return E;
 }
 
+/** Angular distance in [0, π]. */
+function angularDist(a: number, b: number): number {
+	const d = Math.abs(a - b);
+	return Math.min(d, TWO_PI - d);
+}
+
+/** Eccentric anomaly at scene time `t` (seconds). For e≈0, equals mean anomaly. */
+export function eccentricAnomalyAtTime(o: OrbitElements, t: number): number {
+	const n = o.periodSeconds !== 0 ? TWO_PI / o.periodSeconds : 0;
+	const meanAnomaly = o.phaseAtEpoch + n * t;
+	if (o.eccentricity <= 1e-9) return normalizeAngle(meanAnomaly);
+	return eccentricAnomaly(normalizeAngle(meanAnomaly), o.eccentricity);
+}
+
+/** Ramanujan approximation to ellipse perimeter (meters). */
+export function orbitPerimeter(o: OrbitElements): number {
+	const a = o.semiMajorAxis;
+	const e = o.eccentricity;
+	const b = a * Math.sqrt(1 - e * e);
+	const h = ((a - b) / (a + b)) ** 2;
+	return Math.PI * (a + b) * (1 + (3 * h) / (10 + Math.sqrt(4 - 3 * h)));
+}
+
 /**
  * Orbit position in the parent's local frame at time t (seconds). Coplanar in the
  * XZ plane (top-down looks down +Y); the ellipse is oriented by `periapsisAngle`.
@@ -55,15 +78,33 @@ export function orbitLocalPosition(o: OrbitElements, t: number): Vec3 {
  * Sample the orbit's geometric path (one full ellipse) in the parent's local frame,
  * for drawing the orbit line in the top-down view. `segments` points, evenly spaced
  * in eccentric anomaly (smooth outline). The time-position from orbitLocalPosition
- * always lies on this path.
+ * always lies on this path. When `injectE` is set, the nearest sample is moved to that
+ * eccentric anomaly so the polyline passes through the body's current orbital position.
  */
-export function orbitPathLocal(o: OrbitElements, segments: number): Vec3[] {
+export function orbitPathLocal(o: OrbitElements, segments: number, injectE?: number): Vec3[] {
 	const c = Math.cos(o.periapsisAngle);
 	const s = Math.sin(o.periapsisAngle);
 	const b = o.semiMajorAxis * Math.sqrt(1 - o.eccentricity * o.eccentricity);
+
+	let injectIndex = -1;
+	let injectENorm: number | undefined;
+	if (injectE !== undefined) {
+		injectENorm = injectE % TWO_PI;
+		if (injectENorm < 0) injectENorm += TWO_PI;
+		let bestDist = Infinity;
+		for (let i = 0; i < segments; i++) {
+			const E = (TWO_PI * i) / segments;
+			const d = angularDist(E, injectENorm);
+			if (d < bestDist) {
+				bestDist = d;
+				injectIndex = i;
+			}
+		}
+	}
+
 	const pts: Vec3[] = [];
 	for (let i = 0; i < segments; i++) {
-		const E = (TWO_PI * i) / segments;
+		const E = injectIndex === i && injectENorm !== undefined ? injectENorm : (TWO_PI * i) / segments;
 		const xp = o.semiMajorAxis * (Math.cos(E) - o.eccentricity);
 		const yp = b * Math.sin(E);
 		pts.push([xp * c - yp * s, 0, xp * s + yp * c]);

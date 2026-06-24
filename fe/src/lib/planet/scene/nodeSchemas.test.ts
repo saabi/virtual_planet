@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { annotationsOf, check, create } from '@virtual-planet/schema';
 import {
 	bodySchema,
+	bodyAtmosphereSchema,
 	directionalLightSchema,
 	editorForKind,
 	inheritanceSchema,
-	orbitSchema
+	orbitSchema,
+	overlayBulkFields
 } from './nodeSchemas.js';
 
 describe('node schemas validate', () => {
@@ -33,6 +35,18 @@ describe('node schemas validate', () => {
 		expect(check(inheritanceSchema, { position: '../', rotation: '/', scale: '../' })).toBe(true);
 		// Non-string is not a path.
 		expect(check(inheritanceSchema, { position: 5, rotation: '../', scale: '../' })).toBe(false);
+	});
+});
+
+describe('overlayBulkFields', () => {
+	it('exposes atmosphere enabled as a view-filter overlay toggle', () => {
+		const fields = overlayBulkFields();
+		expect(fields.some((f) => f.globalKey === 'showAtmospheres' && f.mode === 'viewFilter')).toBe(
+			true
+		);
+		expect(annotationsOf(bodyAtmosphereSchema.properties.enabled).bulk?.globalKey).toBe(
+			'showAtmospheres'
+		);
 	});
 });
 

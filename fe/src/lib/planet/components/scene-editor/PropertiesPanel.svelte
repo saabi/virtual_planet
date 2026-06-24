@@ -8,7 +8,8 @@
 		FieldTerm,
 		PlanetScene,
 		SceneNode,
-		Transform
+		Transform,
+		NodeDisplay
 	} from '$lib/planet/scene/types.js';
 
 	interface BreadcrumbCrumb {
@@ -34,6 +35,7 @@
 		onConstraintsChange?: (next: Constraint[]) => void;
 		onAppearanceChange?: (a: BodyAppearance) => void;
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
+		onDisplayChange?: (patch: Partial<NodeDisplay>) => void;
 		onRenderProcedural?: () => void;
 		onOpenPlanet?: () => void;
 		onOpenPlanetNewTab?: () => void;
@@ -74,6 +76,7 @@
 		onConstraintsChange,
 		onAppearanceChange,
 		onAtmosphereChange,
+		onDisplayChange,
 		onRenderProcedural,
 		onOpenPlanet,
 		onOpenPlanetNewTab
@@ -182,6 +185,25 @@
 							<EditorSubsection title="Constraints">
 								<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
 							</EditorSubsection>
+						{:else if sectionId === 'display'}
+							{#if selectedNode.driver?.type === 'kepler' || selectedNode.orbit}
+								<EditorSubsection title="Overlays" defaultOpen>
+									<label class="display-row">
+										<input
+											type="checkbox"
+											checked={selectedNode.display?.orbitPath !== false}
+											onchange={(e) =>
+												onDisplayChange?.({
+													orbitPath: e.currentTarget.checked ? undefined : false
+												})}
+										/>
+										Show orbit path
+									</label>
+									<p class="display-hint">
+										Respects the global orbit-path mode in Render → View → Overlays.
+									</p>
+								</EditorSubsection>
+							{/if}
 						{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
 							<AppearanceEditor body={bodyNode} onappearance={onAppearanceChange} />
 						{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
@@ -283,6 +305,20 @@
 		font-family: ui-monospace, monospace;
 		font-size: 10px;
 		opacity: 0.6;
+	}
+
+	.display-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+	}
+
+	.display-hint {
+		margin: 4px 0 0;
+		font-size: 10px;
+		opacity: 0.55;
+		line-height: 1.35;
 	}
 
 	.render-btn {

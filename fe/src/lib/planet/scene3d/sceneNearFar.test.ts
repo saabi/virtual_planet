@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_DEPTH_RATIO, NEAR_FLOOR, orbitNearFar, sceneNearFar } from './orbitCamera.js';
 import type { Vec3 } from '../math/vec.js';
+import { len3, sub3 } from '../math/vec.js';
 
 describe('sceneNearFar', () => {
 	it('encloses every body so far ones stay inside the frustum', () => {
@@ -45,5 +46,38 @@ describe('sceneNearFar', () => {
 		expect(near).toBeLessThanOrEqual(2e7 - radius); // in front of the near surface
 		expect(far).toBeGreaterThanOrEqual((2e7 + radius) * 1.05); // beyond the far surface
 		expect(far / near).toBeLessThan(MAX_DEPTH_RATIO);
+	});
+
+	it('extends the far plane for orbit ellipse samples beyond body radii', () => {
+		const sun: Vec3 = [0, 0, 0];
+		const earth: Vec3 = [2e7, 0, 0];
+		const apoapsis: Vec3 = [-2e7, 0, 0];
+		const eye: Vec3 = [2e7, 1e6, 5e6];
+		const bodiesOnly = sceneNearFar(eye, [
+			{ center: sun, radius: 7e5 },
+			{ center: earth, radius: 6e5 }
+		]);
+		const withOrbit = sceneNearFar(eye, [
+			{ center: sun, radius: 7e5 },
+			{ center: earth, radius: 6e5 }
+		], [apoapsis]);
+		expect(withOrbit[1]).toBeGreaterThan(bodiesOnly[1]);
+		expect(withOrbit[1]).toBeGreaterThanOrEqual(len3(sub3(eye, apoapsis)) * 1.05);
+	});
+
+	it('ignores engulfing orbit bounds for the near plane when the eye is inside them', () => {
+		const earthRadius = 6.4e6;
+		const earthCenter: Vec3 = [1.5e11, 0, 0];
+		const eye: Vec3 = [earthCenter[0] + earthRadius * 8, 0, 0];
+		const bodies = [
+			{ center: [0, 0, 0] as Vec3, radius: 7e8 },
+			{ center: earthCenter, radius: earthRadius }
+		];
+		const orbitEnvelope = { center: [0, 0, 0] as Vec3, radius: 1.53e11 };
+		const withoutEnvelope = sceneNearFar(eye, bodies);
+		const withEnvelope = sceneNearFar(eye, bodies, [], [orbitEnvelope]);
+		expect(withEnvelope[0]).toBeGreaterThan(1e6);
+		expect(withEnvelope[0]).toBeCloseTo(withoutEnvelope[0], -1);
+		expect(withEnvelope[1]).toBeGreaterThan(withoutEnvelope[1]);
 	});
 });

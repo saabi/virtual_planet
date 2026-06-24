@@ -3,7 +3,11 @@
 	import type { Vec3 } from '../math/vec.js';
 	import { getChildren, getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { evaluateScene } from '../scene/driver.js';
-	import { orbitPathLocal } from '../scene/orbit.js';
+	import {
+		collectOrbitPathSpecs,
+		buildOrbitPath3D,
+		orbitPathSegmentCount
+	} from '../scene/orbitPaths.js';
 	import {
 		fitView,
 		pickNearest,
@@ -54,26 +58,42 @@
 		pts: Array<[number, number]>;
 	}
 
-	/** Each body's orbit as an ellipse path: walk up to the nearest kepler-driver
-	 *  container, draw its local ellipse (focus at origin) offset to the orbit center =
-	 *  the container's parent world pos. The orbit plane is inertial, so no rotation is
-	 *  applied to the path. */
-	function orbitPaths(animated: PlanetScene): OrbitPath[] {
-		const out: OrbitPath[] = [];
-		for (const body of listBodies(animated)) {
-			let cur = body.parentId ? animated.nodes.get(body.parentId) : undefined;
-			while (cur && cur.driver?.type !== 'kepler' && cur.kind !== 'body') {
-				cur = cur.parentId ? animated.nodes.get(cur.parentId) : undefined;
-			}
-			if (!cur || cur.driver?.type !== 'kepler' || cur.parentId == null) continue;
-			const center = getWorldTransform(animated, cur.parentId).position;
-			const local = orbitPathLocal(cur.driver, 96);
-			out.push({
-				bodyId: body.id,
-				pts: local.map((p) => [center[0] + p[0], center[2] + p[2]])
-			});
+	function orbitPathsForView(animated: PlanetScene, view: MapView): OrbitPath[] {
+		return collectOrbitPathSpecs(animated).map((spec) => {
+			const viewDist = Math.hypot(
+				spec.center[0] - view.worldCenterX,
+				spec.center[2] - view.worldCenterZ
+			);
+			const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
+			const segments = orbitPathSegmentCount(
+				spec.elements,
+				Math.max(viewDist, spec.elements.semiMajorAxis * 0.1),
+				view.height,
+				isSelected
+					? { maxChordPx: 2, min: 32, max: 256 }
+					: { maxChordPx: 3, min: 32, max: 128 }
+			);
+			const path = buildOrbitPath3D(spec, segments, time);
+			return {
+				bodyId: path.bodyId,
+				pts: path.points.map((pt) => [pt[0], pt[2]] as [number, number])
+			};
+		});
+	}
+
+	function fitAllViewFromSpecs(
+		animated: PlanetScene,
+		bodies: BodyNode[],
+		specs: ReturnType<typeof collectOrbitPathSpecs>
+	): MapView {
+		const pts: Vec3[] = [];
+		for (const b of bodies) pts.push(getWorldTransform(animated, b.id).position);
+		for (const spec of specs) {
+			const r = spec.elements.semiMajorAxis * (1 + spec.elements.eccentricity);
+			const c = spec.center;
+			pts.push([c[0] + r, 0, c[2]], [c[0] - r, 0, c[2]], [c[0], 0, c[2] + r], [c[0], 0, c[2] - r]);
 		}
-		return out;
+		return fitView(xzBounds(pts), canvasW, canvasH, 28);
 	}
 
 	/** Zoom span (world meters) when following a body: frame its moons, or itself. */
@@ -88,13 +108,6 @@
 			}
 		}
 		return Math.max(span * 1.3, body.radiusMeters * 8, 1);
-	}
-
-	function fitAllView(animated: PlanetScene, bodies: BodyNode[], paths: OrbitPath[]): MapView {
-		const pts: Vec3[] = [];
-		for (const b of bodies) pts.push(getWorldTransform(animated, b.id).position);
-		for (const orbit of paths) for (const [x, z] of orbit.pts) pts.push([x, 0, z]);
-		return fitView(xzBounds(pts), canvasW, canvasH, 28);
 	}
 
 	function draw() {
@@ -118,7 +131,7 @@
 
 		const worldPos = new Map<string, Vec3>();
 		for (const b of bodies) worldPos.set(b.id, getWorldTransform(animated, b.id).position);
-		const paths = orbitPaths(animated);
+		const specs = collectOrbitPathSpecs(animated);
 
 		let view: MapView;
 		const followBody = followId ? (animated.nodes.get(followId) as BodyNode | undefined) : undefined;
@@ -133,8 +146,10 @@
 				height: canvasH
 			};
 		} else {
-			view = fitAllView(animated, bodies, paths);
+			view = fitAllViewFromSpecs(animated, bodies, specs);
 		}
+
+		const paths = orbitPathsForView(animated, view);
 
 		// Orbit ellipses (driver path offset to the orbit center, inertial).
 		ctx.lineWidth = 1;

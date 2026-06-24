@@ -1,5 +1,5 @@
 import { create } from '@virtual-planet/schema';
-import type { BodyNode, BodyType, PlanetScene, SceneNode } from './types.js';
+import type { BodyNode, BodyType, NodeDisplay, PlanetScene, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
 import { bodySchema } from './nodeSchemas.js';
 
@@ -165,5 +165,27 @@ export function reparent(scene: PlanetScene, nodeId: string, newParentId: string
 	if (descendantIds(scene, nodeId).has(newParentId)) return scene; // would form a cycle
 	const nodes = new Map(scene.nodes);
 	nodes.set(nodeId, { ...node, parentId: newParentId });
+	return { rootId: scene.rootId, nodes };
+}
+
+/** Patch viewport display overrides on a node (orbit path visibility, etc.). */
+export function updateNodeDisplay(
+	scene: PlanetScene,
+	nodeId: string,
+	patch: Partial<NodeDisplay>
+): PlanetScene {
+	const node = scene.nodes.get(nodeId);
+	if (!node) return scene;
+	const display: NodeDisplay = { ...node.display };
+	for (const key of Object.keys(patch) as (keyof NodeDisplay)[]) {
+		const v = patch[key];
+		if (v === undefined) delete display[key];
+		else display[key] = v;
+	}
+	const nodes = new Map(scene.nodes);
+	nodes.set(nodeId, {
+		...node,
+		display: Object.keys(display).length > 0 ? display : undefined
+	});
 	return { rootId: scene.rootId, nodes };
 }

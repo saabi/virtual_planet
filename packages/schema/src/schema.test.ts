@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	annotationsOf,
+	bulkOf,
 	check,
 	create,
 	extent,
@@ -9,6 +10,7 @@ import {
 	ref,
 	Type,
 	withDefault,
+	X_BULK,
 	type Static
 } from './schema.js';
 
@@ -115,6 +117,35 @@ describe('create (node template / spawn)', () => {
 			eccentricity: quantity('none', { min: 0, max: 1, default: 0 })
 		});
 		expect(create(orbit)).toEqual({ semiMajorAxis: 10_000, eccentricity: 0 });
+	});
+});
+
+describe('bulkOf (overlay control metadata)', () => {
+	it('reads x-bulk annotations and survives JSON round-trip', () => {
+		const enabled = Type.Boolean({
+			default: true,
+			[X_BULK]: {
+				panel: 'overlays',
+				mode: 'viewFilter',
+				globalKey: 'showAtmospheres',
+				label: 'Atmospheres'
+			}
+		});
+		expect(bulkOf(enabled)).toEqual({
+			panel: 'overlays',
+			mode: 'viewFilter',
+			globalKey: 'showAtmospheres',
+			label: 'Atmospheres'
+		});
+		expect(annotationsOf(enabled).bulk?.globalKey).toBe('showAtmospheres');
+
+		const roundTripped = JSON.parse(JSON.stringify(enabled));
+		expect(bulkOf(roundTripped)?.globalKey).toBe('showAtmospheres');
+	});
+
+	it('returns undefined when x-bulk is missing or invalid', () => {
+		expect(bulkOf(Type.Boolean())).toBeUndefined();
+		expect(bulkOf(Type.Boolean({ [X_BULK]: { panel: 'other' } }))).toBeUndefined();
 	});
 });
 

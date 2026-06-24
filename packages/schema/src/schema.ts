@@ -18,6 +18,17 @@ export const X_REF = 'x-ref';
 export const X_WIDGET = 'x-widget';
 /** Stored units per display unit (e.g. metres-per-km = 1000): the form shows value/scale. */
 export const X_SCALE = 'x-scale';
+/** Opt-in global bulk/overlay control for a field (Render panel toggles). */
+export const X_BULK = 'x-bulk';
+
+/** Global overlay/bulk control metadata on a schema field. */
+export interface BulkControlAnnotations {
+	panel: 'overlays';
+	mode: 'viewFilter' | 'documentPatch';
+	/** Key in SceneViewportPrefs.overlays (or similar global prefs bag). */
+	globalKey: string;
+	label?: string;
+}
 
 /** Physical unit for a quantity. `none` = dimensionless (e.g. eccentricity). */
 export type Unit = 'none' | 'm' | 'km' | 'kg' | 's' | 'rad' | 'deg';
@@ -99,6 +110,7 @@ export interface SchemaAnnotations {
 	scale?: number;
 	default?: unknown;
 	description?: string;
+	bulk?: BulkControlAnnotations;
 }
 
 /** Extract the domain annotations from a schema (works on a serialized round-trip too). */
@@ -112,7 +124,25 @@ export function annotationsOf(schema: TSchema): SchemaAnnotations {
 	if (typeof s[X_SCALE] === 'number') out.scale = s[X_SCALE] as number;
 	if ('default' in s) out.default = s.default;
 	if (typeof s.description === 'string') out.description = s.description;
+	const bulk = bulkOf(schema);
+	if (bulk) out.bulk = bulk;
 	return out;
+}
+
+/** Extract opt-in bulk/overlay control metadata from a schema field. */
+export function bulkOf(schema: TSchema): BulkControlAnnotations | undefined {
+	const raw = (schema as Record<string, unknown>)[X_BULK];
+	if (!raw || typeof raw !== 'object') return undefined;
+	const b = raw as Record<string, unknown>;
+	if (b.panel !== 'overlays') return undefined;
+	if (b.mode !== 'viewFilter' && b.mode !== 'documentPatch') return undefined;
+	if (typeof b.globalKey !== 'string') return undefined;
+	return {
+		panel: 'overlays',
+		mode: b.mode,
+		globalKey: b.globalKey,
+		label: typeof b.label === 'string' ? b.label : undefined
+	};
 }
 
 // --- Introspection for form generation (the getEditor / TypedField pattern) ---

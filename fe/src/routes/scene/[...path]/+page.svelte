@@ -22,7 +22,8 @@
 		addOrbitingBody,
 		makeBody,
 		makeGroup,
-		removeSubtree
+		removeSubtree,
+		updateNodeDisplay
 	} from '$lib/planet/scene/sceneEdit.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
@@ -43,6 +44,7 @@
 		BodyAtmosphere,
 		Constraint,
 		FieldTerm,
+		NodeDisplay,
 		PlanetScene,
 		Transform
 	} from '$lib/planet/scene/types.js';
@@ -226,6 +228,9 @@
 	function onAtmosphereChange(a: BodyAtmosphere) {
 		if (selectedId) scene = updateNode(scene, selectedId, { atmosphere: a });
 	}
+	function onDisplayChange(patch: Partial<NodeDisplay>) {
+		if (selectedId) scene = updateNodeDisplay(scene, selectedId, patch);
+	}
 
 	// Hand the selected body off to the /planet editor: copy its resolved params into
 	// /planet's session (so PlanetViewport hydrates them) + a persistent "link" record so
@@ -328,6 +333,7 @@
 	{onConstraintsChange}
 	{onAppearanceChange}
 	{onAtmosphereChange}
+	{onDisplayChange}
 	onRenderProcedural={renderProcedural}
 	onOpenPlanet={() => openInPlanetEditor(false)}
 	onOpenPlanetNewTab={() => openInPlanetEditor(true)}

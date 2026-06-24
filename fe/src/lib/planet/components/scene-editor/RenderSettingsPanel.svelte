@@ -3,8 +3,11 @@
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import type {
 		SceneAtmosphereBlendMode,
-		SceneViewportPrefs
+		SceneViewportPrefs,
+		OrbitPathOverlayMode
 	} from '$lib/planet/scene/viewportPrefs.js';
+	import { overlayBulkFields } from '$lib/planet/scene/nodeSchemas.js';
+	import { RENDER_FEATURES } from '$lib/planet/scene/renderFeatures.js';
 
 	interface Props {
 		materialDebug: SceneDebugMode;
@@ -24,6 +27,9 @@
 		lookMode = $bindable(),
 		viewportPrefs = $bindable()
 	}: Props = $props();
+
+	const overlayBulk = overlayBulkFields();
+	const orbitFeature = RENDER_FEATURES.find((f) => f.id === 'orbitPath');
 
 	type RenderSuperSectionId = 'view' | 'quality' | 'debug' | 'shading';
 
@@ -60,6 +66,34 @@
 							/>
 							Horizon look
 						</label>
+					</EditorSubsection>
+					<EditorSubsection title="Overlays" defaultOpen>
+						{#each overlayBulk as field (field.globalKey)}
+							{#if field.globalKey === 'showAtmospheres'}
+								<label class="atmo-head">
+									<input
+										type="checkbox"
+										bind:checked={viewportPrefs.overlays.showAtmospheres}
+									/>
+									{field.label}
+								</label>
+							{/if}
+						{/each}
+						{#if orbitFeature}
+							<label class="atmo-row">
+								<span>{orbitFeature.label}</span>
+								<select
+									value={viewportPrefs.overlays.orbitPaths}
+									onchange={(e) =>
+										(viewportPrefs.overlays.orbitPaths = e.currentTarget
+											.value as OrbitPathOverlayMode)}
+								>
+									<option value="off">Off</option>
+									<option value="all">All</option>
+									<option value="selected">Selected only</option>
+								</select>
+							</label>
+						{/if}
 					</EditorSubsection>
 					<EditorSubsection title="Material view" defaultOpen>
 						<label class="atmo-row">

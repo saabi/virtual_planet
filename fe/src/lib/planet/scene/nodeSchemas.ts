@@ -1,4 +1,4 @@
-import { Type, quantity, ref, type TSchema } from '@virtual-planet/schema';
+import { Type, bulkOf, fields, quantity, ref, X_BULK, type TSchema } from '@virtual-planet/schema';
 import type { DriverSpec, SceneNode } from './types.js';
 
 const DEG = Math.PI / 180;
@@ -78,6 +78,58 @@ export const bodySchema = Type.Object({
 	radiusMeters: quantity('km', { min: 1_000, max: 1e12, default: 500_000, scale: 1000 }),
 	standIn: Type.Boolean({ default: false })
 });
+
+/** Intrinsic atmosphere design — mirrors BodyAtmosphere on BodyNode. */
+export const bodyAtmosphereSchema = Type.Object({
+	enabled: Type.Boolean({
+		default: true,
+		[X_BULK]: {
+			panel: 'overlays',
+			mode: 'viewFilter',
+			globalKey: 'showAtmospheres',
+			label: 'Atmospheres'
+		}
+	}),
+	shellHeightMeters: quantity('km', { min: 0, default: 100_000, scale: 1000 }),
+	scaleHeightMeters: quantity('km', { min: 0, default: 8_000, scale: 1000 }),
+	rayleighStrength: quantity('none', { min: 0, default: 1 }),
+	mieStrength: quantity('none', { min: 0, default: 0.05 }),
+	mieG: quantity('none', { min: 0, max: 1, default: 0.76 }),
+	groundFogDensity: quantity('none', { min: 0, default: 0 }),
+	sunDiskIntensity: quantity('none', { min: 0, default: 1 })
+});
+
+/** Descriptor for a schema field with opt-in global overlay/bulk control. */
+export interface BulkFieldDescriptor {
+	schemaId: string;
+	fieldKey: string;
+	label: string;
+	globalKey: string;
+	mode: 'viewFilter' | 'documentPatch';
+}
+
+const OVERLAY_BULK_SCHEMAS: { id: string; schema: TSchema }[] = [
+	{ id: 'bodyAtmosphere', schema: bodyAtmosphereSchema }
+];
+
+/** Fields annotated with x-bulk for the Render panel Overlays section. */
+export function overlayBulkFields(): BulkFieldDescriptor[] {
+	const out: BulkFieldDescriptor[] = [];
+	for (const { id, schema } of OVERLAY_BULK_SCHEMAS) {
+		for (const f of fields(schema)) {
+			const bulk = bulkOf(f.schema);
+			if (!bulk || bulk.panel !== 'overlays') continue;
+			out.push({
+				schemaId: id,
+				fieldKey: f.key,
+				label: bulk.label ?? f.key,
+				globalKey: bulk.globalKey,
+				mode: bulk.mode
+			});
+		}
+	}
+	return out;
+}
 
 /** A directional light (schema-driven editor — no bespoke component needed). */
 export const directionalLightSchema = Type.Object({

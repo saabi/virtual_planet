@@ -144,12 +144,20 @@ export interface LimitRotationConstraint {
 
 export type Constraint = LimitRotationConstraint;
 
+/** Editor/viewport display overrides (not simulation data). */
+export interface NodeDisplay {
+	/** Per-orbit-container override for the 3D/2D orbit ellipse overlay. */
+	orbitPath?: boolean;
+}
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
 	parentId: string | null;
 	transform: Transform;
 	enabled: boolean;
+	/** Optional viewport/display overrides for editor overlays. */
+	display?: NodeDisplay;
 	/** Optional driver: exposes named outputs (referenced by FieldBindings elsewhere). */
 	driver?: DriverSpec;
 	/** Optional field terms: compose this node's transform channels from driver outputs / constants. */

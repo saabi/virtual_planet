@@ -3,6 +3,9 @@
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
 	import { SceneEngine, type SceneOverlayFn } from '../scene3d/sceneEngine.js';
 	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
+	import { OrbitLinePass } from '../scene3d/orbitLinePass.js';
+	import { collectOrbitPathSpecs, buildOrbitPath3D, orbitPathSegmentCount, orbitPathBoundsForNearFar } from '../scene/orbitPaths.js';
+	import { resolveAtmosphereVisible, resolveOrbitPathVisible } from '../scene/renderFeatures.js';
 	import {
 		clampElevation,
 		cameraEye,
@@ -30,7 +33,7 @@
 	import { PlanetRenderer } from '../render/planetRenderer.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { invert4 } from '../math/mat4.js';
-	import { sub3 } from '../math/vec.js';
+	import { len3, sub3 } from '../math/vec.js';
 	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
 	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 	import { toGpuAtmosphereParams } from '../params/atmosphereParams.js';
@@ -95,6 +98,7 @@
 	let format: GPUTextureFormat = 'bgra8unorm';
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
+	let orbitLines: OrbitLinePass | null = null;
 	// Pool of offscreen procedural renderers — one per visible terrain body (independent
 	// mode/local-frame state). Terrain records into the shared scene pass via recordInto.
 	let proceduralRendererPool: PlanetRenderer[] = [];
@@ -205,7 +209,7 @@
 	});
 
 	function render() {
-		if (!device || !context || !engine || !spheres) return;
+		if (!device || !context || !engine || !spheres || !orbitLines) return;
 		const animated = evaluateScene(scene, time);
 		const aspect = w / h;
 		const orbitCam = { ...camera, target: targetOf(animated) };
@@ -214,20 +218,40 @@
 		// f32 precise when bodies sit ~1e11 m from the world origin; clip depth is identical
 		// to the absolute view-projection, so the shared depth buffer stays comparable.
 		const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
-		// Depth range fit to every body in view (not just the focused one), so far planets
-		// stay inside the frustum. Shared by spheres, terrain and the atmosphere for depth
-		// parity; bodies beyond the precision-capped far plane render as pinned dots.
+		const visibleOrbitSpecs = collectOrbitPathSpecs(animated).filter((p) => {
+			const node = animated.nodes.get(p.keplerNodeId);
+			return (
+				node &&
+				resolveOrbitPathVisible(node, viewportPrefs, selectedId ?? null, animated)
+			);
+		});
+		// Depth range fit to every body in view and visible orbit ellipses (not just the
+		// focused body), so far planets and the far side of an orbit stay inside the frustum.
 		const nearFar = sceneNearFar(
 			eye,
 			listBodies(animated).map((b) => ({
 				center: getWorldTransform(animated, b.id).position,
 				radius: b.radiusMeters
-			}))
+			})),
+			[],
+			visibleOrbitSpecs.map(orbitPathBoundsForNearFar)
 		);
 		const vpRel =
 			cameraMode === 'freeFly'
 				? sceneFreeFlyViewProjectionRelative(freeFly, aspect, nearFar)
 				: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
+		const visibleOrbitPaths = visibleOrbitSpecs.map((spec) => {
+			const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
+			const segments = orbitPathSegmentCount(
+				spec.elements,
+				len3(sub3(spec.center, eye)),
+				h,
+				isSelected
+					? { maxChordPx: 1.5, min: 32, max: 4096 }
+					: { maxChordPx: 4, min: 32, max: 256 }
+			);
+			return buildOrbitPath3D(spec, segments, time);
+		});
 		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
 		const light = lighting(animated);
 		updateMarker(animated, vpRel, eye);
@@ -282,7 +306,7 @@
 			: (viewportPrefs?.atmosphere.blendMode ?? 'explicit-composite');
 		if (procActive && sceneAtmosphere) {
 			const atmoCandidates = sortProceduralDrawOrder(terrainTargets).filter((t) =>
-				resolveBodyAtmosphere(t.body).enabled
+				resolveAtmosphereVisible(t.body, viewportPrefs)
 			);
 			const atmoTargets =
 				primaryTarget && atmoCandidates.some((t) => t.id === primaryTarget.id)
@@ -335,6 +359,7 @@
 			h,
 			(pass) => {
 				if (!atmosphereOnWhite) spheres!.record(pass, instances, vpRel, lightRel);
+				orbitLines!.record(pass, visibleOrbitPaths, vpRel, eye);
 				if (procActive) {
 					const drawOrder = sortProceduralDrawOrder(terrainTargets);
 					for (let i = 0; i < drawOrder.length; i++) {
@@ -635,6 +660,7 @@
 				context = configureWebGPUCanvas(device, el, format);
 				engine = new SceneEngine(device, format);
 				spheres = new SpherePass(device, format);
+				orbitLines = new OrbitLinePass(device, format);
 				sceneAtmosphere = new SceneAtmospherePass(device, format);
 				const pool: PlanetRenderer[] = [];
 				for (let i = 0; i < MAX_PROCEDURAL_BODIES; i++) {
@@ -673,6 +699,7 @@
 			for (const renderer of proceduralRendererPool) renderer.destroy();
 			proceduralRendererPool = [];
 			spheres?.destroy();
+			orbitLines?.destroy();
 			engine?.destroy();
 		};
 	});
