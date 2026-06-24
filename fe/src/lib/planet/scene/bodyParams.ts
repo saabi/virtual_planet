@@ -89,3 +89,17 @@ export const DEFAULT_FADE_GAMMA = 2.5;
 export function fadeOpacity(blend: number, gamma: number = DEFAULT_FADE_GAMMA): number {
 	return Math.pow(Math.max(0, Math.min(1, blend)), Math.max(1, gamma));
 }
+
+/** Default base-sphere shrink at full cross-fade, as a percent of the body radius. */
+export const DEFAULT_SPHERE_SHRINK_PERCENT = 6;
+
+/** Base-sphere radius scale across the cross-fade. The sphere recedes by up to
+ *  `shrinkPercent`% of its radius as `blend`→1, so deep terrain valleys (below the base
+ *  radius) aren't occluded by the full-radius sphere while the terrain fades in. blend 0
+ *  → 1.0 (no shrink); blend 1 → 1 − shrinkPercent/100. The shrink stays small (a few
+ *  percent) so the sphere still backs the terrain through the transition. */
+export function sphereFadeScale(blend: number, shrinkPercent: number): number {
+	const b = Math.max(0, Math.min(1, blend));
+	const shrink = Math.max(0, shrinkPercent) / 100;
+	return 1 - shrink * b;
+}

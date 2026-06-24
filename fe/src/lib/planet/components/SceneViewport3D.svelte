@@ -14,7 +14,7 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
-	import { DEFAULT_LOD_THRESHOLDS, type LodLevel } from '../scene/bodyParams.js';
+	import { DEFAULT_LOD_THRESHOLDS, sphereFadeScale, type LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
 	import {
@@ -149,11 +149,16 @@
 		excludeIds: ReadonlySet<string> = new Set()
 	): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
+		const shrinkPercent = viewportPrefs?.lod.sphereShrinkPercent ?? 0;
 		const out: BodyInstance[] = [];
 		for (const it of drawList) {
 			if (!it.screen) continue; // off-screen → cull
 			if (excludeIds.has(it.id)) continue; // rendered procedurally instead of as a sphere
-			const radius = it.lod === 'dot' ? (DOT_RADIUS_PX * it.screen.depth) / screenScale : it.radiusMeters;
+			// Recede the base sphere as terrain fades in so deep valleys aren't occluded.
+			const radius =
+				it.lod === 'dot'
+					? (DOT_RADIUS_PX * it.screen.depth) / screenScale
+					: it.radiusMeters * sphereFadeScale(it.blend, shrinkPercent);
 			out.push({
 				position: it.worldPos,
 				radius,

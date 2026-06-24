@@ -70,7 +70,11 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 			sphereAboveRadiusPx: num(lod.sphereAboveRadiusPx, d.lod.sphereAboveRadiusPx),
 			proceduralAboveRadiusPx: proceduralStart,
 			proceduralFullRadiusPx: Math.max(proceduralStart + 1, proceduralFull),
-			fadeGamma: num(lod.fadeGamma, d.lod.fadeGamma)
+			fadeGamma: num(lod.fadeGamma, d.lod.fadeGamma),
+			sphereShrinkPercent: Math.max(
+				0,
+				Math.min(10, num(lod.sphereShrinkPercent, d.lod.sphereShrinkPercent))
+			)
 		}
 	};
 }

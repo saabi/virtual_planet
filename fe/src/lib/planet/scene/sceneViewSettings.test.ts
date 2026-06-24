@@ -46,6 +46,12 @@ describe('coerceViewportPrefs', () => {
 		expect(got.lod.proceduralFullRadiusPx).toBe(201);
 	});
 
+	it('clamps sphereShrinkPercent into 0..10', () => {
+		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: 50 } }).lod.sphereShrinkPercent).toBe(10);
+		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: -3 } }).lod.sphereShrinkPercent).toBe(0);
+		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: 4 } }).lod.sphereShrinkPercent).toBe(4);
+	});
+
 	it('keeps valid hardware-alpha blend mode', () => {
 		expect(coerceViewportPrefs({ atmosphere: { blendMode: 'hardware-alpha' } }).atmosphere.blendMode).toBe(
 			'hardware-alpha'

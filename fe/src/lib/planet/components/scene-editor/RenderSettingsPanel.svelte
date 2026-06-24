@@ -122,6 +122,15 @@
 								variant="scene"
 								bind:value={viewportPrefs.lod.fadeGamma}
 							/>
+							<Range
+								id="lod-sphere-shrink"
+								label="Sphere shrink at fade (%)"
+								min={0}
+								max={10}
+								step={0.5}
+								variant="scene"
+								bind:value={viewportPrefs.lod.sphereShrinkPercent}
+							/>
 						</ul>
 					</EditorSubsection>
 					<EditorSubsection title="Tessellation" defaultOpen>

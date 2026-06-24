@@ -10,6 +10,7 @@ import { DEFAULT_ATMOSPHERE_INTEGRATE_STEPS } from '$lib/planet/scene/bodyAtmosp
 import {
 	DEFAULT_FADE_GAMMA,
 	DEFAULT_LOD_THRESHOLDS,
+	DEFAULT_SPHERE_SHRINK_PERCENT,
 	type LodThresholds
 } from '$lib/planet/scene/bodyParams.js';
 
@@ -18,6 +19,9 @@ export interface SceneLodSettings extends LodThresholds {
 	/** Gamma (>=1) on the sphere→terrain cross-fade opacity; higher biases visibility
 	 *  toward the base sphere. 1 = linear. */
 	fadeGamma: number;
+	/** Percent (0–10) the base sphere shrinks by full cross-fade so deep terrain valleys
+	 *  aren't occluded by the full-radius sphere. 0 = no shrink. */
+	sphereShrinkPercent: number;
 }
 
 export interface ViewportDebugSettings {
@@ -58,7 +62,11 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		tessellation: { ...DEFAULT_TESSELLATION },
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES },
 		atmosphereIntegrateSteps: DEFAULT_ATMOSPHERE_INTEGRATE_STEPS,
-		lod: { ...DEFAULT_LOD_THRESHOLDS, fadeGamma: DEFAULT_FADE_GAMMA }
+		lod: {
+			...DEFAULT_LOD_THRESHOLDS,
+			fadeGamma: DEFAULT_FADE_GAMMA,
+			sphereShrinkPercent: DEFAULT_SPHERE_SHRINK_PERCENT
+		}
 	};
 }
 
@@ -86,4 +94,5 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void p.lod.proceduralAboveRadiusPx;
 	void p.lod.proceduralFullRadiusPx;
 	void p.lod.fadeGamma;
+	void p.lod.sphereShrinkPercent;
 }
