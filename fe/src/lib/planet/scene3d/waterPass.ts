@@ -9,6 +9,12 @@ import {
 	writeEclipseUniforms,
 	type EclipseUniforms
 } from '../scene/packEclipse.js';
+import {
+	PLANET_PARAMS_BYTE_SIZE,
+	toGpuPlanetParams,
+	writePlanetParamsToBuffer,
+	type PlanetParameters
+} from '../params/planetParams.js';
 import type { SceneLighting } from './spherePass.js';
 import { uvSphereBands, type WaterLodLevel } from './waterLod.js';
 
@@ -16,6 +22,8 @@ export interface WaterInstance {
 	position: Vec3;
 	seaLevelRadius: number;
 	rotation: Quat;
+	/** Receiver-body terrain params (radius = render radius) for the analytic self-shadow. */
+	params: PlanetParameters;
 }
 
 export interface WaterRecordOptions {
@@ -38,11 +46,19 @@ export interface WaterRecordOptions {
 	viewportHeight?: number;
 	/** 0 = shaded, 1 = flat cyan, 2 = lat/long grid, 3+ = diagnostic views. */
 	waterDebug?: number;
+	/** Terrain self-shadow on the ocean: enable + the shared softness/steps/fill knobs. */
+	shadows?: boolean;
+	shadowSoftness?: number;
+	shadowSteps?: number;
+	shadowFill?: number;
 }
 
 const INSTANCE_FLOATS = 16;
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
-const UNIFORM_SIZE = 256;
+const UNIFORM_SIZE = 272;
+/** Per-body shadow caster: PlanetParams (128) + rotation vec4 (16) + center vec4 (16). */
+const CASTER_STRIDE = PLANET_PARAMS_BYTE_SIZE + 32;
+const MAX_CASTERS = 16;
 
 function quatToMat3Cols(q: Quat, s: number): [number, number, number][] {
 	const [x, y, z, w] = q;
@@ -95,6 +111,7 @@ export class WaterPass {
 	private indexCounts = new Map<string, number>();
 	private ubuf: GPUBuffer;
 	private eclipseBuf: GPUBuffer;
+	private casterBuf: GPUBuffer;
 	private bindGroup: GPUBindGroup;
 	private depthDebugBindGroup: GPUBindGroup;
 	private instanceBuf: GPUBuffer | null = null;
@@ -169,6 +186,10 @@ export class WaterPass {
 			size: ECLIPSE_UNIFORM_SIZE,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
+		this.casterBuf = device.createBuffer({
+			size: MAX_CASTERS * CASTER_STRIDE,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+		});
 		this.sceneSampler = device.createSampler({
 			magFilter: 'linear',
 			minFilter: 'linear',
@@ -183,7 +204,8 @@ export class WaterPass {
 			layout: this.waterPipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: { buffer: this.ubuf } },
-				{ binding: 1, resource: { buffer: this.eclipseBuf } }
+				{ binding: 1, resource: { buffer: this.eclipseBuf } },
+				{ binding: 2, resource: { buffer: this.casterBuf } }
 			]
 		});
 		this.depthDebugBindGroup = device.createBindGroup({
@@ -296,11 +318,39 @@ export class WaterPass {
 		f32[46] = skyTint[2];
 		f32[47] = options.turbidityStrength ?? 0.45;
 		f32.set(invert4(viewProj), 48);
+		// shadowParams vec4 at byte 256: softness, steps, fill, enabled.
+		f32[64] = options.shadowSoftness ?? 0.5;
+		f32[65] = options.shadowSteps ?? 16;
+		f32[66] = options.shadowFill ?? 0.15;
+		f32[67] = options.shadows === false ? 0 : 1;
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 
 		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
 		writeEclipseUniforms(eclipseStaging, eclipse);
 		this.device.queue.writeBuffer(this.eclipseBuf, 0, eclipseStaging);
+	}
+
+	/** Pack per-body terrain-shadow casters (PlanetParams + rotation + eye-relative center),
+	 *  indexed by instance, matching the water shader's WaterShadowCaster storage layout. */
+	private writeCasters(instances: WaterInstance[]): void {
+		const count = Math.min(instances.length, MAX_CASTERS);
+		const staging = new ArrayBuffer(MAX_CASTERS * CASTER_STRIDE);
+		const view = new DataView(staging);
+		for (let i = 0; i < count; i++) {
+			const inst = instances[i]!;
+			const base = i * CASTER_STRIDE;
+			writePlanetParamsToBuffer(staging, base, toGpuPlanetParams(inst.params));
+			const tail = base + PLANET_PARAMS_BYTE_SIZE;
+			view.setFloat32(tail + 0, inst.rotation[0], true);
+			view.setFloat32(tail + 4, inst.rotation[1], true);
+			view.setFloat32(tail + 8, inst.rotation[2], true);
+			view.setFloat32(tail + 12, inst.rotation[3], true);
+			view.setFloat32(tail + 16, inst.position[0], true);
+			view.setFloat32(tail + 20, inst.position[1], true);
+			view.setFloat32(tail + 24, inst.position[2], true);
+			view.setFloat32(tail + 28, 1, true);
+		}
+		this.device.queue.writeBuffer(this.casterBuf, 0, staging);
 	}
 
 	private drawInstances(
@@ -340,6 +390,7 @@ export class WaterPass {
 	): void {
 		if (instances.length === 0) return;
 		this.writeUniforms(viewProj, light, eclipse, options);
+		this.writeCasters(instances);
 		this.copySceneColor(pass, sceneColorView);
 		const sourceBindGroup = this.createWaterSourceBindGroup(depthView, sceneColorView);
 		this.drawInstances(
@@ -382,6 +433,7 @@ export class WaterPass {
 		for (const b of this.ibufs.values()) b.destroy();
 		this.ubuf.destroy();
 		this.eclipseBuf.destroy();
+		this.casterBuf.destroy();
 		this.instanceBuf?.destroy();
 	}
 }

@@ -54,7 +54,7 @@ fn terrain_sun_shadow(
   surface_pos: vec3f,
   sun_dir: vec3f,
   params: PlanetParams,
-  scale: ScaleContext,
+  meters_per_pixel: f32, // scale-context bias term; pass 0 where unavailable (water shell)
   planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
   softness: f32,
   step_count: f32,
@@ -71,7 +71,7 @@ fn terrain_sun_shadow(
   }
 
   // Bias off the surface to dodge self-intersection from discretization.
-  let bias = max(scale.meters_per_pixel * 1.5, total_amplitude * 0.01);
+  let bias = max(meters_per_pixel * 1.5, total_amplitude * 0.01);
   // A shadow's horizontal reach grows as relief / sin(sun elevation); bound the
   // march so grazing light stays affordable (longer shadows are clipped softly).
   let max_dist = total_amplitude / max(sun_elev, 0.08);

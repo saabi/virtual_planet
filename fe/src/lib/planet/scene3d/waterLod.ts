@@ -1,5 +1,6 @@
 import { seaLevelRadius } from '../camera/seaLevel.js';
 import { resolveBodyParams } from '../scene/bodyParams.js';
+import type { PlanetParameters } from '../params/planetParams.js';
 import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
 import { getWorldTransform } from '../scene/sceneTree.js';
 import type { Vec3 } from '../math/vec.js';
@@ -46,6 +47,8 @@ export interface WaterRenderTarget {
 	seaLevelRadiusMeters: number;
 	screenRadiusPx: number;
 	lod: WaterLodLevel;
+	/** Resolved terrain params (radius = render radius) for the ocean self-shadow march. */
+	params: PlanetParameters;
 }
 
 function renderRadiusMeters(item: DrawItem): number {
@@ -86,7 +89,8 @@ export function selectWaterTargets(
 			rotation: getWorldTransform(animated, item.id).rotation,
 			seaLevelRadiusMeters: seaLevelRadius(params),
 			screenRadiusPx: item.screenRadiusPx,
-			lod
+			lod,
+			params
 		});
 	}
 
@@ -116,7 +120,8 @@ export function selectProceduralWaterTargets(
 			rotation: target.rotation,
 			seaLevelRadiusMeters: seaLevelRadius(params),
 			screenRadiusPx: target.screenRadiusPx,
-			lod
+			lod,
+			params
 		});
 	}
 

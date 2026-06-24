@@ -142,7 +142,8 @@ export class WebGPUBackend implements RenderBackend {
 				{
 					position: [0, 0, 0],
 					seaLevelRadius: seaLevelRadius(frame.params),
-					rotation: frame.planetRotation
+					rotation: frame.planetRotation,
+					params: frame.params
 				}
 			],
 			frame.camera.viewProjectionMatrix,
@@ -165,7 +166,11 @@ export class WebGPUBackend implements RenderBackend {
 				skyTint: [0.4, 0.58, 0.85],
 				turbidityStrength: frame.materialOverrides.waterTurbidityStrength ?? 0.45,
 				foamStrength: frame.materialOverrides.waterFoamStrength ?? 0.35,
-				shoreWidth: frame.materialOverrides.waterShoreWidth ?? 0.25
+				shoreWidth: frame.materialOverrides.waterShoreWidth ?? 0.25,
+				shadows: frame.materialOverrides.shadows,
+				shadowSoftness: frame.materialOverrides.shadowSoftness,
+				shadowSteps: frame.materialOverrides.shadowSteps,
+				shadowFill: frame.materialOverrides.shadowFill
 			}
 		);
 		pass.end();

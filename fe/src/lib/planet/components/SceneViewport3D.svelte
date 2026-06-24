@@ -461,7 +461,8 @@
 				const waterInstances: WaterInstance[] = waterTargets.map((target) => ({
 					position: sub3(target.worldPos, eye),
 					seaLevelRadius: target.seaLevelRadiusMeters,
-					rotation: target.rotation
+					rotation: target.rotation,
+					params: target.params
 				}));
 				return {
 					waterInstances,
@@ -485,7 +486,11 @@
 							viewportPrefs?.materialOverrides.waterTurbidityStrength ?? 0.45,
 						foamStrength: viewportPrefs?.materialOverrides.waterFoamStrength ?? 0.35,
 						shoreWidth: viewportPrefs?.materialOverrides.waterShoreWidth ?? 0.25,
-						waterDebug: sceneWaterDebugToGpu(materialDebug)
+						waterDebug: sceneWaterDebugToGpu(materialDebug),
+						shadows: viewportPrefs?.materialOverrides.shadows ?? true,
+						shadowSoftness: viewportPrefs?.materialOverrides.shadowSoftness ?? 0.5,
+						shadowSteps: viewportPrefs?.materialOverrides.shadowSteps ?? 16,
+						shadowFill: viewportPrefs?.materialOverrides.shadowFill ?? 0.15
 					}
 				};
 			}

@@ -1,5 +1,6 @@
 // Transparent sea-level shells drawn after terrain into the shared scene depth buffer.
 #include "../planet/eclipse.wgsl"
+#include "../planet/shadow.wgsl"
 
 struct Uniforms {
 	viewProj : mat4x4<f32>,
@@ -24,6 +25,18 @@ struct Uniforms {
 	skyTint : vec3f,
 	turbidityStrength : f32,
 	invViewProj : mat4x4<f32>,
+	// x = shadow softness, y = shadow steps, z = shadow fill, w = terrain-shadow enabled.
+	shadowParams : vec4<f32>,
+};
+
+// Per-ocean-body terrain-shadow caster: the body's full PlanetParams plus its world
+// rotation and eye-relative center, indexed by instance. Lets a water fragment march the
+// same analytic terrain self-shadow as the land, so coastal relief shadows the sea
+// continuously across the shoreline.
+struct WaterShadowCaster {
+	params : PlanetParams,
+	rotation : vec4<f32>,
+	center : vec4<f32>,
 };
 
 // Extinction per meter at absorptionStrength = 1 (red dies fastest).
@@ -33,6 +46,7 @@ const SCATTER_RGB : vec3f = vec3f(0.04, 0.14, 0.22);
 
 @group(0) @binding(0) var<uniform> u : Uniforms;
 @group(0) @binding(1) var<uniform> eclipse : EclipseUniforms;
+@group(0) @binding(2) var<storage, read> casters : array<WaterShadowCaster>;
 @group(1) @binding(0) var scene_depth : texture_depth_2d;
 @group(1) @binding(1) var scene_color : texture_2d<f32>;
 @group(1) @binding(2) var scene_sampler : sampler;
@@ -56,6 +70,7 @@ struct VSOut {
 	@location(0) normal : vec3<f32>,
 	@location(1) worldPos : vec3<f32>,
 	@location(2) localDir : vec3<f32>,
+	@location(3) @interpolate(flat) caster_idx : u32,
 };
 
 struct CopyVSOut {
@@ -89,7 +104,7 @@ fn fs_copy_scene(in : CopyVSOut) -> @location(0) vec4<f32> {
 }
 
 @vertex
-fn vs(in : VSIn) -> VSOut {
+fn vs(in : VSIn, @builtin(instance_index) iid : u32) -> VSOut {
 	let model = mat4x4<f32>(in.m0, in.m1, in.m2, in.m3);
 	let unit = normalize(in.pos);
 	let world = model * vec4<f32>(unit, 1.0);
@@ -98,6 +113,7 @@ fn vs(in : VSIn) -> VSOut {
 	out.normal = normalize(world.xyz - model[3].xyz);
 	out.worldPos = world.xyz;
 	out.localDir = unit;
+	out.caster_idx = iid;
 	return out;
 }
 
@@ -227,6 +243,17 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let ndl = max(dot(n, l), 0.0);
 	let ndv = max(dot(n, v), 0.0);
 	let eclipse_vis = body_eclipse_visibility(in.worldPos, eclipse);
+	// Terrain self-shadow: march the receiver body's analytic relief from this water point
+	// toward the sun (same function the land uses), so coastal terrain shadows the sea and
+	// the shadow stays continuous across the shoreline. Folded in with the same shadow-fill
+	// floor as land, then combined with the body eclipse.
+	var terrain_shadow = 1.0;
+	if (u.shadowParams.w > 0.5) {
+		let caster = casters[in.caster_idx];
+		let local_pos = in.worldPos - caster.center.xyz;
+		terrain_shadow = terrain_sun_shadow(local_pos, l, caster.params, 0.0, caster.rotation, u.shadowParams.x, u.shadowParams.y);
+	}
+	let sun_vis = mix(clamp(u.shadowParams.z, 0.0, 1.0), 1.0, terrain_shadow) * eclipse_vis;
 	let rough = clamp(0.045 / max(u.waterGloss, 0.1), 0.012, 0.35);
 	let glint = pow(max(dot(r, v), 0.0), mix(24.0, 420.0, 1.0 - rough));
 	let fresnel = pow(1.0 - ndv, 5.0);
@@ -243,10 +270,10 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let turbidity_mix = shore * max(u.turbidityStrength, 0.0);
 	transmitted = mix(transmitted, SHORE_TURBIDITY + transmitted * 0.12, turbidity_mix);
 	let base = mix(SHALLOW_WATER, DEEP_WATER, thickness);
-	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * eclipse_vis;
+	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * sun_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
 	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05);
-	let specular = u.lightColor.rgb * u.lightColor.w * glint * eclipse_vis * u.glintStrength * (0.08 + 1.4 * fresnel);
+	let specular = u.lightColor.rgb * u.lightColor.w * glint * sun_vis * u.glintStrength * (0.08 + 1.4 * fresnel);
 	let sky_refl = water_sky_reflection(n, v, rough) * eclipse_vis;
 	let sky_weight = fresnel * max(u.skyReflectionStrength, 0.0) * (0.35 + 0.65 * grazing);
 	let rim_scatter = SHALLOW_WATER * fresnel * (0.12 + 0.2 * grazing);
