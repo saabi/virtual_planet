@@ -10,7 +10,7 @@
 	.planet-shell {
 		position: relative;
 		width: 100%;
-		height: 100dvh;
+		height: 100%;
 		overflow: hidden;
 	}
 </style>

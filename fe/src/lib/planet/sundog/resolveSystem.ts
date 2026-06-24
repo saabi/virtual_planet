@@ -1,6 +1,6 @@
 import { getSystem, listSystems } from './catalog.js';
 import type { SunDogSystem } from './catalogTypes.js';
-import type { BodyEnrichment, ResolvedSystem, SystemEnrichment } from './enrichmentTypes.js';
+import type { BodyEnrichment, SystemEnrichment } from './enrichmentTypes.js';
 import { ENRICHMENTS } from './enrichments/index.js';
 
 export interface ResolvedSunDogSystem {

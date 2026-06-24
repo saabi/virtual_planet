@@ -219,7 +219,7 @@
 
 <style>
 	.galaxy {
-		position: fixed;
+		position: absolute;
 		inset: 0;
 		display: grid;
 		grid-template-columns: 1fr 340px;
