@@ -27,6 +27,7 @@ export interface WaterRecordOptions {
 	glintStrength?: number;
 	absorptionStrength?: number;
 	scatterStrength?: number;
+	refractionStrength?: number;
 	foamStrength?: number;
 	shoreWidth?: number;
 	meshLod?: WaterLodLevel;
@@ -284,6 +285,7 @@ export class WaterPass {
 		f32[38] = options.scatterStrength ?? 0.85;
 		f32[39] = options.foamStrength ?? 0.35;
 		f32[40] = options.shoreWidth ?? 0.25;
+		f32[41] = options.refractionStrength ?? 0.35;
 		f32.set(invert4(viewProj), 44);
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 

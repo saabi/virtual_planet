@@ -160,6 +160,7 @@ export class WebGPUBackend implements RenderBackend {
 				glintStrength: frame.materialOverrides.waterGlintStrength ?? 1.0,
 				absorptionStrength: frame.materialOverrides.waterAbsorptionStrength ?? 1.0,
 				scatterStrength: frame.materialOverrides.waterScatterStrength ?? 0.85,
+				refractionStrength: frame.materialOverrides.waterRefractionStrength ?? 0.35,
 				foamStrength: frame.materialOverrides.waterFoamStrength ?? 0.35,
 				shoreWidth: frame.materialOverrides.waterShoreWidth ?? 0.25
 			}

@@ -32,10 +32,10 @@ water milky turquoise. `Water thickness` debug correlates with tint.
 
 ## Slice B — Refraction UV offset
 
-Offset scene-color sample by wave normal: `refr_uv = uv + n.xz * strength * f(thickness)`.
-Shader-only (+ optional slider). Reduces glass-shell look.
+Offset scene-color sample by wave normal: `refr_uv = uv + n.xz * strength * f(shallow)`.
+Depth/column length still uses screen UV; only the color sample is refracted.
 
-**Status:** pending
+**Status:** done
 
 ## Slice C — Grazing sky / atmosphere reflection
 

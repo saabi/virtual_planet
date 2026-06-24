@@ -353,6 +353,15 @@
 								bind:value={viewportPrefs.materialOverrides.waterScatterStrength}
 							/>
 							<Range
+								id="water-refraction-strength"
+								label="Water Refraction"
+								min={0}
+								max={1.5}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterRefractionStrength}
+							/>
+							<Range
 								id="water-foam-strength"
 								label="Water Foam"
 								min={0}

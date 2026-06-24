@@ -18,6 +18,9 @@ struct Uniforms {
 	scatterStrength : f32,
 	foamStrength : f32,
 	shoreWidth : f32,
+	refractionStrength : f32,
+	_padAlign0 : f32,
+	_padAlign1 : f32,
 	invViewProj : mat4x4<f32>,
 };
 
@@ -218,6 +221,12 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	return mix(transmitted, surface, surface_mix);
 }
 
+fn refracted_uv(uv : vec2f, wave_n : vec3f, thickness : f32) -> vec2f {
+	let shallow = 1.0 - thickness;
+	let offset = wave_n.xz * u.refractionStrength * (0.012 + 0.045 * shallow);
+	return clamp(uv + offset, vec2f(0.001), vec2f(0.999));
+}
+
 fn is_camera_facing_shell(in : VSOut) -> bool {
 	let n = normalize(in.normal);
 	let to_camera = normalize(-in.worldPos);
@@ -238,8 +247,11 @@ fn fs_water(in : VSOut) -> @location(0) vec4<f32> {
 	let size = textureDimensions(scene_color);
 	let texel = frag_texel(in.clip);
 	let uv = (vec2f(f32(texel.x), f32(texel.y)) + vec2f(0.5)) / vec2f(size);
-	let background = textureSampleLevel(scene_color, scene_sampler, uv, 0.0).rgb;
 	let column_meters = water_column_meters(in, uv, scene_d, depth_gap);
+	let thickness = water_thickness(column_meters);
+	let wave = wave_state(in, normalize(in.normal));
+	let sample_uv = refracted_uv(uv, wave.normal, thickness);
+	let background = textureSampleLevel(scene_color, scene_sampler, sample_uv, 0.0).rgb;
 	var rgb = shade_water(in, column_meters, background);
 	if (u.waterDebug == 1u) {
 		rgb = vec3f(0.1, 0.85, 1.0);

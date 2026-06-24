@@ -163,3 +163,6 @@ See [_docs/specs/ocean-water-slice-plan.md](specs/ocean-water-slice-plan.md).
 **Slice A (RGB extinction + in-scatter):** `transmittance = exp(-ABSORPTION_RGB * column *
 absorptionStrength)` filters scene color; `(1 - transmittance) * SCATTER_RGB *
 scatterStrength` adds volume scatter. **Water Scatter** slider in Render → Shading.
+
+**Slice B (refraction UV):** scene color is sampled at a wave-normal-offset UV
+(shallow water refracts more). **Water Refraction** slider in Render → Shading.
