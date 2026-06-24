@@ -58,13 +58,29 @@ terrain pass:
   terrain self-shadow before applying `shadowFill` once. Eclipse applies even when the
   terrain self-shadow toggle is off (the two layers are independent).
 
+Beyond procedural terrain, two passes also receive eclipse via a **scene-wide,
+eye-relative** occluder set (`collectGlobalEclipseOccluders` → `receiverLocalEclipseSet`
+by the camera eye), so any body shadows any body regardless of its LOD:
+
+- `gpu/wgsl/scene3d/sphere.wgsl` dims the sphere-LOD direct-sun term, so a planet shadows
+  its moon even when the moon is too small to be a procedural receiver. (This was the
+  cause of the earlier "planets don't shadow moons" asymmetry: occluders were always
+  scene-wide, but only procedural terrain *received* a shadow.)
+- `gpu/wgsl/scene3d/sceneAtmosphere.wgsl` dims each body's inscatter by the eclipse
+  visibility at its center (pre-tone-map), so halos darken in shadow.
+
+The shader skips a body's self-occlusion (a surface fragment sits within its own radius),
+so one global set serves every receiver in a draw.
+
 Current limitations:
 
-- Base sphere LOD bodies are not eclipse-shaded yet; only procedural terrain receives
-  the eclipse factor.
 - The direct sun used by procedural terrain remains packed as a directional light toward
   the star from the receiver center. Eclipse geometry itself uses the finite star
   position/radius per fragment.
+- The global (sphere/atmosphere) occluder set is capped at `MAX_ECLIPSE_OCCLUDERS = 8` of
+  the largest bodies; a tiny moon could be dropped as an occluder at sphere LOD.
+- Atmosphere eclipse is evaluated at the body center (the whole halo dims together), not
+  per ray-march sample, so the umbra/penumbra edge across a halo is not graded.
 - Ring shadows, multi-star lighting, disk-union of overlapping occluders, and map debug
   overlays remain deferred.
 

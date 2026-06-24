@@ -7,6 +7,11 @@ import {
 } from '../render/uniformLayouts.js';
 import { MATERIAL_OVERRIDES_UNIFORM_SIZE, writeMaterialOverrides } from '../render/materialOverrides.js';
 import { writeAtmosphereParamsToBuffer, type GpuAtmosphereParams } from '../params/atmosphereParams.js';
+import {
+	ECLIPSE_UNIFORM_SIZE,
+	writeEclipseUniforms,
+	type EclipseUniforms
+} from '../scene/packEclipse.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { SceneOverlayCompositeMode } from './sceneEngine.js';
 import { MAX_PROCEDURAL_BODIES } from './proceduralBodies.js';
@@ -42,6 +47,8 @@ export interface SceneAtmosphereInput {
 	height: number;
 	/** Scene atmosphere debug mode encoded for sceneAtmosphere.wgsl. */
 	debugMode: number;
+	/** Eye-relative scene-wide eclipse occluders; dims each body's inscatter in shadow. */
+	eclipse: EclipseUniforms;
 }
 
 export class SceneAtmospherePass {
@@ -52,6 +59,7 @@ export class SceneAtmospherePass {
 	private lightingBuffer: GPUBuffer;
 	private materialBuffer: GPUBuffer;
 	private atmosphereSetBuffer: GPUBuffer;
+	private eclipseBuffer: GPUBuffer;
 
 	constructor(device: GPUDevice, format: GPUTextureFormat) {
 		this.device = device;
@@ -97,6 +105,10 @@ export class SceneAtmospherePass {
 		this.materialBuffer = device.createBuffer({ size: MATERIAL_OVERRIDES_UNIFORM_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 		this.atmosphereSetBuffer = device.createBuffer({
 			size: ATMOSPHERE_SET_SIZE,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+		this.eclipseBuffer = device.createBuffer({
+			size: ECLIPSE_UNIFORM_SIZE,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
 	}
@@ -149,13 +161,18 @@ export class SceneAtmospherePass {
 		}
 		this.device.queue.writeBuffer(this.atmosphereSetBuffer, 0, setStaging);
 
+		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
+		writeEclipseUniforms(eclipseStaging, input.eclipse);
+		this.device.queue.writeBuffer(this.eclipseBuffer, 0, eclipseStaging);
+
 		const frameBg = this.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: { buffer: this.frameBuffer } },
 				{ binding: 1, resource: { buffer: this.lightingBuffer } },
 				{ binding: 2, resource: { buffer: this.materialBuffer } },
-				{ binding: 3, resource: { buffer: this.atmosphereSetBuffer } }
+				{ binding: 3, resource: { buffer: this.atmosphereSetBuffer } },
+				{ binding: 4, resource: { buffer: this.eclipseBuffer } }
 			]
 		});
 		const sceneBg =
@@ -186,5 +203,6 @@ export class SceneAtmospherePass {
 		this.lightingBuffer.destroy();
 		this.materialBuffer.destroy();
 		this.atmosphereSetBuffer.destroy();
+		this.eclipseBuffer.destroy();
 	}
 }

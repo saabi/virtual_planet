@@ -1,6 +1,7 @@
 #include "../atmosphere/atmosphereParams.wgsl"
 #include "../atmosphere/integrate.wgsl"
 #include "../planet/lighting.wgsl"
+#include "../planet/eclipse.wgsl"
 
 // Scene atmosphere composite (Phase 5+). Samples the shared scene color + depth and
 // composites every procedural body's atmosphere in one fullscreen pass using the scene
@@ -42,6 +43,7 @@ struct VSOut {
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
 @group(0) @binding(3) var<uniform> atmo_set: SceneAtmosphereSet;
+@group(0) @binding(4) var<uniform> eclipse: EclipseUniforms;
 @group(1) @binding(0) var scene_color: texture_2d<f32>;
 @group(1) @binding(1) var scene_depth: texture_depth_2d;
 @group(1) @binding(2) var selected_surface_t: texture_2d<f32>;
@@ -198,7 +200,11 @@ fn composite_body_atmosphere(
   }
 
   let scatter = integrate_atmosphere(eye_rel, omega, t_max, sun_dir, atmo);
-  let inscatter = tone_map_reinhard_atmo(scatter.rgb);
+  // Eclipse dims the inscattered sunlight (≈0 in the umbra) — scale the radiance before
+  // tone mapping; the background-extinction transmittance is unchanged. Evaluated at the
+  // body center, so the whole halo dims together (a per-sample eval would graze the limb).
+  let eclipse_vis = body_eclipse_visibility(atmo.planet_center, eclipse);
+  let inscatter = tone_map_reinhard_atmo(scatter.rgb * eclipse_vis);
   let inscatter_faded = inscatter * atmosphere_opacity;
   let transmittance_faded = mix(1.0, scatter.a, atmosphere_opacity);
   if (hardware_alpha) {

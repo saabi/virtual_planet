@@ -435,7 +435,8 @@
 							},
 							width: w,
 							height: h,
-							debugMode: sceneAtmosphereDebugToGpu(materialDebug)
+							debugMode: sceneAtmosphereDebugToGpu(materialDebug),
+							eclipse: globalEclipse
 						},
 						overlay.mode
 					);
