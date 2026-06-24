@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getSystem } from './catalog.js';
 import {
 	createSceneFromCatalogSystem,
+	SUNDog_SCENE_MOTION_TIME_SCALE,
 	SYSTEM_ROOT_ID,
 	terrainToPreset
 } from './createSceneFromCatalogSystem.js';
@@ -89,6 +90,26 @@ describe('createSceneFromCatalogSystem', () => {
 	it('advanceScene does not throw on the built scene', () => {
 		const scene = createSceneFromCatalogSystem(jondd());
 		expect(() => advanceScene(scene, 1)).not.toThrow();
+	});
+
+	it('scales orbit and spin periods for slower motion without changing distances', () => {
+		const system = jondd();
+		const scene = createSceneFromCatalogSystem(system);
+		const body = system.bodies[0]!;
+		const au = 1.495978707e11;
+		const catalogPeriod =
+			(body.render.orbit.orbitPeriodDays ?? 365);
+		const driver = keplerDriver(scene, `${body.id}-orbit`);
+		expect(driver.periodSeconds).toBe(catalogPeriod * SUNDog_SCENE_MOTION_TIME_SCALE);
+		expect(driver.semiMajorAxis).toBeCloseTo(
+			(body.render.orbit.distanceToStarAu ?? 1) * au
+		);
+		const planet = scene.nodes.get(body.id);
+		expect(planet?.kind).toBe('body');
+		if (planet?.kind === 'body') {
+			const spinHours = body.render.orbit.dayRotationHours ?? 24;
+			expect(planet.spinPeriodSeconds).toBe(spinHours * SUNDog_SCENE_MOTION_TIME_SCALE);
+		}
 	});
 
 	it('applies enrichment eccentricity and distinct periapsis on Glory', () => {

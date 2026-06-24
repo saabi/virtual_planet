@@ -31,6 +31,9 @@ const FALLBACK_PERIOD_DAYS = 365;
 const FALLBACK_SIZE_REL = 1;
 const FALLBACK_STAR_RADIUS_SOLAR = 1;
 
+/** Orbital periods and spin durations are multiplied by this in built scenes (distances unchanged). */
+export const SUNDog_SCENE_MOTION_TIME_SCALE = 10;
+
 const TERRAIN_PRESET: Record<string, PlanetPresetName> = {
 	Terran: 'normie',
 	Jungle: 'archipelago',
@@ -87,9 +90,9 @@ function addOrbitingNodes(
 		name,
 		bodyType: opts.bodyType,
 		orbitRadiusMeters: opts.orbitRadiusMeters,
-		periodSeconds: opts.periodSeconds,
+		periodSeconds: opts.periodSeconds * SUNDog_SCENE_MOTION_TIME_SCALE,
 		phaseAtEpoch: opts.phaseAtEpoch,
-		spinPeriodSeconds: opts.spinPeriodSeconds,
+		spinPeriodSeconds: opts.spinPeriodSeconds * SUNDog_SCENE_MOTION_TIME_SCALE,
 		eccentricity: orbit?.eccentricity ?? 0,
 		periapsisAngle: orbit?.periapsisAngle ?? 0,
 		orbitRotation: orbitRotation(orbit),
