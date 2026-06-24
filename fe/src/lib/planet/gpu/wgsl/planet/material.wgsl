@@ -105,17 +105,10 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
     col = SAND * vec3f(spots);
     biome_id = BIOME_SAND;
   }
-  if (params.render_water > 0.5 && sample.height_meters <= wl) {
-    let depth = sqrt(spots);
-    col = mix(SHALLOW_WATER, DEEP_WATER, depth);
-    biome_id = BIOME_WATER;
-  }
   if (tl > pow(params.snow_cover, 2.0)) {
     col = ICE + vec3f(tl);
     biome_id = BIOME_ICE;
-    if (params.render_water > 0.5 && sample.height_meters > wl) {
-      col *= vec3f(spots);
-    }
+    col *= vec3f(spots);
   }
 
   let props = biome_props(biome_id);

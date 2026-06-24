@@ -9,6 +9,8 @@ const DEBUG_SPECULAR: u32 = 4u;
 const DEBUG_IBL: u32 = 5u;
 const DEBUG_BODY_DIR: u32 = 6u;
 const DEBUG_LATLONG: u32 = 7u;
+const DEBUG_BELOW_SEA: u32 = 8u;
+const DEBUG_SEA_LEVEL_OFFSET: u32 = 9u;
 
 // Latitude/longitude grid drawn from the body-frame fragment direction. The base color
 // is the direction encoded as RGB; bright iso-lines fall every `step` radians of lat and
@@ -38,6 +40,8 @@ fn apply_material_debug(
   body_dir: vec3f,
   material: SurfaceMaterial,
   lit: LightingResult,
+  sample: PlanetSample,
+  params: PlanetParams,
 ) -> vec3f {
   switch (mode) {
     case DEBUG_NORMALS: {
@@ -60,6 +64,27 @@ fn apply_material_debug(
     }
     case DEBUG_LATLONG: {
       return latlong_grid(body_dir);
+    }
+    case DEBUG_BELOW_SEA: {
+      let total_amplitude = (params.voronoi_amplitude + params.detail_amplitude) * params.radius;
+      let wl = total_amplitude * (params.water_level - 0.5);
+      if (sample.height_meters <= wl) {
+        return vec3f(0.1, 0.35, 1.0);
+      }
+      return vec3f(0.16);
+    }
+    case DEBUG_SEA_LEVEL_OFFSET: {
+      let total_amplitude = (params.voronoi_amplitude + params.detail_amplitude) * params.radius;
+      let wl = total_amplitude * (params.water_level - 0.5);
+      let shore = max(total_amplitude * 0.03, 1e-3);
+      let delta = sample.height_meters - wl;
+      if (abs(delta) <= shore) {
+        return vec3f(0.55);
+      }
+      if (delta < 0.0) {
+        return vec3f(1.0, 0.1, 0.1);
+      }
+      return vec3f(0.1, 1.0, 0.2);
     }
     default: {
       return lit.color;

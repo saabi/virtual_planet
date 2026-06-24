@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { requestWebGPUDevice, configureWebGPUCanvas } from '../render/device.js';
-	import { SceneEngine, type SceneOverlayFn } from '../scene3d/sceneEngine.js';
+	import { SceneEngine, type SceneOverlayFn, type SceneWaterFn } from '../scene3d/sceneEngine.js';
 	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
+	import { WaterPass, type WaterInstance } from '../scene3d/waterPass.js';
+	import { batchWaterLodLevel, selectProceduralWaterTargets } from '../scene3d/waterLod.js';
 	import { OrbitLinePass } from '../scene3d/orbitLinePass.js';
 	import { collectOrbitPathSpecs, buildOrbitPath3D, orbitPathSegmentCount, orbitPathBoundsForNearFar } from '../scene/orbitPaths.js';
 	import { resolveAtmosphereVisible, resolveOrbitPathVisible, orbitPathSystemView } from '../scene/renderFeatures.js';
@@ -51,6 +53,10 @@
 		isSceneAtmosphereDebugMode,
 		sceneAtmosphereDebugToGpu,
 		sceneMaterialDebugMode,
+		sceneWaterDebugToGpu,
+		waterDebugDepthTest,
+		waterDebugOnBlack,
+		waterDebugUnlit,
 		type SceneDebugMode
 	} from '../scene/sceneDebug.js';
 	import type { OrbitLookMode } from '../camera/orbitCamera.js';
@@ -124,6 +130,8 @@
 	}: Props = $props();
 	let atmosphereDebugActive = $derived(isSceneAtmosphereDebugMode(materialDebug));
 	let atmosphereOnWhite = $derived(materialDebug === 'atmosphereWhite');
+	let waterOnBlack = $derived(waterDebugOnBlack(materialDebug));
+	let waterDepthDiagnostic = $derived(waterDebugDepthTest(materialDebug));
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = $state(1);
@@ -139,6 +147,7 @@
 	let format: GPUTextureFormat = 'bgra8unorm';
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
+	let water: WaterPass | null = null;
 	let orbitLines: OrbitLinePass | null = null;
 	// Pool of offscreen procedural renderers — one per visible terrain body (independent
 	// mode/local-frame state). Terrain records into the shared scene pass via recordInto.
@@ -389,7 +398,7 @@
 		const atmosphereBlendMode = atmosphereDebugActive
 			? 'explicit-composite'
 			: (viewportPrefs?.atmosphere.blendMode ?? 'explicit-composite');
-		if (procActive && sceneAtmosphere) {
+			if (procActive && sceneAtmosphere && !waterOnBlack && !waterDepthDiagnostic) {
 			const atmoCandidates = sortProceduralDrawOrder(terrainTargets).filter(
 				(t) => t.atmosphereBlend > 0 && resolveAtmosphereVisible(t.body, viewportPrefs)
 			);
@@ -433,32 +442,113 @@
 						},
 						overlay.mode
 					);
+				}
 			}
-		}
 
-		engine.render(
-			context.getCurrentTexture().createView(),
+			function waterDrawInput() {
+				if (!water || atmosphereOnWhite) return null;
+				const waterTargets = selectProceduralWaterTargets(terrainTargets, MAX_PROCEDURAL_BODIES);
+				if (waterTargets.length === 0) return null;
+				const meshLod = batchWaterLodLevel(waterTargets);
+				const waterInstances: WaterInstance[] = waterTargets.map((target) => ({
+					position: sub3(target.worldPos, eye),
+					seaLevelRadius: target.seaLevelRadiusMeters,
+					rotation: target.rotation
+				}));
+				return {
+					waterInstances,
+					waterOptions: {
+						waterGloss: viewportPrefs?.materialOverrides.waterGloss ?? 1.5,
+						exposure: viewportPrefs?.materialOverrides.exposure ?? 1,
+						waterOpacity: 0.58,
+						meshLod,
+						viewportWidth: w,
+						viewportHeight: h,
+						time,
+						waveStrength: viewportPrefs?.materialOverrides.waterWaveStrength ?? 0.75,
+						glintStrength: viewportPrefs?.materialOverrides.waterGlintStrength ?? 1.0,
+						absorptionStrength: viewportPrefs?.materialOverrides.waterAbsorptionStrength ?? 1.0,
+						waterDebug: sceneWaterDebugToGpu(materialDebug)
+					}
+				};
+			}
+
+			const waterRecorder: SceneWaterFn | undefined =
+				water && !waterDepthDiagnostic
+					? (ctx) => {
+							const input = waterDrawInput();
+							if (!input) return;
+							water!.record(
+								ctx.pass,
+								ctx.depthView,
+								ctx.sceneColorView,
+								input.waterInstances,
+								vpRel,
+								lightRel,
+								globalEclipse,
+								input.waterOptions
+							);
+						}
+					: undefined;
+
+			let waterDepthOverlay: SceneOverlayFn | undefined;
+			if (water && waterDepthDiagnostic && !waterOnBlack) {
+				waterDepthOverlay = (overlay) => {
+					const input = waterDrawInput();
+					if (!input) return;
+					water!.recordDepthDebug(
+						overlay.pass,
+						overlay.depthView,
+						input.waterInstances,
+						vpRel,
+						lightRel,
+						globalEclipse,
+						input.waterOptions
+					);
+				};
+			}
+
+			const overlayFns = [atmoOverlay, waterDepthOverlay].filter(
+				(fn): fn is SceneOverlayFn => fn != null
+			);
+			const sceneOverlay: SceneOverlayFn | undefined =
+				overlayFns.length > 0
+					? (overlay) => {
+							for (const fn of overlayFns) fn(overlay);
+						}
+					: undefined;
+			const sceneOverlayMode = waterDepthDiagnostic ? 'hardware-alpha' : atmosphereBlendMode;
+
+			engine.render(
+				context.getCurrentTexture().createView(),
 			w,
 			h,
 			(pass) => {
-				if (!atmosphereOnWhite) spheres!.record(pass, instances, vpRel, lightRel, globalEclipse);
-				orbitLines!.record(pass, visibleOrbitPaths, vpRel, eye);
-				if (procActive) {
-					const drawOrder = sortProceduralDrawOrder(terrainTargets);
-					for (let i = 0; i < drawOrder.length; i++) {
-						const target = drawOrder[i]!;
+					if (!atmosphereOnWhite && !waterOnBlack) {
+						spheres!.record(pass, instances, vpRel, lightRel, globalEclipse);
+						orbitLines!.record(pass, visibleOrbitPaths, vpRel, eye);
+					}
+					if (procActive && !waterOnBlack) {
+						const drawOrder = sortProceduralDrawOrder(terrainTargets);
+						for (let i = 0; i < drawOrder.length; i++) {
+							const target = drawOrder[i]!;
 						proceduralRendererPool[i]!.recordInto(
 							pass,
 							proceduralInputFor(target),
 							{ surfaceOnly: atmosphereOnWhite }
 						);
+						}
 					}
-				}
-			},
-			atmoOverlay,
-			atmosphereOnWhite ? { r: 1, g: 1, b: 1, a: 1 } : undefined,
-			atmosphereBlendMode
-		);
+				},
+				waterRecorder,
+				sceneOverlay,
+				atmosphereOnWhite
+					? { r: 1, g: 1, b: 1, a: 1 }
+					: waterOnBlack
+						? { r: 0.02, g: 0.03, b: 0.06, a: 1 }
+						: undefined,
+				sceneOverlayMode
+			);
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
@@ -956,9 +1046,10 @@
 				device = r.device;
 				format = navigator.gpu.getPreferredCanvasFormat();
 				context = configureWebGPUCanvas(device, el, format);
-				engine = new SceneEngine(device, format);
-				spheres = new SpherePass(device, format);
-				orbitLines = new OrbitLinePass(device, format);
+					engine = new SceneEngine(device, format);
+					spheres = new SpherePass(device, format);
+					water = new WaterPass(device, format);
+					orbitLines = new OrbitLinePass(device, format);
 				sceneAtmosphere = new SceneAtmospherePass(device, format);
 				const pool: PlanetRenderer[] = [];
 				for (let i = 0; i < MAX_PROCEDURAL_BODIES; i++) {
@@ -994,10 +1085,11 @@
 			window.removeEventListener('keyup', handleKeyUp);
 			ro.disconnect();
 			sceneAtmosphere?.destroy();
-			for (const renderer of proceduralRendererPool) renderer.destroy();
-			proceduralRendererPool = [];
-			spheres?.destroy();
-			orbitLines?.destroy();
+				for (const renderer of proceduralRendererPool) renderer.destroy();
+				proceduralRendererPool = [];
+				spheres?.destroy();
+				water?.destroy();
+				orbitLines?.destroy();
 			engine?.destroy();
 		};
 	});

@@ -31,7 +31,9 @@ export type MaterialDebugMode =
 	| 'specular'
 	| 'ibl'
 	| 'bodyDir'
-	| 'latLong';
+	| 'latLong'
+	| 'belowSeaLevel'
+	| 'seaLevelOffset';
 
 export const MATERIAL_DEBUG_MODE: Record<MaterialDebugMode, number> = {
 	off: 0,
@@ -44,7 +46,9 @@ export const MATERIAL_DEBUG_MODE: Record<MaterialDebugMode, number> = {
 	// body-frame fragment coordinate. Stable across tessellation only once fragment
 	// sampling uses the ideal-sphere coordinate; today the interpolated value warps.
 	bodyDir: 6,
-	latLong: 7
+	latLong: 7,
+	belowSeaLevel: 8,
+	seaLevelOffset: 9
 };
 
 export const MATERIAL_DEBUG_LABELS: { value: MaterialDebugMode; label: string }[] = [
@@ -55,13 +59,18 @@ export const MATERIAL_DEBUG_LABELS: { value: MaterialDebugMode; label: string }[
 	{ value: 'specular', label: 'Specular' },
 	{ value: 'ibl', label: 'IBL' },
 	{ value: 'bodyDir', label: 'Body dir (RGB)' },
-	{ value: 'latLong', label: 'Lat/long grid' }
+	{ value: 'latLong', label: 'Lat/long grid' },
+	{ value: 'belowSeaLevel', label: 'Below sea level (terrain)' },
+	{ value: 'seaLevelOffset', label: 'Sea level offset (terrain)' }
 ];
 
 export interface MaterialOverrides {
 	exposure: number;
 	roughnessMult: number;
 	waterGloss: number;
+	waterWaveStrength: number;
+	waterGlintStrength: number;
+	waterAbsorptionStrength: number;
 	materialDebug: MaterialDebugMode;
 	fogDensity: number;
 	/** Terrain self-shadows for the directional sun. */
@@ -80,6 +89,9 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	exposure: 1.0,
 	roughnessMult: 1.0,
 	waterGloss: 1.5,
+	waterWaveStrength: 0.75,
+	waterGlintStrength: 1.0,
+	waterAbsorptionStrength: 1.0,
 	materialDebug: 'off',
 	fogDensity: 0.8,
 	shadows: true,

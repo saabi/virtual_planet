@@ -7,7 +7,12 @@ export type SceneAtmosphereDebugMode =
 	| 'atmosphereViewSun'
 	| 'atmosphereSurfaceMask';
 
-export type SceneDebugMode = MaterialDebugMode | SceneAtmosphereDebugMode;
+export type SceneWaterDebugMode =
+	| 'waterOnBlack'
+	| 'waterUnlit'
+	| 'waterDepthTest';
+
+export type SceneDebugMode = MaterialDebugMode | SceneAtmosphereDebugMode | SceneWaterDebugMode;
 
 export const SCENE_DEBUG_LABELS: { value: SceneDebugMode; label: string }[] = [
 	...MATERIAL_DEBUG_LABELS,
@@ -15,15 +20,45 @@ export const SCENE_DEBUG_LABELS: { value: SceneDebugMode; label: string }[] = [
 	{ value: 'atmosphereInscatter', label: 'Atmosphere inscatter' },
 	{ value: 'atmosphereTransmittance', label: 'Atmosphere transmittance' },
 	{ value: 'atmosphereViewSun', label: 'Atmosphere view/sun' },
-	{ value: 'atmosphereSurfaceMask', label: 'Atmosphere surface mask' }
+	{ value: 'atmosphereSurfaceMask', label: 'Atmosphere surface mask' },
+	{ value: 'waterOnBlack', label: 'Water on black' },
+	{ value: 'waterUnlit', label: 'Water unlit (flat)' },
+	{ value: 'waterDepthTest', label: 'Water depth test' }
 ];
 
 export function sceneMaterialDebugMode(mode: SceneDebugMode): MaterialDebugMode {
-	return isSceneAtmosphereDebugMode(mode) ? 'off' : mode;
+	if (isSceneAtmosphereDebugMode(mode)) return 'off';
+	if (mode === 'waterOnBlack' || mode === 'waterUnlit' || mode === 'waterDepthTest') return 'off';
+	return mode as MaterialDebugMode;
 }
 
 export function isSceneAtmosphereDebugMode(mode: SceneDebugMode): mode is SceneAtmosphereDebugMode {
 	return mode.startsWith('atmosphere');
+}
+
+export function isSceneWaterDebugMode(mode: SceneDebugMode): mode is SceneWaterDebugMode {
+	return (
+		mode === 'waterOnBlack' ||
+		mode === 'waterUnlit' ||
+		mode === 'waterDepthTest'
+	);
+}
+
+export function waterDebugOnBlack(mode: SceneDebugMode): boolean {
+	return mode === 'waterOnBlack';
+}
+
+export function waterDebugUnlit(mode: SceneDebugMode): boolean {
+	return mode === 'waterUnlit';
+}
+
+export function waterDebugDepthTest(mode: SceneDebugMode): boolean {
+	return mode === 'waterDepthTest';
+}
+
+export function sceneWaterDebugToGpu(mode: SceneDebugMode): number {
+	if (mode === 'waterOnBlack' || mode === 'waterUnlit') return 1;
+	return 0;
 }
 
 export function sceneAtmosphereDebugToGpu(mode: SceneDebugMode): number {

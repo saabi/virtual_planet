@@ -13,7 +13,7 @@
 const SHADOW_STEPS: u32 = 16u;
 
 /// Coarse terrain radius used for shadow casting: macro voronoi relief plus the
-/// erosion remap and ocean clamp, skipping the detail/texture-noise layers that
+/// erosion remap, skipping the detail/texture-noise layers that
 /// rarely cast meaningful shadows. Cheaper than a full `sample_planet`.
 fn sample_shadow_height(unit_dir: vec3f, params: PlanetParams) -> f32 {
   // Relief amplitudes are ratios of radius (scale-independent); convert to metres.
@@ -42,9 +42,6 @@ fn sample_shadow_height(unit_dir: vec3f, params: PlanetParams) -> f32 {
   height = wl + th;
 
   var radius = params.radius + height;
-  if (params.render_water > 0.5) {
-    radius = params.radius + max(height, wl);
-  }
   return radius;
 }
 

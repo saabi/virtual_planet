@@ -21,16 +21,29 @@ export interface SceneOverlayContext {
 
 export type SceneOverlayFn = (overlay: SceneOverlayContext) => void;
 
+export interface SceneWaterContext {
+	pass: GPURenderPassEncoder;
+	sceneColorView: GPUTextureView;
+	depthView: GPUTextureView;
+	width: number;
+	height: number;
+}
+
+export type SceneWaterFn = (water: SceneWaterContext) => void;
+
 export class SceneEngine {
 	readonly device: GPUDevice;
 	readonly format: GPUTextureFormat;
 	private depth: GPUTexture | null = null;
 	private sceneColor: GPUTexture | null = null;
+	private waterColor: GPUTexture | null = null;
 	private surfaceDistance: GPUTexture | null = null;
 	private depthW = 0;
 	private depthH = 0;
 	private sceneColorW = 0;
 	private sceneColorH = 0;
+	private waterColorW = 0;
+	private waterColorH = 0;
 	private surfaceDistanceW = 0;
 	private surfaceDistanceH = 0;
 
@@ -88,6 +101,21 @@ export class SceneEngine {
 		return this.sceneColor;
 	}
 
+	private ensureWaterColor(width: number, height: number): GPUTexture {
+		if (this.waterColor && this.waterColorW === width && this.waterColorH === height) {
+			return this.waterColor;
+		}
+		this.waterColor?.destroy();
+		this.waterColor = this.device.createTexture({
+			size: { width, height },
+			format: this.format,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+		});
+		this.waterColorW = width;
+		this.waterColorH = height;
+		return this.waterColor;
+	}
+
 	/**
 	 * Open a frame's render pass (clear color + depth), record the scene draws, submit.
 	 * If `recordOverlay` is given, a second pass runs after the scene pass *ends* — color
@@ -99,16 +127,18 @@ export class SceneEngine {
 		width: number,
 		height: number,
 		recordScene: (pass: GPURenderPassEncoder) => void,
+		recordWater?: SceneWaterFn,
 		recordOverlay?: SceneOverlayFn,
 		clearColor: ClearColor = CLEAR,
 		overlayMode: SceneOverlayCompositeMode = 'explicit-composite'
 	) {
 		const depth = this.ensureDepth(width, height);
 		const surfaceDistance = this.ensureSurfaceDistance(width, height);
-		const useOffscreenSceneColor = !!recordOverlay && overlayMode === 'explicit-composite';
-		const sceneColorView = useOffscreenSceneColor
-			? this.ensureSceneColor(width, height).createView()
-			: colorView;
+		const useOffscreenSceneColor =
+			!!recordWater || (!!recordOverlay && overlayMode === 'explicit-composite');
+		const sceneColorTexture = useOffscreenSceneColor ? this.ensureSceneColor(width, height) : null;
+		const sceneColorView = sceneColorTexture ? sceneColorTexture.createView() : colorView;
+		let postWaterView = sceneColorView;
 		const encoder = this.device.createCommandEncoder();
 		const scenePass = encoder.beginRenderPass({
 			colorAttachments: [
@@ -129,8 +159,33 @@ export class SceneEngine {
 		});
 		recordScene(scenePass);
 		scenePass.end();
+		if (recordWater) {
+			const waterOutputView =
+				recordOverlay && overlayMode === 'explicit-composite'
+					? this.ensureWaterColor(width, height).createView()
+					: colorView;
+			const waterPass = encoder.beginRenderPass({
+				colorAttachments: [
+					{
+						view: waterOutputView,
+						clearValue: clearColor,
+						loadOp: 'clear',
+						storeOp: 'store'
+					}
+				]
+			});
+			recordWater({
+				pass: waterPass,
+				sceneColorView,
+				depthView: depth.createView(),
+				width,
+				height
+			});
+			waterPass.end();
+			postWaterView = waterOutputView;
+		}
 		if (recordOverlay) {
-			const readView = useOffscreenSceneColor ? sceneColorView : colorView;
+			const readView = postWaterView;
 			const overlayPass = encoder.beginRenderPass({
 				colorAttachments: [
 					{
@@ -143,7 +198,7 @@ export class SceneEngine {
 			});
 			recordOverlay({
 				pass: overlayPass,
-				sceneColorView: useOffscreenSceneColor ? sceneColorView : null,
+				sceneColorView: postWaterView === colorView ? null : postWaterView,
 				compositeSourceView: readView,
 				depthView: depth.createView(),
 				surfaceDistanceView: surfaceDistance.createView(),
@@ -157,9 +212,11 @@ export class SceneEngine {
 	destroy() {
 		this.depth?.destroy();
 		this.sceneColor?.destroy();
+		this.waterColor?.destroy();
 		this.surfaceDistance?.destroy();
 		this.depth = null;
 		this.sceneColor = null;
+		this.waterColor = null;
 		this.surfaceDistance = null;
 	}
 }

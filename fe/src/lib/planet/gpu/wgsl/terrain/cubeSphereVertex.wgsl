@@ -146,7 +146,7 @@ fn fs_main(in: VSOut) -> FSOut {
 
   let debug_mode = u32(mat_overrides.material_debug + 0.5);
   if (debug_mode > 0u) {
-    col = apply_material_debug(debug_mode, n, body_dir, material, lit);
+    col = apply_material_debug(debug_mode, n, body_dir, material, lit, sample, planet);
   }
 
   // Wireframe overlay: bright lines along triangle edges (barycentric distance).

@@ -317,6 +317,33 @@
 								bind:value={viewportPrefs.materialOverrides.waterGloss}
 							/>
 							<Range
+								id="water-wave-strength"
+								label="Water Waves"
+								min={0}
+								max={2}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterWaveStrength}
+							/>
+							<Range
+								id="water-glint-strength"
+								label="Water Glint"
+								min={0}
+								max={3}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterGlintStrength}
+							/>
+							<Range
+								id="water-absorption-strength"
+								label="Water Absorption"
+								min={0}
+								max={3}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterAbsorptionStrength}
+							/>
+							<Range
 								id="aerial-fog"
 								label="Aerial Fog"
 								min={0}

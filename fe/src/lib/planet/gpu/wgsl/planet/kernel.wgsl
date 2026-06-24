@@ -74,9 +74,6 @@ fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> 
   r.water_height_meters = wl;
 
   var radius = params.radius + height;
-  if (params.render_water > 0.5) {
-    radius = params.radius + max(height, wl);
-  }
   r.world_radius_meters = radius;
   r.world_pos = p * radius;
   return r;
