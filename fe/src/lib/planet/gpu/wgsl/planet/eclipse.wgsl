@@ -74,5 +74,9 @@ fn body_eclipse_visibility(surface_pos: vec3f, eclipse: EclipseUniforms) -> f32 
     let obscuration = eclipse_disk_obscuration(sun_angular_radius, occ_angular_radius, separation);
     max_obscuration = max(max_obscuration, obscuration);
   }
-  return 1.0 - clamp(max_obscuration, 0.0, 1.0);
+  // Artistic contrast (params.z, default 1 = physical): a gain on the covered fraction.
+  // >1 darkens and widens the umbra (a partial/annular eclipse can reach full dark), <1
+  // softens. Applied before the final clamp so it shapes both umbra and penumbra.
+  let contrast = select(1.0, eclipse.params.z, eclipse.params.z > 0.0);
+  return 1.0 - clamp(max_obscuration * contrast, 0.0, 1.0);
 }

@@ -350,7 +350,8 @@
 		// the atmosphere composite (both render eye/camera-relative). Lets any body shadow any
 		// body, including sphere-LOD moons that are too small to be procedural receivers.
 		const globalEclipse = packEclipseUniforms(
-			receiverLocalEclipseSet(collectGlobalEclipseOccluders(animated), eye)
+			receiverLocalEclipseSet(collectGlobalEclipseOccluders(animated), eye),
+			viewportPrefs?.eclipseContrast
 		);
 
 		const primaryTarget =

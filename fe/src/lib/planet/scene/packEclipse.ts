@@ -8,7 +8,7 @@ export interface GpuEclipseOccluder {
 
 export interface EclipseUniforms {
 	sunPositionRadius: [number, number, number, number];
-	params: [number, number, number, number]; // count, enabled, _, _
+	params: [number, number, number, number]; // count, enabled, contrast, _
 	occluders: GpuEclipseOccluder[];
 }
 
@@ -18,14 +18,18 @@ export const DEFAULT_ECLIPSE_UNIFORMS: EclipseUniforms = {
 	occluders: []
 };
 
-export function packEclipseUniforms(set: EclipseOccluderSet | undefined): EclipseUniforms {
+/** `contrast` is an artistic gain on the occluded fraction (1 = physical); see eclipse.wgsl. */
+export function packEclipseUniforms(
+	set: EclipseOccluderSet | undefined,
+	contrast = 1
+): EclipseUniforms {
 	if (!set?.enabled || set.sunRadius <= 0) return DEFAULT_ECLIPSE_UNIFORMS;
 	const occluders = set.occluders.slice(0, MAX_ECLIPSE_OCCLUDERS).map((o) => ({
 		centerRadius: [o.center[0], o.center[1], o.center[2], o.radius] as [number, number, number, number]
 	}));
 	return {
 		sunPositionRadius: [...set.sunPosition, set.sunRadius] as [number, number, number, number],
-		params: [occluders.length, 1, 0, 0],
+		params: [occluders.length, 1, contrast, 0],
 		occluders
 	};
 }

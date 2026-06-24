@@ -84,7 +84,8 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 				0,
 				Math.min(10, num(lod.sphereShrinkPercent, d.lod.sphereShrinkPercent))
 			)
-		}
+		},
+		eclipseContrast: Math.max(0.25, Math.min(4, num(r.eclipseContrast, d.eclipseContrast)))
 	};
 }
 

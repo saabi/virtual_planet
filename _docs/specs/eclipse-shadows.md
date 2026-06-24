@@ -74,6 +74,13 @@ by the camera eye), so any body shadows any body regardless of its LOD:
 The shader skips a body's self-occlusion (a surface fragment sits within its own radius),
 so one global set serves every receiver in a draw.
 
+**Eclipse contrast** is an artistic gain on the occluded fraction
+(`viewportPrefs.eclipseContrast`, packed into the uniform's `params.z`, a Render-panel
+slider; default 1 = physical, range 0.25–4). `body_eclipse_visibility` applies
+`1 − clamp(obscuration · contrast)`, so >1 darkens and widens the umbra — a partial/annular
+eclipse from a small moon can be pushed to full dark — and <1 softens. It flows through the
+shared function, so terrain, spheres, and atmospheres stay consistent.
+
 Current limitations:
 
 - The direct sun used by procedural terrain remains packed as a directional light toward

@@ -138,7 +138,8 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 			prefs?.atmosphereIntegrateSteps
 		),
 		eclipse: packEclipseUniforms(
-			o.eclipseOccluders ? receiverLocalEclipseSet(o.eclipseOccluders, o.bodyWorldPos) : undefined
+			o.eclipseOccluders ? receiverLocalEclipseSet(o.eclipseOccluders, o.bodyWorldPos) : undefined,
+			prefs?.eclipseContrast
 		),
 		planetRotation: o.planetRotation
 	};

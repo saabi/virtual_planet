@@ -56,6 +56,9 @@ export interface SceneViewportPrefs {
 	atmosphereIntegrateSteps: number;
 	/** Screen-size LOD thresholds + cross-fade gamma; global, not per-body. */
 	lod: SceneLodSettings;
+	/** Eclipse-shadow contrast: gain on the occluded sun fraction. 1 = physical, >1 darker
+	 *  (wider umbra), <1 softer. Applies to terrain, spheres, and atmospheres. */
+	eclipseContrast: number;
 }
 
 export function createDefaultViewportPrefs(): SceneViewportPrefs {
@@ -80,7 +83,8 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 			...DEFAULT_LOD_THRESHOLDS,
 			fadeGamma: DEFAULT_FADE_GAMMA,
 			sphereShrinkPercent: DEFAULT_SPHERE_SHRINK_PERCENT
-		}
+		},
+		eclipseContrast: 1
 	};
 }
 
@@ -111,4 +115,5 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void p.lod.proceduralFullRadiusPx;
 	void p.lod.fadeGamma;
 	void p.lod.sphereShrinkPercent;
+	void p.eclipseContrast;
 }

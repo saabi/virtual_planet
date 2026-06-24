@@ -271,6 +271,15 @@
 								bind:value={viewportPrefs.materialOverrides.shadowFill}
 							/>
 							<Range
+								id="eclipse-contrast"
+								label="Eclipse Contrast (→ darker)"
+								min={0.25}
+								max={4}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.eclipseContrast}
+							/>
+							<Range
 								id="exposure"
 								label="Exposure"
 								min={0.5}
