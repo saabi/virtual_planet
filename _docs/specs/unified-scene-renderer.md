@@ -67,9 +67,9 @@ it needs on-device verification at each step (see "Working method").
 2. **✅ Single-pass terrain for the selected body** — `bodyRelativeView` plus shared
    device/pass/depth now records terrain into `SceneEngine` with
    `PlanetRenderer.recordInto()` / `WebGPUBackend.recordTerrainInto()`.
-3. **Deferred opacity cross-fade** — the current code switches from sphere to terrain
-   when procedural rendering activates. A later `objectOpacity` path can render both
-   during the transition without reviving the CSS layer.
+3. **Displacement transition** — terrain band ramps vertex `displacement_blend` and optional
+   `height_blend` / atmosphere opacity per `lod.transitionMode`. No instanced-sphere composite.
+   See [scene-lod-transitions.md](scene-lod-transitions.md).
 4. **Atmospheres in-pass; multi-body + budget; surface camera** — remaining renderer
    convergence work.
 

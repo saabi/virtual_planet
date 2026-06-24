@@ -203,7 +203,7 @@ export class TerrainPass {
 				},
 				{
 					binding: 2,
-					visibility: GPUShaderStage.FRAGMENT,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 					buffer: { type: 'uniform' }
 				},
 				{

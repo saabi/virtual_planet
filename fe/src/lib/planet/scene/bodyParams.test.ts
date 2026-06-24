@@ -5,8 +5,8 @@ import {
 	fadeOpacity,
 	proceduralBlend,
 	resolveBodyParams,
-	selectLod,
-	sphereFadeScale
+	resolveLodTransitionBlends,
+	selectLod
 } from './bodyParams.js';
 import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 import type { BodyNode } from './types.js';
@@ -26,6 +26,8 @@ function body(extra: Partial<BodyNode> = {}): BodyNode {
 	} as BodyNode;
 }
 
+const T = { sphereAboveRadiusPx: 1, proceduralAboveRadiusPx: 100, proceduralFullRadiusPx: 150 };
+
 describe('resolveBodyParams', () => {
 	it('defaults to the default preset with no appearance', () => {
 		expect(resolveBodyParams(body())).toEqual(PLANET_PRESETS[DEFAULT_PRESET]);
@@ -35,8 +37,8 @@ describe('resolveBodyParams', () => {
 		const p = resolveBodyParams(
 			body({ appearance: { preset: 'desert', overrides: { water_level: 0.123 } } })
 		);
-		expect(p.water_level).toBe(0.123); // overridden
-		expect(p.voronoi_scale).toBe(PLANET_PRESETS.desert.voronoi_scale); // from the preset
+		expect(p.water_level).toBe(0.123);
+		expect(p.voronoi_scale).toBe(PLANET_PRESETS.desert.voronoi_scale);
 	});
 
 	it('falls back to the default preset for an unknown name', () => {
@@ -65,28 +67,27 @@ describe('diffAppearanceOverrides', () => {
 });
 
 describe('selectLod', () => {
-	it('picks dot / sphere / procedural by projected radius (defaults)', () => {
+	it('picks dot / mesh by projected radius (defaults)', () => {
 		expect(selectLod(0.5, DEFAULT_LOD_THRESHOLDS)).toBe('dot');
-		expect(selectLod(50, DEFAULT_LOD_THRESHOLDS)).toBe('sphere');
-		expect(selectLod(500, DEFAULT_LOD_THRESHOLDS)).toBe('procedural');
+		expect(selectLod(50, DEFAULT_LOD_THRESHOLDS)).toBe('mesh');
+		expect(selectLod(500, DEFAULT_LOD_THRESHOLDS)).toBe('mesh');
 	});
 
 	it('honours the given thresholds', () => {
 		const t = { sphereAboveRadiusPx: 10, proceduralAboveRadiusPx: 100, proceduralFullRadiusPx: 150 };
 		expect(selectLod(5, t)).toBe('dot');
-		expect(selectLod(50, t)).toBe('sphere');
-		expect(selectLod(150, t)).toBe('procedural');
+		expect(selectLod(50, t)).toBe('mesh');
+		expect(selectLod(150, t)).toBe('mesh');
 	});
 });
 
 describe('proceduralBlend', () => {
 	it('ramps 0→1 over the explicit terrain start/full band', () => {
-		const t = { sphereAboveRadiusPx: 1, proceduralAboveRadiusPx: 100, proceduralFullRadiusPx: 150 };
-		expect(proceduralBlend(80, t)).toBe(0); // below threshold: sphere only
-		expect(proceduralBlend(100, t)).toBe(0); // at threshold: just starting
-		expect(proceduralBlend(125, t)).toBeCloseTo(0.5, 6); // mid-fade
-		expect(proceduralBlend(150, t)).toBe(1); // fully procedural
-		expect(proceduralBlend(400, t)).toBe(1); // clamped
+		expect(proceduralBlend(80, T)).toBe(0);
+		expect(proceduralBlend(100, T)).toBe(0);
+		expect(proceduralBlend(125, T)).toBeCloseTo(0.5, 6);
+		expect(proceduralBlend(150, T)).toBe(1);
+		expect(proceduralBlend(400, T)).toBe(1);
 	});
 });
 
@@ -94,7 +95,6 @@ describe('fadeOpacity', () => {
 	it('preserves the endpoints and biases toward the sphere mid-transition', () => {
 		expect(fadeOpacity(0)).toBe(0);
 		expect(fadeOpacity(1)).toBe(1);
-		// default gamma > 1 ⇒ opacity sits below the linear blend everywhere in between
 		expect(fadeOpacity(0.5)).toBeLessThan(0.5);
 		expect(fadeOpacity(0.8)).toBeLessThan(0.8);
 	});
@@ -114,21 +114,47 @@ describe('fadeOpacity', () => {
 	});
 });
 
-describe('sphereFadeScale', () => {
-	it('is full radius before the fade and recedes by shrinkPercent at full fade', () => {
-		expect(sphereFadeScale(0, 6)).toBe(1);
-		expect(sphereFadeScale(1, 6)).toBeCloseTo(0.94, 6);
-		expect(sphereFadeScale(0.5, 6)).toBeCloseTo(0.97, 6);
+describe('resolveLodTransitionBlends', () => {
+	it('smooth-mesh band: displacement 0, toggled channels off, non-toggled on', () => {
+		expect(resolveLodTransitionBlends(50, T, 'both')).toEqual({
+			displacementBlend: 0,
+			heightBlend: 0,
+			atmosphereBlend: 0
+		});
+		expect(resolveLodTransitionBlends(50, T, 'heights')).toEqual({
+			displacementBlend: 0,
+			heightBlend: 0,
+			atmosphereBlend: 1
+		});
+		expect(resolveLodTransitionBlends(50, T, 'atmosphere')).toEqual({
+			displacementBlend: 0,
+			heightBlend: 1,
+			atmosphereBlend: 0
+		});
 	});
 
-	it('never shrinks at 0 percent', () => {
-		expect(sphereFadeScale(0.5, 0)).toBe(1);
-		expect(sphereFadeScale(1, 0)).toBe(1);
+	it('terrain band ramps displacement always and toggled channels with gamma', () => {
+		const mid = resolveLodTransitionBlends(125, T, 'both', 1);
+		expect(mid.displacementBlend).toBeCloseTo(0.5, 6);
+		expect(mid.heightBlend).toBeCloseTo(0.5, 6);
+		expect(mid.atmosphereBlend).toBeCloseTo(0.5, 6);
+
+		const heightsOnly = resolveLodTransitionBlends(125, T, 'heights', 1);
+		expect(heightsOnly.displacementBlend).toBeCloseTo(0.5, 6);
+		expect(heightsOnly.heightBlend).toBeCloseTo(0.5, 6);
+		expect(heightsOnly.atmosphereBlend).toBe(1);
+
+		const atmoOnly = resolveLodTransitionBlends(125, T, 'atmosphere', 1);
+		expect(atmoOnly.displacementBlend).toBeCloseTo(0.5, 6);
+		expect(atmoOnly.heightBlend).toBe(1);
+		expect(atmoOnly.atmosphereBlend).toBeCloseTo(0.5, 6);
 	});
 
-	it('clamps out-of-range blend and negative shrink', () => {
-		expect(sphereFadeScale(2, 10)).toBeCloseTo(0.9, 6);
-		expect(sphereFadeScale(-1, 10)).toBe(1);
-		expect(sphereFadeScale(1, -5)).toBe(1);
+	it('is full at terrain full', () => {
+		expect(resolveLodTransitionBlends(200, T, 'both')).toEqual({
+			displacementBlend: 1,
+			heightBlend: 1,
+			atmosphereBlend: 1
+		});
 	});
 });

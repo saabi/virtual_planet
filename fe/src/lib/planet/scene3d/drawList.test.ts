@@ -30,22 +30,38 @@ function sceneOneBody(radiusMeters: number): PlanetScene {
 const cam = (distance: number) => ({ azimuth: 0, elevation: 0, distance, target: [0, 0, 0] as [number, number, number] });
 
 describe('buildDrawList', () => {
-	it('projects a body and picks procedural LOD when it fills the screen', () => {
+	it('projects a body and picks mesh LOD when it fills the screen', () => {
 		const scene = sceneOneBody(1e6);
-		const items = buildDrawList(scene, viewProjection(cam(3e6), 1.5), [0, 0, 0], 1200, 800, new Map<string, LodLevel>(), DEFAULT_LOD_THRESHOLDS);
+		const items = buildDrawList(
+			scene,
+			viewProjection(cam(3e6), 1.5),
+			[0, 0, 0],
+			1200,
+			800,
+			new Map<string, LodLevel>(),
+			{ lod: DEFAULT_LOD_THRESHOLDS }
+		);
 		expect(items).toHaveLength(1);
 		expect(items[0].id).toBe('b');
 		expect(items[0].screen).not.toBeNull();
 		expect(items[0].screenRadiusPx).toBeGreaterThan(120);
-		expect(items[0].lod).toBe('procedural');
-		expect(items[0].blend).toBe(1);
+		expect(items[0].lod).toBe('mesh');
+		expect(items[0].displacementBlend).toBe(1);
 	});
 
 	it('falls to a dot when far away', () => {
 		const scene = sceneOneBody(1e6);
-		const items = buildDrawList(scene, viewProjection(cam(2e9), 1.5), [0, 0, 0], 1200, 800, new Map<string, LodLevel>(), DEFAULT_LOD_THRESHOLDS);
+		const items = buildDrawList(
+			scene,
+			viewProjection(cam(2e9), 1.5),
+			[0, 0, 0],
+			1200,
+			800,
+			new Map<string, LodLevel>(),
+			DEFAULT_LOD_THRESHOLDS
+		);
 		expect(items[0].screenRadiusPx).toBeLessThan(1);
 		expect(items[0].lod).toBe('dot');
-		expect(items[0].blend).toBe(0);
+		expect(items[0].displacementBlend).toBe(0);
 	});
 });

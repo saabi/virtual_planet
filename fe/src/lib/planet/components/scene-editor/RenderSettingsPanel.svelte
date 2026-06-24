@@ -6,6 +6,7 @@
 		SceneViewportPrefs,
 		OrbitPathOverlayMode
 	} from '$lib/planet/scene/viewportPrefs.js';
+	import type { LodTransitionMode } from '$lib/planet/scene/bodyParams.js';
 	import { overlayBulkFields } from '$lib/planet/scene/nodeSchemas.js';
 	import { RENDER_FEATURES } from '$lib/planet/scene/renderFeatures.js';
 
@@ -126,7 +127,7 @@
 						<ul class="slider-list">
 							<Range
 								id="lod-sphere"
-								label="Sphere starts (radius px)"
+								label="Mesh starts (radius px)"
 								min={0}
 								max={20}
 								step={0.5}
@@ -153,22 +154,26 @@
 							/>
 							<Range
 								id="lod-fade-gamma"
-								label="Cross-fade gamma (→ sphere)"
+								label="Cross-fade gamma (→ terrain)"
 								min={1}
 								max={5}
 								step={0.1}
 								variant="scene"
 								bind:value={viewportPrefs.lod.fadeGamma}
 							/>
-							<Range
-								id="lod-sphere-shrink"
-								label="Sphere shrink at fade (%)"
-								min={0}
-								max={10}
-								step={0.5}
-								variant="scene"
-								bind:value={viewportPrefs.lod.sphereShrinkPercent}
-							/>
+							<label class="atmo-row">
+								<span>Transition</span>
+								<select
+									value={viewportPrefs.lod.transitionMode}
+									onchange={(e) =>
+										(viewportPrefs.lod.transitionMode = e.currentTarget
+											.value as LodTransitionMode)}
+								>
+									<option value="heights">Heights</option>
+									<option value="atmosphere">Atmosphere</option>
+									<option value="both">Both</option>
+								</select>
+							</label>
 						</ul>
 					</EditorSubsection>
 					<EditorSubsection title="Tessellation" defaultOpen>

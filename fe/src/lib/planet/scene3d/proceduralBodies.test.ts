@@ -32,9 +32,10 @@ function sceneWith(...nodes: BodyNode[]): PlanetScene {
 
 function drawItem(
 	id: string,
-	blend: number,
+	lod: DrawItem['lod'],
 	screenRadiusPx: number,
-	depth: number
+	depth: number,
+	blends: Partial<Pick<DrawItem, 'displacementBlend' | 'heightBlend' | 'atmosphereBlend' | 'terrainBlend'>> = {}
 ): DrawItem {
 	return {
 		id,
@@ -44,18 +45,21 @@ function drawItem(
 		worldScale: [1, 1, 1],
 		screen: { x: 100, y: 100, depth },
 		screenRadiusPx,
-		lod: 'procedural',
-		blend
+		lod,
+		terrainBlend: blends.terrainBlend ?? 1,
+		displacementBlend: blends.displacementBlend ?? 1,
+		heightBlend: blends.heightBlend ?? 1,
+		atmosphereBlend: blends.atmosphereBlend ?? 1
 	};
 }
 
 describe('selectProceduralTargets', () => {
 	const animated = sceneWith(body('a'), body('b'), body('c'));
 
-	it('returns empty when no procedural candidates', () => {
+	it('returns empty when no mesh-tier candidates', () => {
 		expect(
 			selectProceduralTargets(
-				[drawItem('a', 0, 200, 1)],
+				[drawItem('a', 'dot', 200, 1)],
 				animated,
 				animated,
 				'a'
@@ -65,9 +69,9 @@ describe('selectProceduralTargets', () => {
 
 	it('returns every visible procedural candidate sorted by on-screen size', () => {
 		const list = [
-			drawItem('a', 1, 120, 3),
-			drawItem('b', 1, 200, 2),
-			drawItem('c', 1, 80, 4)
+			drawItem('a', 'mesh', 120, 3),
+			drawItem('b', 'mesh', 200, 2),
+			drawItem('c', 'mesh', 80, 4)
 		];
 		const got = selectProceduralTargets(list, animated, animated, null);
 		expect(got.map((t) => t.id)).toEqual(['b', 'a', 'c']);
@@ -77,14 +81,14 @@ describe('selectProceduralTargets', () => {
 	it('caps at MAX_PROCEDURAL_BODIES when the view is crowded', () => {
 		const nodes = Array.from({ length: 10 }, (_, i) => body(`b${i}`));
 		const crowded = sceneWith(...nodes);
-		const list = nodes.map((n, i) => drawItem(n.id, 1, 200 - i, i + 1));
+		const list = nodes.map((n, i) => drawItem(n.id, 'mesh', 200 - i, i + 1));
 		const got = selectProceduralTargets(list, crowded, crowded, null);
 		expect(got).toHaveLength(MAX_PROCEDURAL_BODIES);
 		expect(got[0]!.id).toBe('b0');
 	});
 
 	it('keeps the selected body primary even when smaller on screen', () => {
-		const list = [drawItem('a', 1, 80, 2), drawItem('b', 1, 200, 3)];
+		const list = [drawItem('a', 'mesh', 80, 2), drawItem('b', 'mesh', 200, 3)];
 		const got = selectProceduralTargets(list, animated, animated, 'a');
 		expect(got.map((t) => t.id)).toEqual(['a', 'b']);
 	});
@@ -99,7 +103,9 @@ describe('sortProceduralDrawOrder', () => {
 				worldPos: [0, 0, 0] as Vec3,
 				rotation: [0, 0, 0, 1] as Quat,
 				renderRadius: 6.371e6,
-				blend: 1,
+				displacementBlend: 1,
+				heightBlend: 1,
+				atmosphereBlend: 1,
 				screenDepth: 1,
 				screenRadiusPx: 100
 			},
@@ -109,7 +115,9 @@ describe('sortProceduralDrawOrder', () => {
 				worldPos: [1, 0, 0] as Vec3,
 				rotation: [0, 0, 0, 1] as Quat,
 				renderRadius: 6.371e6,
-				blend: 1,
+				displacementBlend: 1,
+				heightBlend: 1,
+				atmosphereBlend: 1,
 				screenDepth: 5,
 				screenRadiusPx: 100
 			}

@@ -10,18 +10,16 @@ import { DEFAULT_ATMOSPHERE_INTEGRATE_STEPS } from '$lib/planet/scene/bodyAtmosp
 import {
 	DEFAULT_FADE_GAMMA,
 	DEFAULT_LOD_THRESHOLDS,
-	DEFAULT_SPHERE_SHRINK_PERCENT,
-	type LodThresholds
+	type LodThresholds,
+	type LodTransitionMode
 } from '$lib/planet/scene/bodyParams.js';
 
-/** LOD thresholds plus the cross-fade gamma — the "Level of detail" settings group. */
+/** LOD thresholds plus transition controls — the "Level of detail" settings group. */
 export interface SceneLodSettings extends LodThresholds {
-	/** Gamma (>=1) on the sphere→terrain cross-fade opacity; higher biases visibility
-	 *  toward the base sphere. 1 = linear. */
+	/** Gamma (>=1) on the terrain-band transition; higher biases visibility toward smooth mesh. */
 	fadeGamma: number;
-	/** Percent (0–10) the base sphere shrinks by full cross-fade so deep terrain valleys
-	 *  aren't occluded by the full-radius sphere. 0 = no shrink. */
-	sphereShrinkPercent: number;
+	/** Which channels ramp during the terrain band (sphere starts → terrain full). */
+	transitionMode: LodTransitionMode;
 }
 
 export interface ViewportDebugSettings {
@@ -56,7 +54,7 @@ export interface SceneViewportPrefs {
 	materialOverrides: MaterialOverrides;
 	/** Ray-march step count for the atmosphere volume integral (global render quality). */
 	atmosphereIntegrateSteps: number;
-	/** Screen-size LOD thresholds + cross-fade gamma; global, not per-body. */
+	/** Screen-size LOD thresholds + transition; global, not per-body. */
 	lod: SceneLodSettings;
 	/** Eclipse-shadow contrast: gain on the occluded sun fraction. 1 = physical, >1 darker
 	 *  (wider umbra), <1 softer. Applies to terrain, spheres, and atmospheres. */
@@ -85,7 +83,7 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		lod: {
 			...DEFAULT_LOD_THRESHOLDS,
 			fadeGamma: DEFAULT_FADE_GAMMA,
-			sphereShrinkPercent: DEFAULT_SPHERE_SHRINK_PERCENT
+			transitionMode: 'both'
 		},
 		eclipseContrast: 1
 	};
@@ -118,6 +116,6 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void p.lod.proceduralAboveRadiusPx;
 	void p.lod.proceduralFullRadiusPx;
 	void p.lod.fadeGamma;
-	void p.lod.sphereShrinkPercent;
+	void p.lod.transitionMode;
 	void p.eclipseContrast;
 }

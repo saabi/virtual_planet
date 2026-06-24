@@ -81,3 +81,13 @@ fn sample_planet(unit_dir: vec3f, params: PlanetParams, scale: ScaleContext) -> 
   r.world_pos = p * radius;
   return r;
 }
+
+/** Scale macro relief toward a smooth sphere (LOD height transition). */
+fn apply_height_blend(sample: PlanetSample, base_radius: f32, height_blend: f32) -> PlanetSample {
+  var s = sample;
+  let full_r = sample.world_radius_meters;
+  s.world_radius_meters = mix(base_radius, full_r, height_blend);
+  s.height_meters *= height_blend;
+  s.world_pos = sample.unit_dir * s.world_radius_meters;
+  return s;
+}

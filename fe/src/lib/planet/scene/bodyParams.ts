@@ -37,7 +37,18 @@ export function diffAppearanceOverrides(
 	return overrides;
 }
 
-export type LodLevel = 'dot' | 'sphere' | 'procedural';
+export type LodLevel = 'dot' | 'mesh';
+
+export type LodTransitionMode = 'heights' | 'atmosphere' | 'both';
+
+export interface LodTransitionBlends {
+	/** Vertex radial offset toward displaced surface (terrain band). */
+	displacementBlend: number;
+	/** Fragment macro relief scale (when heights participate in the transition). */
+	heightBlend: number;
+	/** Scene atmosphere pass opacity (when atmosphere participates). */
+	atmosphereBlend: number;
+}
 
 /**
  * Screen-size LOD thresholds, expressed as the body's **projected radius in pixels** (the
@@ -45,11 +56,11 @@ export type LodLevel = 'dot' | 'sphere' | 'procedural';
  * (see `SceneViewportPrefs.lod`), not per-body.
  */
 export interface LodThresholds {
-	/** Above this projected radius (px) a body renders as a sphere; below it, a dot. */
+	/** Above this projected radius (px) a body renders as a tessellated mesh; below it, a dot. */
 	sphereAboveRadiusPx: number;
-	/** Above this projected radius (px) procedural terrain starts fading in over the sphere. */
+	/** Above this projected radius (px) displacement / toggled channels start ramping in. */
 	proceduralAboveRadiusPx: number;
-	/** At this projected radius (px) procedural terrain is fully visible and the sphere is dropped. */
+	/** At this projected radius (px) terrain transition is complete. */
 	proceduralFullRadiusPx: number;
 }
 
@@ -64,42 +75,60 @@ export const DEFAULT_LOD_THRESHOLDS: LodThresholds = {
  * Stateless; the renderer adds hysteresis around the boundaries to avoid flicker.
  */
 export function selectLod(projectedRadiusPx: number, t: LodThresholds): LodLevel {
-	if (projectedRadiusPx >= t.proceduralAboveRadiusPx) return 'procedural';
-	if (projectedRadiusPx >= t.sphereAboveRadiusPx) return 'sphere';
+	if (projectedRadiusPx >= t.sphereAboveRadiusPx) return 'mesh';
 	return 'dot';
 }
 
-/** Fraction (0..1) the procedural body is fade-composited over its sphere across the
- *  explicit terrain-start → terrain-full range. Lets the planet dissolve in over the
- *  sphere instead of popping. */
+/** Linear 0..1 across the terrain-start → terrain-full band. */
 export function proceduralBlend(projectedRadiusPx: number, t: LodThresholds): number {
 	const start = t.proceduralAboveRadiusPx;
 	const band = Math.max(1, t.proceduralFullRadiusPx - start);
 	return Math.max(0, Math.min(1, (projectedRadiusPx - start) / band));
 }
 
-/** Default gamma for the cross-fade opacity (see `fadeOpacity`). */
+/** Default gamma for the terrain transition (see `fadeOpacity`). */
 export const DEFAULT_FADE_GAMMA = 2.5;
 
-/** Maps the linear cross-fade `blend` to the terrain's draw opacity through a gamma.
- *  gamma > 1 biases visibility toward the base sphere: the terrain stays faint over the
- *  sphere through most of the transition and only becomes opaque near the end (blend→1);
- *  gamma = 1 is linear. Endpoints are preserved (0→0, 1→1), so the sphere-drop and
- *  activation thresholds that read the linear blend are unaffected. */
+/** Maps the linear terrain-band blend through a gamma. gamma > 1 keeps toggled channels
+ *  faint early in the band; gamma = 1 is linear. Endpoints preserved (0→0, 1→1). */
 export function fadeOpacity(blend: number, gamma: number = DEFAULT_FADE_GAMMA): number {
 	return Math.pow(Math.max(0, Math.min(1, blend)), Math.max(1, gamma));
 }
 
-/** Default base-sphere shrink at full cross-fade, as a percent of the body radius. */
-export const DEFAULT_SPHERE_SHRINK_PERCENT = 6;
+function modeIncludesHeights(mode: LodTransitionMode): boolean {
+	return mode === 'heights' || mode === 'both';
+}
 
-/** Base-sphere radius scale across the cross-fade. The sphere recedes by up to
- *  `shrinkPercent`% of its radius as `blend`→1, so deep terrain valleys (below the base
- *  radius) aren't occluded by the full-radius sphere while the terrain fades in. blend 0
- *  → 1.0 (no shrink); blend 1 → 1 − shrinkPercent/100. The shrink stays small (a few
- *  percent) so the sphere still backs the terrain through the transition. */
-export function sphereFadeScale(blend: number, shrinkPercent: number): number {
-	const b = Math.max(0, Math.min(1, blend));
-	const shrink = Math.max(0, shrinkPercent) / 100;
-	return 1 - shrink * b;
+function modeIncludesAtmosphere(mode: LodTransitionMode): boolean {
+	return mode === 'atmosphere' || mode === 'both';
+}
+
+/**
+ * Per-channel blends for tessellated planets/moons above the dot tier.
+ * Smooth-mesh band (sphereAbove … proceduralAbove): displacement 0; toggled channels off;
+ * non-toggled channels at 1. Terrain band: displacement always ramps; toggled channels ramp
+ * with the same curve; non-toggled stay at 1.
+ */
+export function resolveLodTransitionBlends(
+	projectedRadiusPx: number,
+	t: LodThresholds,
+	mode: LodTransitionMode,
+	gamma: number = DEFAULT_FADE_GAMMA
+): LodTransitionBlends {
+	const terrainLinear = proceduralBlend(projectedRadiusPx, t);
+	const terrain = fadeOpacity(terrainLinear, gamma);
+
+	if (projectedRadiusPx < t.proceduralAboveRadiusPx) {
+		return {
+			displacementBlend: 0,
+			heightBlend: modeIncludesHeights(mode) ? 0 : 1,
+			atmosphereBlend: modeIncludesAtmosphere(mode) ? 0 : 1
+		};
+	}
+
+	return {
+		displacementBlend: terrain,
+		heightBlend: modeIncludesHeights(mode) ? terrain : 1,
+		atmosphereBlend: modeIncludesAtmosphere(mode) ? terrain : 1
+	};
 }

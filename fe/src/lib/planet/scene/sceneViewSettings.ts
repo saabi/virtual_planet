@@ -81,10 +81,12 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 			proceduralAboveRadiusPx: proceduralStart,
 			proceduralFullRadiusPx: Math.max(proceduralStart + 1, proceduralFull),
 			fadeGamma: num(lod.fadeGamma, d.lod.fadeGamma),
-			sphereShrinkPercent: Math.max(
-				0,
-				Math.min(10, num(lod.sphereShrinkPercent, d.lod.sphereShrinkPercent))
-			)
+			transitionMode:
+				lod.transitionMode === 'heights' ||
+				lod.transitionMode === 'atmosphere' ||
+				lod.transitionMode === 'both'
+					? lod.transitionMode
+					: d.lod.transitionMode
 		},
 		eclipseContrast: Math.max(0.25, Math.min(4, num(r.eclipseContrast, d.eclipseContrast)))
 	};

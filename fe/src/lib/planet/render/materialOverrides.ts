@@ -5,7 +5,7 @@ import {
 	type MaterialOverrides
 } from '../material/biomes.js';
 
-export const MATERIAL_OVERRIDES_UNIFORM_SIZE = 32;
+export const MATERIAL_OVERRIDES_UNIFORM_SIZE = 48;
 
 export function materialDebugToGpu(mode: MaterialDebugMode): number {
 	return MATERIAL_DEBUG_MODE[mode];
@@ -21,6 +21,8 @@ export function writeMaterialOverrides(buffer: ArrayBuffer, o: MaterialOverrides
 	view.setFloat32(20, o.shadows ? 1 : 0, true);
 	view.setFloat32(24, o.shadowFill, true);
 	view.setFloat32(28, o.objectOpacity, true);
+	view.setFloat32(32, o.heightBlend, true);
+	view.setFloat32(36, o.displacementBlend, true);
 }
 
 export function defaultMaterialOverrides(): MaterialOverrides {

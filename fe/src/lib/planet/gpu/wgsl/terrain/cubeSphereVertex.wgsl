@@ -67,8 +67,12 @@ fn vs_main(
   // place the vertex at the world direction so the camera/sun stay fixed and the
   // terrain rotates beneath them.
   let body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir);
-  let sample = sample_planet(body_dir, planet, scale_ctx);
-  let world_pos = unit_dir * sample.world_radius_meters;
+  var world_radius = planet.radius;
+  if (mat_overrides.displacement_blend > 1e-4) {
+    let sample = sample_planet(body_dir, planet, scale_ctx);
+    world_radius = mix(planet.radius, sample.world_radius_meters, mat_overrides.displacement_blend);
+  }
+  let world_pos = unit_dir * world_radius;
   var out: VSOut;
   out.world_pos = world_pos;
   out.unit_dir = unit_dir;
@@ -94,7 +98,8 @@ fn fs_main(in: VSOut) -> FSOut {
     view_u.camera_pos.xyz, view_u.planet_rot, planet.radius
   );
   let tex_dir = select(body_dir, ideal.body_dir, ideal.hit);
-  let sample = sample_planet(body_dir, planet, scale_ctx);
+  let full_sample = sample_planet(body_dir, planet, scale_ctx);
+  let sample = apply_height_blend(full_sample, planet.radius, mat_overrides.height_blend);
   var material = apply_material_overrides(surface_material(sample, planet, scale_ctx, tex_dir), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.y > 0.5) {
@@ -153,7 +158,6 @@ fn fs_main(in: VSOut) -> FSOut {
   }
 
   var out: FSOut;
-  // Alpha = objectOpacity drives the sphere→terrain cross-fade (1 = opaque on /planet).
   out.color = vec4f(col, mat_overrides.object_opacity);
   out.surface_t = length(in.world_pos - view_u.camera_pos.xyz);
   return out;

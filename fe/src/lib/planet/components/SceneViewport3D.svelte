@@ -18,7 +18,8 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
-	import { DEFAULT_LOD_THRESHOLDS, sphereFadeScale, type LodLevel } from '../scene/bodyParams.js';
+	import { type LodLevel } from '../scene/bodyParams.js';
+	import { createDefaultViewportPrefs } from '../scene/viewportPrefs.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
 	import {
@@ -29,6 +30,7 @@
 	import { packEclipseUniforms } from '../scene/packEclipse.js';
 	import {
 		MAX_PROCEDURAL_BODIES,
+		isProceduralTerrainBody,
 		packBodyTerrainLighting,
 		selectProceduralTargets,
 		sortProceduralDrawOrder,
@@ -177,38 +179,28 @@
 		return max;
 	}
 
-	// Screen-size LOD lives in buildDrawList (dot/sphere/procedural by projected px, with
-	// ±15% hysteresis via lodState). A dot renders as a fixed-size point so distant
-	// bodies stay visible; sphere/procedural use the true radius (procedural is drawn as
-	// a sphere here — the engine swaps it for the real render). lodState persists frames.
+	// Screen-size LOD: dot vs tessellated mesh (±15% hysteresis). Dots are fixed-size
+	// sprites; planets/moons use the terrain pipeline from mesh tier up.
 	const DOT_RADIUS_PX = 2.5;
 	const lodState = new Map<string, LodLevel>();
 
-	function instancesFromDrawList(
-		drawList: DrawItem[],
-		eye: Vec3,
-		excludeIds: ReadonlySet<string> = new Set()
-	): BodyInstance[] {
+	function instancesFromDrawList(drawList: DrawItem[], eye: Vec3): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
-		const shrinkPercent = viewportPrefs?.lod.sphereShrinkPercent ?? 0;
 		const out: BodyInstance[] = [];
 		for (const it of drawList) {
-			if (!it.screen) continue; // off-screen → cull
-			if (excludeIds.has(it.id)) continue; // rendered procedurally instead of as a sphere
-			// Recede the base sphere as terrain fades in so deep valleys aren't occluded.
+			if (!it.screen) continue;
+			const node = scene.nodes.get(it.id);
+			if (node?.kind === 'body' && isProceduralTerrainBody(node) && it.lod !== 'dot') continue;
 			const radius =
 				it.lod === 'dot'
 					? (DOT_RADIUS_PX * it.screen.depth) / screenScale
-					: it.radiusMeters * sphereFadeScale(it.blend, shrinkPercent);
+					: it.radiusMeters;
 			out.push({
-				// Eye-relative center: the sphere pass renders with the eye-relative VP, so
-				// vertices stay near the origin and survive f32 at planetary distances.
 				position: sub3(it.worldPos, eye),
 				radius,
 				scale: it.worldScale,
 				color: BODY_COLOR[it.bodyType],
 				emissive: it.bodyType === 'star',
-				// Pin distant dots to the far plane so a near-fit frustum never clips them.
 				marker: it.lod === 'dot'
 			});
 		}
@@ -327,7 +319,12 @@
 			.sort(
 				(a, b) => a.elements.semiMajorAxis - b.elements.semiMajorAxis
 			);
-		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
+		const lodSettings = viewportPrefs?.lod ?? createDefaultViewportPrefs().lod;
+		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, {
+			lod: lodSettings,
+			transitionMode: lodSettings.transitionMode,
+			fadeGamma: lodSettings.fadeGamma
+		});
 		const light = lighting(animated);
 		updateMarker(animated, vpRel, eye);
 		updateProcedural(animated, drawList);
@@ -337,10 +334,7 @@
 		const terrainTargets = procTargets;
 		const procActive =
 			terrainTargets.length > 0 && proceduralRendererPool.length >= terrainTargets.length;
-		const hideSphereIds = new Set(
-			terrainTargets.filter((t) => t.blend >= 1).map((t) => t.id)
-		);
-		const instances = instancesFromDrawList(drawList, eye, hideSphereIds);
+		const instances = instancesFromDrawList(drawList, eye);
 		// The sphere shader lights via (lightPos - worldPos); both are eye-relative now, so
 		// the subtraction is precise. The difference is frame-invariant — only its precision
 		// improves.
@@ -379,7 +373,8 @@
 				renderRadius: target.renderRadius,
 				materialDebug: terrainMaterialDebug,
 				viewportPrefs,
-				blend: target.blend,
+				displacementBlend: target.displacementBlend,
+				heightBlend: target.heightBlend,
 				nearFar,
 				tessellationBudgetScale: tessellationBudgetScaleForBody(
 					target.id,
@@ -395,8 +390,8 @@
 			? 'explicit-composite'
 			: (viewportPrefs?.atmosphere.blendMode ?? 'explicit-composite');
 		if (procActive && sceneAtmosphere) {
-			const atmoCandidates = sortProceduralDrawOrder(terrainTargets).filter((t) =>
-				resolveAtmosphereVisible(t.body, viewportPrefs)
+			const atmoCandidates = sortProceduralDrawOrder(terrainTargets).filter(
+				(t) => t.atmosphereBlend > 0 && resolveAtmosphereVisible(t.body, viewportPrefs)
 			);
 			const atmoTargets =
 				primaryTarget && atmoCandidates.some((t) => t.id === primaryTarget.id)
@@ -414,7 +409,6 @@
 							viewProjection: vpRel,
 							cameraWorldPos: eye,
 							bodies: atmoTargets.map((target) => {
-								const input = proceduralInputFor(target);
 								return {
 									atmosphere: toGpuAtmosphereParams(
 										bodyAtmosphereToParameters(
@@ -424,9 +418,7 @@
 										target.renderRadius,
 										sub3(target.worldPos, eye)
 									),
-									opacity: atmosphereDebugActive
-										? 1
-										: input.materialOverrides.objectOpacity
+									opacity: atmosphereDebugActive ? 1 : target.atmosphereBlend
 								};
 							}),
 							lighting: packBodyTerrainLighting(animated, eye),

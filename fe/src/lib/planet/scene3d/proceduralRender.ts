@@ -1,13 +1,3 @@
-import {
-	focusedBodyCamera,
-	type OrbitLookMode
-} from '../camera/orbitCamera.js';
-import type { CameraState } from '../camera/cameraModes.js';
-import {
-	bodyRelativeCameraFromOrbit,
-	bodyRelativeCameraFromWorld,
-	type OrbitCamera
-} from './orbitCamera.js';
 import { fadeOpacity, resolveBodyParams } from '../scene/bodyParams.js';
 import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
 import { receiverLocalEclipseSet, type EclipseOccluderSet } from '../scene/eclipseOccluders.js';
@@ -20,6 +10,16 @@ import type { LightingUniforms } from '../render/uniformLayouts.js';
 import type { BodyNode, Quat } from '../scene/types.js';
 import { len3, sub3, type Vec3 } from '../math/vec.js';
 import { scaleTessellationBudget } from './proceduralBodies.js';
+import {
+	focusedBodyCamera,
+	type OrbitLookMode
+} from '../camera/orbitCamera.js';
+import type { CameraState } from '../camera/cameraModes.js';
+import {
+	bodyRelativeCameraFromOrbit,
+	bodyRelativeCameraFromWorld,
+	type OrbitCamera
+} from './orbitCamera.js';
 
 // Build the per-frame input for rendering a scene body procedurally — the world-scale
 // params, the shared focused-body camera, body atmosphere, and scene lighting. Extracted
@@ -46,8 +46,10 @@ export interface ProceduralRenderOpts {
 	renderRadius?: number;
 	materialDebug?: MaterialDebugMode;
 	viewportPrefs?: SceneViewportPrefs;
-	/** Terrain alpha (0..1) for the sphere→terrain cross-fade; the LOD blend. Default 1. */
-	blend?: number;
+	/** Vertex displacement blend (scene LOD terrain band). Default 1. */
+	displacementBlend?: number;
+	/** Fragment macro relief blend (scene LOD). Default 1. */
+	heightBlend?: number;
 	/** Fraction of the viewport tessellation budget (secondary procedural bodies). */
 	tessellationBudgetScale?: number;
 	/** Scene-bounds-fit depth range, shared with the sphere/atmosphere passes for depth
@@ -131,7 +133,9 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 		materialOverrides: {
 			...(prefs?.materialOverrides ?? DEFAULT_MATERIAL_OVERRIDES),
 			materialDebug: o.materialDebug ?? 'off',
-			objectOpacity: fadeOpacity(o.blend ?? 1, prefs?.lod.fadeGamma)
+			objectOpacity: 1,
+			heightBlend: o.heightBlend ?? 1,
+			displacementBlend: o.displacementBlend ?? 1
 		},
 		atmosphere: bodyAtmosphereToParameters(
 			resolveBodyAtmosphere(o.body),

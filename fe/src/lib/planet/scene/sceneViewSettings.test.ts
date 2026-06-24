@@ -46,10 +46,9 @@ describe('coerceViewportPrefs', () => {
 		expect(got.lod.proceduralFullRadiusPx).toBe(201);
 	});
 
-	it('clamps sphereShrinkPercent into 0..10', () => {
-		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: 50 } }).lod.sphereShrinkPercent).toBe(10);
-		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: -3 } }).lod.sphereShrinkPercent).toBe(0);
-		expect(coerceViewportPrefs({ lod: { sphereShrinkPercent: 4 } }).lod.sphereShrinkPercent).toBe(4);
+	it('coerces transitionMode enum', () => {
+		expect(coerceViewportPrefs({ lod: { transitionMode: 'heights' } }).lod.transitionMode).toBe('heights');
+		expect(coerceViewportPrefs({ lod: { transitionMode: 'bogus' } }).lod.transitionMode).toBe('both');
 	});
 
 	it('keeps valid hardware-alpha blend mode', () => {
