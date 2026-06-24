@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getSystem } from './catalog.js';
 import {
 	createSceneFromCatalogSystem,
+	SUNDog_SCENE_DISTANCE_SCALE,
 	SUNDog_SCENE_MOTION_TIME_SCALE,
 	SYSTEM_ROOT_ID,
 	terrainToPreset
@@ -51,6 +52,10 @@ describe('createSceneFromCatalogSystem', () => {
 		expect(planets).toHaveLength(system.bodies.length);
 		expect(stars[0]!.name).toBe(system.name);
 		expect(stars[0]!.standIn).toBe(true);
+		const catalogStarRadius = (system.star.radiusSolar ?? 1) * 6.957e8;
+		expect(stars[0]!.radiusMeters).toBeCloseTo(
+			catalogStarRadius / SUNDog_SCENE_DISTANCE_SCALE
+		);
 	});
 
 	it('parents each planet orbit on the star (ownership = the star)', () => {
@@ -92,7 +97,7 @@ describe('createSceneFromCatalogSystem', () => {
 		expect(() => advanceScene(scene, 1)).not.toThrow();
 	});
 
-	it('scales orbit and spin periods for slower motion without changing distances', () => {
+	it('scales orbit/spin periods and shrinks orbit radii and body sizes for scene flight', () => {
 		const system = jondd();
 		const scene = createSceneFromCatalogSystem(system);
 		const body = system.bodies[0]!;
@@ -101,14 +106,15 @@ describe('createSceneFromCatalogSystem', () => {
 			(body.render.orbit.orbitPeriodDays ?? 365);
 		const driver = keplerDriver(scene, `${body.id}-orbit`);
 		expect(driver.periodSeconds).toBe(catalogPeriod * SUNDog_SCENE_MOTION_TIME_SCALE);
-		expect(driver.semiMajorAxis).toBeCloseTo(
-			(body.render.orbit.distanceToStarAu ?? 1) * au
-		);
+		const catalogOrbitAu = body.render.orbit.distanceToStarAu ?? 1;
+		expect(driver.semiMajorAxis).toBeCloseTo((catalogOrbitAu * au) / SUNDog_SCENE_DISTANCE_SCALE);
 		const planet = scene.nodes.get(body.id);
 		expect(planet?.kind).toBe('body');
 		if (planet?.kind === 'body') {
 			const spinHours = body.render.orbit.dayRotationHours ?? 24;
 			expect(planet.spinPeriodSeconds).toBe(spinHours * SUNDog_SCENE_MOTION_TIME_SCALE);
+			const catalogRadius = (body.render.planetSizeRel ?? 1) * 6.371e6;
+			expect(planet.radiusMeters).toBeCloseTo(catalogRadius / SUNDog_SCENE_DISTANCE_SCALE);
 		}
 	});
 

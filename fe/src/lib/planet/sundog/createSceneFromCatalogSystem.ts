@@ -31,8 +31,11 @@ const FALLBACK_PERIOD_DAYS = 365;
 const FALLBACK_SIZE_REL = 1;
 const FALLBACK_STAR_RADIUS_SOLAR = 1;
 
-/** Orbital periods and spin durations are multiplied by this in built scenes (distances unchanged). */
+/** Orbital periods and spin durations are multiplied by this in built scenes. */
 export const SUNDog_SCENE_MOTION_TIME_SCALE = 10;
+
+/** Orbit radii and body radii (star included) are divided by this in built scenes. */
+export const SUNDog_SCENE_DISTANCE_SCALE = 10;
 
 const TERRAIN_PRESET: Record<string, PlanetPresetName> = {
 	Terran: 'normie',
@@ -89,14 +92,14 @@ function addOrbitingNodes(
 		nodeIdPrefix: bodyId,
 		name,
 		bodyType: opts.bodyType,
-		orbitRadiusMeters: opts.orbitRadiusMeters,
+		orbitRadiusMeters: opts.orbitRadiusMeters / SUNDog_SCENE_DISTANCE_SCALE,
 		periodSeconds: opts.periodSeconds * SUNDog_SCENE_MOTION_TIME_SCALE,
 		phaseAtEpoch: opts.phaseAtEpoch,
 		spinPeriodSeconds: opts.spinPeriodSeconds * SUNDog_SCENE_MOTION_TIME_SCALE,
 		eccentricity: orbit?.eccentricity ?? 0,
 		periapsisAngle: orbit?.periapsisAngle ?? 0,
 		orbitRotation: orbitRotation(orbit),
-		radiusMeters: opts.radiusMeters,
+		radiusMeters: opts.radiusMeters / SUNDog_SCENE_DISTANCE_SCALE,
 		standIn: opts.standIn,
 		appearance: opts.appearance
 	});
@@ -201,7 +204,9 @@ function buildSceneFromResolved(resolved: ResolvedSunDogSystem): PlanetScene {
 		enabled: true,
 		transform: identityTransform(),
 		bodyType: 'star',
-		radiusMeters: (system.star.radiusSolar ?? FALLBACK_STAR_RADIUS_SOLAR) * SUN_RADIUS_M,
+		radiusMeters:
+			((system.star.radiusSolar ?? FALLBACK_STAR_RADIUS_SOLAR) * SUN_RADIUS_M) /
+			SUNDog_SCENE_DISTANCE_SCALE,
 		standIn: true
 	} as BodyNode);
 	add({
