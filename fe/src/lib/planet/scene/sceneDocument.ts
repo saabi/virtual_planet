@@ -16,6 +16,9 @@ import type { PlanetScene, SceneNode } from './types.js';
 
 const SCENE_DOC_VERSION = 6;
 
+/** localStorage key for the single active scene shown by the /scene editor. */
+export const SYSTEM_SCENE_KEY = 'vp.systemScene';
+
 export interface SceneDocument {
 	version: number;
 	rootId: string;

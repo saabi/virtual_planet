@@ -6,7 +6,11 @@
 	import { createToySolarSystemScene } from '$lib/planet/scene/solarSystem.js';
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
 	import { pathNodeIds, pathOf, resolvePath } from '$lib/planet/scene/scenePath.js';
-	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
+	import {
+		deserializeScene,
+		serializeScene,
+		SYSTEM_SCENE_KEY
+	} from '$lib/planet/scene/sceneDocument.js';
 	import { resolveBodyParams } from '$lib/planet/scene/bodyParams.js';
 	import { writeHandoffLink } from '$lib/planet/scene/planetHandoff.js';
 	import { toSnapshot } from '$lib/planet/documents/snapshot.js';
@@ -43,7 +47,7 @@
 		Transform
 	} from '$lib/planet/scene/types.js';
 
-	const SCENE_KEY = 'vp.systemScene';
+	const SCENE_KEY = SYSTEM_SCENE_KEY;
 
 	function loadScene(): PlanetScene {
 		if (browser) {

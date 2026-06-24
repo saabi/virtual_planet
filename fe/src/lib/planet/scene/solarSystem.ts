@@ -1,6 +1,8 @@
 import type { BodyType, PlanetScene, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
 import { DEFAULT_AMBIENT } from './defaults.js';
+import { deserializeScene } from './sceneDocument.js';
+import solSystemDoc from './solSystem.json';
 
 // Toy solar system preset. Small bodies: rocky planets 400-600 km radius (~1/12
 // Earth). Each orbit is composable primitives wired by a driver (no baked primitive):
@@ -28,7 +30,22 @@ const ORBIT_INHERITANCE = { position: '../', rotation: '/', scale: '../' } as co
 
 export const TOY_SOLAR_SYSTEM_ROOT_ID = 'solar-system';
 
+/**
+ * The default scene loaded by the /scene editor and the reset action: the
+ * hand-authored **Sol** system (committed in `solSystem.json` — per-body
+ * appearance presets, atmospheres, and the reflex-wobble sum driver). It is the
+ * canonical default so the authored scene survives even if the persisted session
+ * is overwritten (e.g. by opening a SunDog system from the galaxy map). Falls
+ * back to the programmatic builder only if the doc can't be parsed (e.g. a future
+ * schema bump before its migration lands). Eventually this becomes one more entry
+ * alongside the SunDog systems in the galaxy.
+ */
 export function createToySolarSystemScene(): PlanetScene {
+	return deserializeScene(JSON.stringify(solSystemDoc)) ?? buildProgrammaticSolarSystemScene();
+}
+
+/** Programmatic Sol-system builder — the structural baseline / parse fallback. */
+function buildProgrammaticSolarSystemScene(): PlanetScene {
 	const nodes = new Map<string, SceneNode>();
 	const add = (node: SceneNode) => nodes.set(node.id, node);
 	const id = (rotation = IDENTITY_QUAT) => ({ position: [0, 0, 0] as [number, number, number], rotation });

@@ -1,0 +1,558 @@
+{
+	"version": 6,
+	"rootId": "solar-system",
+	"nodes": [
+		{
+			"id": "solar-system",
+			"name": "Solar System",
+			"parentId": null,
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] }
+		},
+		{
+			"id": "ss-ambient",
+			"name": "Ambient",
+			"parentId": "solar-system",
+			"kind": "ambient_light",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"color": [0.02, 0.022, 0.028],
+			"intensity": 1
+		},
+		{
+			"id": "ss-starlight",
+			"name": "Starlight",
+			"parentId": "ss-sol",
+			"kind": "point_light",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"color": [1, 0.95, 0.85],
+			"intensity": 3.5,
+			"range": 1000000000,
+			"affects": null
+		},
+		{
+			"id": "ss-sol",
+			"name": "Sol",
+			"parentId": "solar-system",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "star",
+			"radiusMeters": 5000000,
+			"standIn": true,
+			"driver": {
+				"type": "sum",
+				"inputs": [
+					{ "ref": "tempest-orbit", "weight": -0.08 },
+					{ "ref": "ochre-orbit", "weight": -0.02 },
+					{ "ref": "cerule-orbit", "weight": -0.01 },
+					{ "ref": "ferro-orbit", "weight": -0.006 }
+				]
+			},
+			"bindings": [
+				{ "field": "positionX", "source": { "ref": ".", "output": "x" } },
+				{ "field": "positionZ", "source": { "ref": ".", "output": "z" } }
+			]
+		},
+		{
+			"id": "ss-ferro-orbit",
+			"name": "Ferro orbit",
+			"parentId": "ss-sol",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 10000000,
+				"eccentricity": 0,
+				"periodSeconds": 60,
+				"phaseAtEpoch": 0,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-ferro-phase",
+			"name": "Ferro phase",
+			"parentId": "ss-ferro-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-ferro-radius",
+			"name": "Ferro radius",
+			"parentId": "ss-ferro-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-ferro",
+			"name": "Ferro",
+			"parentId": "ss-ferro-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [2, 3, 4] },
+			"bodyType": "planet",
+			"radiusMeters": 500000,
+			"standIn": false,
+			"spinPeriodSeconds": 12,
+			"atmosphere": {
+				"enabled": true,
+				"shellHeightMeters": 14.5,
+				"scaleHeightMeters": 13.4,
+				"rayleighStrength": 2.65,
+				"mieStrength": 2.15,
+				"mieG": 0.48,
+				"groundFogDensity": 1.5,
+				"sunDiskIntensity": 55.5
+			},
+			"appearance": {
+				"preset": "normie",
+				"overrides": {
+					"detail_scale": 47.1,
+					"detail_amplitude": 0.101,
+					"voronoi_amplitude": 0.101
+				}
+			}
+		},
+		{
+			"id": "ss-luna-f-orbit",
+			"name": "Luna-F orbit",
+			"parentId": "ss-ferro-radius",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 600000,
+				"eccentricity": 0.25,
+				"periodSeconds": 9,
+				"phaseAtEpoch": 0.5,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-luna-f-phase",
+			"name": "Luna-F phase",
+			"parentId": "ss-luna-f-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-luna-f-radius",
+			"name": "Luna-F radius",
+			"parentId": "ss-luna-f-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-luna-f",
+			"name": "Luna-F",
+			"parentId": "ss-luna-f-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "moon",
+			"radiusMeters": 120000,
+			"standIn": false,
+			"spinPeriodSeconds": 9
+		},
+		{
+			"id": "ss-luna-f-reflect",
+			"name": "Luna-F reflection",
+			"parentId": "ss-luna-f",
+			"kind": "directional_light",
+			"enabled": false,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"color": [0.7, 0.72, 0.8],
+			"intensity": 0.1,
+			"affects": "ss-ferro"
+		},
+		{
+			"id": "ss-cerule-orbit",
+			"name": "Cerule orbit",
+			"parentId": "ss-sol",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 20000000,
+				"eccentricity": 0.35,
+				"periodSeconds": 170,
+				"phaseAtEpoch": 2.1,
+				"periapsisAngle": 0.5
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-cerule-phase",
+			"name": "Cerule phase",
+			"parentId": "ss-cerule-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-cerule-radius",
+			"name": "Cerule radius",
+			"parentId": "ss-cerule-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-cerule",
+			"name": "Cerule",
+			"parentId": "ss-cerule-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "planet",
+			"radiusMeters": 450000,
+			"standIn": false,
+			"spinPeriodSeconds": 18,
+			"appearance": { "preset": "frozen" },
+			"atmosphere": {
+				"enabled": true,
+				"shellHeightMeters": 146250,
+				"scaleHeightMeters": 22500,
+				"rayleighStrength": 2,
+				"mieStrength": 1,
+				"mieG": 0.76,
+				"groundFogDensity": 0.8,
+				"sunDiskIntensity": 20
+			}
+		},
+		{
+			"id": "ss-ochre-orbit",
+			"name": "Ochre orbit",
+			"parentId": "ss-sol",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 35000000,
+				"eccentricity": 0.2,
+				"periodSeconds": 393,
+				"phaseAtEpoch": 4.2,
+				"periapsisAngle": 2
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-ochre-phase",
+			"name": "Ochre phase",
+			"parentId": "ss-ochre-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-ochre-radius",
+			"name": "Ochre radius",
+			"parentId": "ss-ochre-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-ochre",
+			"name": "Ochre",
+			"parentId": "ss-ochre-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "planet",
+			"radiusMeters": 600000,
+			"standIn": false,
+			"spinPeriodSeconds": 24,
+			"atmosphere": {
+				"enabled": true,
+				"shellHeightMeters": 93000,
+				"scaleHeightMeters": 26400,
+				"rayleighStrength": 2.5,
+				"mieStrength": 1.5,
+				"mieG": 0.76,
+				"groundFogDensity": 0.8,
+				"sunDiskIntensity": 20
+			},
+			"appearance": {
+				"preset": "archipelago",
+				"overrides": {
+					"voronoi_scale": 5.1,
+					"voronoi_amplitude": 0.041,
+					"voronoi_distortion_scale": 4,
+					"voronoi_distortion_amplitude": 0,
+					"water_level": 0.5,
+					"voronoi_distortion_albedo": 0.54,
+					"erosion": 1.76,
+					"texture_noise_amplitude": 0.078,
+					"texture_noise_scale": 2.19,
+					"vegetation_level": 0.3,
+					"sand_cutoff": 0.04,
+					"snow_cover": 0.63
+				}
+			}
+		},
+		{
+			"id": "ss-pebble-orbit",
+			"name": "Pebble orbit",
+			"parentId": "ss-ochre-radius",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 1100000,
+				"eccentricity": 0,
+				"periodSeconds": 20,
+				"phaseAtEpoch": 0,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-pebble-phase",
+			"name": "Pebble phase",
+			"parentId": "ss-pebble-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-pebble-radius",
+			"name": "Pebble radius",
+			"parentId": "ss-pebble-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-pebble",
+			"name": "Pebble",
+			"parentId": "ss-pebble-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "moon",
+			"radiusMeters": 90000,
+			"standIn": false,
+			"spinPeriodSeconds": 11,
+			"atmosphere": {
+				"enabled": true,
+				"shellHeightMeters": 12600,
+				"scaleHeightMeters": 4140,
+				"rayleighStrength": 0.6,
+				"mieStrength": 0.75,
+				"mieG": 0.76,
+				"groundFogDensity": 0.8,
+				"sunDiskIntensity": 20
+			},
+			"appearance": {
+				"preset": "craters",
+				"overrides": { "water_level": 0.53 }
+			}
+		},
+		{
+			"id": "ss-pebble-reflect",
+			"name": "Pebble reflection",
+			"parentId": "ss-pebble",
+			"kind": "directional_light",
+			"enabled": false,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"color": [0.7, 0.72, 0.8],
+			"intensity": 0.1,
+			"affects": "ss-ochre"
+		},
+		{
+			"id": "ss-cobble-orbit",
+			"name": "Cobble orbit",
+			"parentId": "ss-ochre-radius",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 1500000,
+				"eccentricity": 0,
+				"periodSeconds": 30,
+				"phaseAtEpoch": 3.1,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-cobble-phase",
+			"name": "Cobble phase",
+			"parentId": "ss-cobble-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-cobble-radius",
+			"name": "Cobble radius",
+			"parentId": "ss-cobble-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-cobble",
+			"name": "Cobble",
+			"parentId": "ss-cobble-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "moon",
+			"radiusMeters": 70000,
+			"standIn": false,
+			"spinPeriodSeconds": 20,
+			"appearance": {
+				"preset": "desert",
+				"overrides": {
+					"voronoi_amplitude": 0.11,
+					"water_level": 0.5,
+					"render_water": 0,
+					"erosion": 1.64
+				}
+			},
+			"atmosphere": {
+				"enabled": true,
+				"shellHeightMeters": 2450,
+				"scaleHeightMeters": 1820,
+				"rayleighStrength": 0.05,
+				"mieStrength": 1,
+				"mieG": 0.76,
+				"groundFogDensity": 0.8,
+				"sunDiskIntensity": 20
+			}
+		},
+		{
+			"id": "ss-tempest-orbit",
+			"name": "Tempest orbit",
+			"parentId": "ss-sol",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 60000000,
+				"eccentricity": 0.12,
+				"periodSeconds": 882,
+				"phaseAtEpoch": 1,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-tempest-phase",
+			"name": "Tempest phase",
+			"parentId": "ss-tempest-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-tempest-radius",
+			"name": "Tempest radius",
+			"parentId": "ss-tempest-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-tempest",
+			"name": "Tempest",
+			"parentId": "ss-tempest-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "gas_giant",
+			"radiusMeters": 700000,
+			"standIn": true,
+			"spinPeriodSeconds": 30
+		},
+		{
+			"id": "ss-gale-orbit",
+			"name": "Gale orbit",
+			"parentId": "ss-tempest-radius",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"driver": {
+				"type": "kepler",
+				"semiMajorAxis": 9000000,
+				"eccentricity": 0,
+				"periodSeconds": 40,
+				"phaseAtEpoch": 0,
+				"periapsisAngle": 0
+			},
+			"inheritance": { "position": "../", "rotation": "/", "scale": "../" }
+		},
+		{
+			"id": "ss-gale-phase",
+			"name": "Gale phase",
+			"parentId": "ss-gale-orbit",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "rotationY", "source": { "ref": "..", "output": "phase" } }]
+		},
+		{
+			"id": "ss-gale-radius",
+			"name": "Gale radius",
+			"parentId": "ss-gale-phase",
+			"kind": "group",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bindings": [{ "field": "positionX", "source": { "ref": "../..", "output": "radius" } }]
+		},
+		{
+			"id": "ss-gale",
+			"name": "Gale",
+			"parentId": "ss-gale-radius",
+			"kind": "body",
+			"enabled": true,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"bodyType": "moon",
+			"radiusMeters": 200000,
+			"standIn": false,
+			"spinPeriodSeconds": 40
+		},
+		{
+			"id": "ss-gale-reflect",
+			"name": "Gale reflection",
+			"parentId": "ss-gale",
+			"kind": "directional_light",
+			"enabled": false,
+			"transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1] },
+			"color": [0.7, 0.72, 0.8],
+			"intensity": 0.1,
+			"affects": "ss-tempest"
+		}
+	]
+}
