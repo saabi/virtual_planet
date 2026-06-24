@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { getCatalog, getSystem, listSystems } from './catalog.js';
 import { catalogErrors, validateCatalog } from './validate.js';
+import { enrichmentErrors } from './validateEnrichment.js';
 import { CATALOG_SCHEMA_VERSION } from './catalogTypes.js';
 
 describe('sundog catalog', () => {
 	it('loads and validates with no errors', () => {
 		const errors = catalogErrors(getCatalog());
 		expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+	});
+
+	it('validates enrichments with no errors', () => {
+		expect(enrichmentErrors()).toEqual([]);
 	});
 
 	it('has the expected schema version and dataset provenance', () => {

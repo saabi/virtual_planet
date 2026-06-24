@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import SceneViewport3D from '$lib/planet/components/SceneViewport3D.svelte';
-	import { listSystems } from '$lib/planet/sundog/catalog.js';
+	import { listResolvedSystems, type ResolvedSunDogSystem } from '$lib/planet/sundog/catalog.js';
 	import { galaxyLayout, type LayoutMode } from '$lib/planet/sundog/galaxyLayout.js';
 	import {
 		createGalaxyScene,
@@ -11,19 +11,27 @@
 	} from '$lib/planet/sundog/galaxyScene.js';
 	import { createSceneFromCatalogSystem } from '$lib/planet/sundog/createSceneFromCatalogSystem.js';
 	import { serializeScene, SYSTEM_SCENE_KEY } from '$lib/planet/scene/sceneDocument.js';
-	import type { SunDogSystem } from '$lib/planet/sundog/catalogTypes.js';
+	import { effectiveTrade, formatEffectiveTrade } from '$lib/planet/sundog/sim/trade.js';
+	import { seasonLabel } from '$lib/planet/sundog/sim/insolation.js';
 
-	const systems = listSystems();
+	const systems = listResolvedSystems();
 
 	let mode = $state<LayoutMode>('real');
 	let seed = $state(1);
 	let selectedNodeId = $state<string | null>(null);
 
-	let layout = $derived(galaxyLayout(systems, mode, seed));
-	let galaxyScene = $derived(createGalaxyScene(systems, layout));
-	let selectedSystem = $derived.by<SunDogSystem | null>(() => {
+	let layout = $derived(galaxyLayout(
+		systems.map((s) => s.extracted),
+		mode,
+		seed
+	));
+	let galaxyScene = $derived(createGalaxyScene(
+		systems.map((s) => s.extracted),
+		layout
+	));
+	let selectedSystem = $derived.by<ResolvedSunDogSystem | null>(() => {
 		const id = systemIdFromNode(selectedNodeId);
-		return id ? (systems.find((s) => s.id === id) ?? null) : null;
+		return id ? (systems.find((s) => s.extracted.id === id) ?? null) : null;
 	});
 
 	function shuffle() {
@@ -35,12 +43,12 @@
 		mode = 'real';
 	}
 
-	function select(system: SunDogSystem) {
-		selectedNodeId = starNodeId(system.id);
+	function select(resolved: ResolvedSunDogSystem) {
+		selectedNodeId = starNodeId(resolved.extracted.id);
 	}
 
-	function openInScene(system: SunDogSystem) {
-		const scene = createSceneFromCatalogSystem(system);
+	function openInScene(resolved: ResolvedSunDogSystem) {
+		const scene = createSceneFromCatalogSystem(resolved.extracted);
 		if (browser) {
 			try {
 				localStorage.setItem(SYSTEM_SCENE_KEY, serializeScene(scene));
@@ -54,6 +62,13 @@
 	function fmt(v: number | null, suffix = ''): string {
 		return v === null ? '—' : `${v}${suffix}`;
 	}
+
+	function truncateNotes(notes: string | null, max = 140): string {
+		if (!notes) return '';
+		return notes.length <= max ? notes : `${notes.slice(0, max)}…`;
+	}
+
+	const SCENE_EPOCH = 0;
 </script>
 
 <svelte:head>
@@ -75,10 +90,12 @@
 
 	<aside class="panel">
 		{#if selectedSystem}
-			{@const sys = selectedSystem}
+			{@const sys = selectedSystem.extracted}
+			{@const enrich = selectedSystem.enrichment}
 			<header>
 				<h1>{sys.name}</h1>
 				<span class="code">{sys.code}</span>
+				{#if enrich}<span class="tag authored">enriched</span>{/if}
 			</header>
 
 			<section>
@@ -104,6 +121,10 @@
 					<dd>{fmt(sys.game.pirateActivity)}</dd>
 					<dt>Planets</dt>
 					<dd>{sys.bodies.length}</dd>
+					{#if enrich?.additions?.length}
+						<dt>Authored bodies</dt>
+						<dd>{enrich.additions.length}</dd>
+					{/if}
 				</dl>
 			</section>
 
@@ -111,6 +132,10 @@
 				<h2>Planets</h2>
 				<ul class="planets">
 					{#each sys.bodies as body (body.id)}
+						{@const bodyEnrich = selectedSystem.bodyEnrichments.get(body.id)}
+						{@const orbit = bodyEnrich?.orbit}
+						{@const gameplay = bodyEnrich?.gameplay}
+						{@const trade = effectiveTrade(body, sys, SCENE_EPOCH, gameplay, orbit)}
 						<li>
 							<div class="planet-head">
 								<span class="planet-name">{body.name}</span>
@@ -122,8 +147,29 @@
 								<span>Gravity {fmt(body.render.gravityG, ' g')}</span>
 								<span>Wealth {fmt(body.game.wealth)}</span>
 								<span>Pop {fmt(body.game.population)}</span>
+								{#if orbit?.eccentricity}
+									<span>e {orbit.eccentricity.toFixed(2)}</span>
+								{/if}
+								{#if orbit?.inclinationDeg}
+									<span>i {orbit.inclinationDeg.toFixed(1)}°</span>
+								{/if}
 								{#if body.render.habitable}<span class="tag">habitable</span>{/if}
+								{#if gameplay?.seasonality}
+									<span class="tag season">{gameplay.seasonality} seasons</span>
+								{/if}
 							</div>
+							{#if gameplay?.flavor}
+								<p class="flavor">{gameplay.flavor}</p>
+							{/if}
+							{#if body.game.notes}
+								<p class="notes">{truncateNotes(body.game.notes)}</p>
+							{/if}
+							{#if trade !== null}
+								<div class="trade-hint">
+									Trade ~{formatEffectiveTrade(trade)} at epoch
+									<span class="muted">({seasonLabel(body, SCENE_EPOCH, orbit)})</span>
+								</div>
+							{/if}
 							{#if body.game.cities.length > 0}
 								<div class="cities">
 									Cities: {body.game.cities.map((c) => c.name + (c.starport ? ' ★' : '')).join(', ')}
@@ -134,11 +180,16 @@
 				</ul>
 			</section>
 
-			<button type="button" class="open" onclick={() => openInScene(sys)}>
+			<button type="button" class="open" onclick={() => openInScene(selectedSystem)}>
 				Open “{sys.name}” in Scene Editor →
 			</button>
 
-			<p class="provenance">Source: {sys.provenance.source} ({sys.provenance.kind})</p>
+			<p class="provenance">
+				Source: {sys.provenance.source} ({sys.provenance.kind})
+				{#if enrich}
+					· enrichment: {enrich.provenance.source}
+				{/if}
+			</p>
 		{:else}
 			<div class="empty">
 				<h1>SunDog Galaxy</h1>
@@ -152,11 +203,11 @@
 				</p>
 				<h2>Systems</h2>
 				<ul class="system-list">
-					{#each systems as system (system.id)}
+					{#each systems as resolved (resolved.extracted.id)}
 						<li>
-							<button type="button" onclick={() => select(system)}>
-								<span>{system.name}</span>
-								<span class="code">{system.code}</span>
+							<button type="button" onclick={() => select(resolved)}>
+								<span>{resolved.extracted.name}</span>
+								<span class="code">{resolved.extracted.code}</span>
 							</button>
 						</li>
 					{/each}
@@ -225,6 +276,7 @@
 	.panel header {
 		display: flex;
 		align-items: baseline;
+		flex-wrap: wrap;
 		gap: 8px;
 		margin-bottom: 12px;
 	}
@@ -302,6 +354,38 @@
 
 	.tag {
 		color: #7ee0a8;
+	}
+
+	.tag.authored {
+		color: #c9a8ff;
+	}
+
+	.tag.season {
+		color: #ffc87e;
+	}
+
+	.flavor {
+		margin: 6px 0 0;
+		font-size: 12px;
+		color: #d4dcf0;
+		font-style: italic;
+	}
+
+	.notes {
+		margin: 4px 0 0;
+		font-size: 11px;
+		color: #8da0c8;
+		line-height: 1.4;
+	}
+
+	.trade-hint {
+		margin-top: 4px;
+		font-size: 11px;
+		color: #9ec0ff;
+	}
+
+	.trade-hint .muted {
+		color: #6b7794;
 	}
 
 	.cities {

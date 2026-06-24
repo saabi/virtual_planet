@@ -5,16 +5,26 @@ import {
 	SYSTEM_ROOT_ID,
 	terrainToPreset
 } from './createSceneFromCatalogSystem.js';
+import { resolveSystem } from './resolveSystem.js';
+import { collectOrbitPathSpecs } from '../scene/orbitPaths.js';
 import { findOwnerBody, getWorldTransform, listBodies } from '../scene/sceneTree.js';
 import { advanceScene } from '../scene/orbit.js';
 import { evaluateScene } from '../scene/driver.js';
 import { serializeScene, deserializeScene } from '../scene/sceneDocument.js';
+import { IDENTITY_QUAT } from '../scene/transform.js';
+import type { KeplerDriver } from '../scene/types.js';
 
 const jondd = () => {
 	const s = getSystem('jondd');
 	if (!s) throw new Error('jondd missing from catalog');
 	return s;
 };
+
+function keplerDriver(scene: ReturnType<typeof createSceneFromCatalogSystem>, orbitId: string): KeplerDriver {
+	const node = scene.nodes.get(orbitId);
+	expect(node?.driver?.type).toBe('kepler');
+	return node!.driver as KeplerDriver;
+}
 
 describe('terrainToPreset', () => {
 	it('maps known SunDog terrains and falls back to normie', () => {
@@ -63,11 +73,8 @@ describe('createSceneFromCatalogSystem', () => {
 
 	it('animates deterministically: same time → same world positions', () => {
 		const scene = createSceneFromCatalogSystem(jondd());
-		// Orbital motion lives in the world transform (the body's local transform
-		// stays at origin; the phase→radius chain carries the offset).
 		const worldPos = (t: number) => getWorldTransform(evaluateScene(scene, t), 'jondd').position;
 		expect(worldPos(12.5)).toEqual(worldPos(12.5));
-		// Motion actually occurs between distinct times.
 		expect(worldPos(12.5)).not.toEqual(worldPos(40));
 	});
 
@@ -82,5 +89,43 @@ describe('createSceneFromCatalogSystem', () => {
 	it('advanceScene does not throw on the built scene', () => {
 		const scene = createSceneFromCatalogSystem(jondd());
 		expect(() => advanceScene(scene, 1)).not.toThrow();
+	});
+
+	it('applies enrichment eccentricity and distinct periapsis on Glory', () => {
+		const glory = getSystem('glory')!;
+		const scene = createSceneFromCatalogSystem(glory);
+		const d0 = keplerDriver(scene, 'glory-i-orbit');
+		const d1 = keplerDriver(scene, 'glory-ii-orbit');
+		const d2 = keplerDriver(scene, 'glory-iii-orbit');
+		expect(d2.eccentricity).toBeCloseTo(0.14);
+		expect(d0.periapsisAngle).not.toBeCloseTo(d1.periapsisAngle);
+		expect(d1.periapsisAngle).not.toBeCloseTo(d2.periapsisAngle);
+	});
+
+	it('applies inclination on kepler-orbit group transforms', () => {
+		const glory = getSystem('glory')!;
+		const scene = createSceneFromCatalogSystem(glory);
+		const orbitI = scene.nodes.get('glory-i-orbit')!;
+		const orbitIII = scene.nodes.get('glory-iii-orbit')!;
+		expect(orbitIII.transform.rotation).not.toEqual(IDENTITY_QUAT);
+		expect(orbitI.transform.rotation).not.toEqual(orbitIII.transform.rotation);
+	});
+
+	it('includes authored moon for Glory III', () => {
+		const glory = getSystem('glory')!;
+		const scene = createSceneFromCatalogSystem(glory);
+		expect(scene.nodes.has('glory-iii-moon')).toBe(true);
+		const owner = findOwnerBody(scene, 'glory-iii-moon');
+		expect(owner?.id).toBe('glory-iii');
+	});
+
+	it('collectOrbitPathSpecs yields distinct frames for Glory planets', () => {
+		const resolved = resolveSystem('glory')!;
+		const scene = evaluateScene(createSceneFromCatalogSystem(resolved.extracted), 0);
+		const specs = collectOrbitPathSpecs(scene);
+		const glorySpecs = specs.filter((s) => s.keplerNodeId.startsWith('glory-'));
+		expect(glorySpecs.length).toBeGreaterThanOrEqual(3);
+		const rots = glorySpecs.map((s) => s.frame.rotation.join(','));
+		expect(new Set(rots).size).toBeGreaterThan(1);
 	});
 });

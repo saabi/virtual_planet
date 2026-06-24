@@ -6,6 +6,7 @@ paths were removed. Remaining implementation work is depth-aware procedural atmo
 multi-body procedural budgets, and surface/focused camera continuity. **Related:**
 [scene-procedural-rendering.md](scene-procedural-rendering.md),
 [scene-3d-viewport.md](scene-3d-viewport.md),
+[scene-transform-pipeline.md](scene-transform-pipeline.md),
 [celestial-body-params.md](celestial-body-params.md).
 
 ## Why

@@ -170,8 +170,13 @@ describe('collectOrbitPathSpecs (catalog)', () => {
 		expect(glory).toBeTruthy();
 		const scene = createSceneFromCatalogSystem(glory!);
 		const specs = collectOrbitPathSpecs(evaluateScene(scene, 0));
-		expect(specs).toHaveLength(3);
+		expect(specs).toHaveLength(4);
 		const ids = specs.map((s) => s.keplerNodeId).sort();
-		expect(ids).toEqual(['glory-i-orbit', 'glory-ii-orbit', 'glory-iii-orbit']);
+		expect(ids).toEqual([
+			'glory-i-orbit',
+			'glory-ii-orbit',
+			'glory-iii-moon-orbit',
+			'glory-iii-orbit'
+		]);
 	});
 });

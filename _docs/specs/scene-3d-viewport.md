@@ -4,7 +4,8 @@
 `lib/planet/scene3d/` renderer (device reuse, sphere pipeline, orbit camera). The 2D
 `SystemMapPanel` is **kept untouched** — it stays useful as a minimap / future HUD /
 ship-display element. **Related:** [scene-routing.md](scene-routing.md) (per-body
-params + body-editor view), the existing `/planet` WebGPU renderer.
+params + body-editor view), [scene-transform-pipeline.md](scene-transform-pipeline.md)
+(deferred model-matrix unification), the existing `/planet` WebGPU renderer.
 
 ## Goal
 

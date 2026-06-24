@@ -1,5 +1,6 @@
 import catalogJson from './sundog-catalog.json';
 import type { SunDogCatalog, SunDogSystem } from './catalogTypes.js';
+import { resolveSystem, listResolvedSystems, type ResolvedSunDogSystem } from './resolveSystem.js';
 
 // Typed loader over the committed, extracted catalog JSON. The JSON is generated
 // by scripts/sundog/export-catalog.ts from SunDog: Resurrection's sundog.db.
@@ -18,3 +19,10 @@ export function listSystems(): SunDogSystem[] {
 export function getSystem(id: string): SunDogSystem | undefined {
 	return catalog.systems.find((s) => s.id === id);
 }
+
+/** Extracted system + authored enrichment overlay. */
+export function getResolvedSystem(id: string): ResolvedSunDogSystem | undefined {
+	return resolveSystem(id);
+}
+
+export { listResolvedSystems, type ResolvedSunDogSystem };

@@ -1,5 +1,5 @@
 import { create } from '@virtual-planet/schema';
-import type { BodyNode, BodyType, NodeDisplay, PlanetScene, SceneNode } from './types.js';
+import type { BodyNode, BodyType, NodeDisplay, PlanetScene, Quat, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
 import { bodySchema } from './nodeSchemas.js';
 
@@ -38,6 +38,8 @@ export function makeBody(parentId: string, name = 'Body'): BodyNode {
 }
 
 export interface OrbitingBodyOptions {
+	/** Stable id prefix for orbit/phase/radius/body nodes (default: random). */
+	nodeIdPrefix?: string;
 	name?: string;
 	bodyType?: BodyType;
 	orbitRadiusMeters?: number;
@@ -46,6 +48,11 @@ export interface OrbitingBodyOptions {
 	spinPeriodSeconds?: number;
 	eccentricity?: number;
 	periapsisAngle?: number;
+	/** Rotation on the kepler-orbit group (inclination / LAN). */
+	orbitRotation?: Quat;
+	radiusMeters?: number;
+	standIn?: boolean;
+	appearance?: BodyNode['appearance'];
 }
 
 /**
@@ -56,6 +63,7 @@ export interface OrbitingBodyOptions {
  */
 export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions = {}): SceneNode[] {
 	const {
+		nodeIdPrefix,
 		name = 'Body',
 		bodyType = 'planet',
 		orbitRadiusMeters = 8_000_000,
@@ -63,16 +71,24 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		phaseAtEpoch = 0,
 		spinPeriodSeconds = 20,
 		eccentricity = 0,
-		periapsisAngle = 0
+		periapsisAngle = 0,
+		orbitRotation = IDENTITY_QUAT,
+		radiusMeters,
+		standIn,
+		appearance
 	} = options;
-	const baseId = newId('body');
+	const baseId = nodeIdPrefix ?? newId('body');
+	const orbitTransform = () => ({
+		position: [0, 0, 0] as [number, number, number],
+		rotation: orbitRotation
+	});
 	const orbit: SceneNode = {
 		id: `${baseId}-orbit`,
 		name: `${name} orbit`,
 		parentId: centerId,
 		kind: 'group',
 		enabled: true,
-		transform: identityTransform(),
+		transform: orbitTransform(),
 		driver: { type: 'kepler', semiMajorAxis: orbitRadiusMeters, eccentricity, periodSeconds, phaseAtEpoch, periapsisAngle },
 		inheritance: { position: '../', rotation: '/', scale: '../' }
 	};
@@ -103,7 +119,10 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		transform: identityTransform(),
 		...create(bodySchema),
 		bodyType,
-		spinPeriodSeconds
+		spinPeriodSeconds,
+		...(radiusMeters !== undefined ? { radiusMeters } : {}),
+		...(standIn !== undefined ? { standIn } : {}),
+		...(appearance !== undefined ? { appearance } : {})
 	} as BodyNode;
 	return [orbit, phase, radius, body];
 }

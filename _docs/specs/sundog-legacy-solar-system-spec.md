@@ -187,6 +187,15 @@ dots, with orbit camera + projected-disc picking).
 - Selecting a star → detail panel (game + render + provenance); **Open in
   Scene** → Wave 2 builder → `/scene`.
 
+### Wave 5 — Enrichment (authored overlay)
+
+Tier-1 creative layer on top of the extracted catalog — eccentric/inclined orbits,
+appearance overrides, gameplay flavor, optional authored moons/jovians. Does **not**
+edit `sundog-catalog.json`. See [`sundog-enrichment.md`](sundog-enrichment.md).
+
+- `lib/planet/sundog/enrichments/*.ts` — one module per system
+- `resolveSystem()` → `createSceneFromCatalogSystem()` + `sim/` + galaxy detail panel
+
 ### Wave 4 (optional, deferred) — Atari ST cross-check
 The Resurrection DB already gives clean canonical data, so deep extraction is
 not required. Optionally cross-check values against the original via
