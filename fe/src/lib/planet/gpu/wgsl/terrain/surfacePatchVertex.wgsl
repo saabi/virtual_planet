@@ -5,7 +5,6 @@
 #include "../planet/eclipse.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
-#include "../common/idealSphere.wgsl"
 #include "../atmosphere/atmosphereParams.wgsl"
 
 struct ViewUniforms {
@@ -74,18 +73,13 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VSOut) -> FSOut {
-  // Geometry/height/material/normal follow the displaced surface (the interpolated body
-  // dir, here in.unit_dir); only the fine texture noise uses the tessellation-stable
-  // ideal-sphere dir (with a grazing-miss fallback). See common/idealSphere.wgsl.
+  // All fragment analytics (height / voronoi / detail / texture / normal) sample the same
+  // interpolated body dir (in.unit_dir), locked to the displaced geometry. (An earlier
+  // ideal-sphere reconstruction for the fine texture noise drifted with view parallax.)
   let body_dir = in.unit_dir;
-  let ideal = ideal_sphere_body_dir(
-    in.position.xy, view_u.viewport.xy, view_u.inv_view_projection,
-    view_u.camera_pos.xyz, view_u.planet_rot, planet.radius
-  );
-  let tex_dir = select(body_dir, ideal.body_dir, ideal.hit);
   let full_sample = sample_planet(body_dir, planet, scale_ctx);
   let sample = apply_height_blend(full_sample, planet.radius, mat_overrides.height_blend);
-  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx, tex_dir), mat_overrides);
+  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.w > 0.5) {
     col = ring_debug_color(in.ring);

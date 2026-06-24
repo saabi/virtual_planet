@@ -65,10 +65,7 @@ fn apply_material_overrides(material: SurfaceMaterial, overrides: MaterialOverri
   return out;
 }
 
-// `tex_dir` is the body-frame direction used ONLY for the fine texture-noise term. It is
-// the tessellation-stable ideal-sphere direction (the term that crawls), while `sample`
-// (height/material/biome) follows the displaced surface. See ideal-sphere-fragment-sampling.md.
-fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleContext, tex_dir: vec3f) -> SurfaceMaterial {
+fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> SurfaceMaterial {
   var spots = sample.vor.x * (1.0 - params.voronoi_albedo) + params.voronoi_albedo;
   spots *= sample.vor.y * (1.0 - params.voronoi_albedo_y) + params.voronoi_albedo_y;
   spots *= sample.vor.z * (1.0 - params.voronoi_albedo_z) + params.voronoi_albedo_z;
@@ -84,10 +81,11 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
 
   var tn = 0.0;
   if (should_eval_layer(0.05, scale, params.radius) && params.texture_noise_scale > 0.0) {
-    // Sample the (stable ideal-sphere) direction at a reference radius (the presets' 100 m)
-    // instead of world_pos (= unit_dir·radius), so the fine texture is scale-invariant like
-    // the macro relief — else at world scale it's radius/100 ≈ thousands× too fine.
-    tn = (fbm_4(tex_dir * 100.0 * sqrt(params.texture_noise_scale)) - 0.5) * tex_amp;
+    // Sample the body dir at a reference radius (the presets' 100 m) instead of world_pos
+    // (= unit_dir·radius), so the fine texture is scale-invariant like the macro relief —
+    // else at world scale it's radius/100 ≈ thousands× too fine. Same body dir as every
+    // other analytic term, so the texture stays locked to the surface (no parallax crawl).
+    tn = (fbm_4(sample.unit_dir * 100.0 * sqrt(params.texture_noise_scale)) - 0.5) * tex_amp;
   }
   var polar = 0.0;
   if (should_eval_layer(2.0, scale, params.radius)) {
@@ -122,7 +120,7 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
 }
 
 fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> vec3f {
-  return surface_material(sample, params, scale, sample.unit_dir).albedo;
+  return surface_material(sample, params, scale).albedo;
 }
 
 fn face_debug_color(face: u32) -> vec3f {
