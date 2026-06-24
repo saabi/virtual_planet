@@ -21,6 +21,7 @@ struct VSIn {
 	@location(4) m2 : vec4<f32>,
 	@location(5) m3 : vec4<f32>,
 	@location(6) color : vec4<f32>, // rgb + emissive flag in w
+	@location(7) flags : vec4<f32>, // x = marker (pin to far plane); yzw reserved
 };
 
 struct VSOut {
@@ -41,6 +42,11 @@ fn vs(in : VSIn) -> VSOut {
 	let world = model * vec4<f32>(in.pos, 1.0);
 	var out : VSOut;
 	out.clip = u.viewProj * world;
+	// Distant bodies (dot LOD) are pinned just inside the far plane so a near-fit far
+	// plane never clips them; they still depth-test behind real geometry (z ∈ [0,1]).
+	if (in.flags.x > 0.5) {
+		out.clip.z = out.clip.w * 0.9999;
+	}
 	// Model is translate · uniform-scale, so the object-space normal survives as-is.
 	out.normal = in.normal;
 	out.color = in.color;

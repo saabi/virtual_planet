@@ -46,6 +46,9 @@ export interface ProceduralRenderOpts {
 	blend?: number;
 	/** Fraction of the viewport tessellation budget (secondary procedural bodies). */
 	tessellationBudgetScale?: number;
+	/** Scene-bounds-fit depth range, shared with the sphere/atmosphere passes for depth
+	 *  parity. Falls back to the focused-body distance range when omitted. */
+	nearFar?: [number, number];
 }
 
 function cameraTargetsBody(cam: OrbitCamera, bodyWorldPos: Vec3, planetRadius: number): boolean {
@@ -59,7 +62,8 @@ function buildOrbitSceneCamera(
 	planetRadius: number,
 	aspect: number,
 	viewportHeightPx: number,
-	lookMode: OrbitLookMode
+	lookMode: OrbitLookMode,
+	nearFar?: [number, number]
 ): CameraState {
 	if (cameraTargetsBody(cam, bodyWorldPos, planetRadius) && lookMode === 'horizon') {
 		return focusedBodyCamera({
@@ -68,10 +72,12 @@ function buildOrbitSceneCamera(
 			distance: cam.distance,
 			planetRadius,
 			aspect,
-			lookMode
+			lookMode,
+			near: nearFar?.[0],
+			far: nearFar?.[1]
 		});
 	}
-	return bodyRelativeCameraFromOrbit(cam, bodyWorldPos, planetRadius, aspect, viewportHeightPx);
+	return bodyRelativeCameraFromOrbit(cam, bodyWorldPos, planetRadius, aspect, viewportHeightPx, nearFar);
 }
 
 export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRenderInputs {
@@ -93,7 +99,8 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 					o.body.radiusMeters,
 					aspect,
 					o.height,
-					lookMode
+					lookMode,
+					o.nearFar
 				);
 	const prefs = o.viewportPrefs;
 	const baseTessellation: TessellationSettings = prefs?.tessellation ?? DEFAULT_TESSELLATION;

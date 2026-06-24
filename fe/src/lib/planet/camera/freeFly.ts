@@ -111,13 +111,17 @@ export function buildFreeFlyCameraState(
 }
 
 /** Scene `/scene` free-fly camera — scene3d lookAt + orbit near/far for depth parity with spheres. */
-export function buildSceneFreeFlyCameraState(fly: FreeFlyState, aspect: number): CameraState {
+export function buildSceneFreeFlyCameraState(
+	fly: FreeFlyState,
+	aspect: number,
+	nearFarOverride?: [number, number]
+): CameraState {
 	const forward = rotateVec3(fly.rotation, [0, 0, -1]);
 	const up = rotateVec3(fly.rotation, [0, 1, 0]);
 	const target = add3(fly.position, forward);
 	const view = sceneLookAt(fly.position, target, up);
 	const dist = len3(fly.position);
-	const [near, far] = orbitNearFar(Math.max(dist, 1e5));
+	const [near, far] = nearFarOverride ?? orbitNearFar(Math.max(dist, 1e5));
 	const projection = scenePerspective(FOVY, aspect, near, far);
 	const viewProjection = sceneMultiply4(projection, view);
 	const fovDeg = (FOVY * 180) / Math.PI;
@@ -145,12 +149,16 @@ export function buildSceneFreeFlyCameraState(fly: FreeFlyState, aspect: number):
  * identical to the geometry pass (only the view translation is removed) — keeping
  * the shared depth buffer comparable while avoiding large world coordinates.
  */
-export function sceneFreeFlyViewProjectionRelative(fly: FreeFlyState, aspect: number): Float32Array {
+export function sceneFreeFlyViewProjectionRelative(
+	fly: FreeFlyState,
+	aspect: number,
+	nearFarOverride?: [number, number]
+): Float32Array {
 	const forward = rotateVec3(fly.rotation, [0, 0, -1]);
 	const up = rotateVec3(fly.rotation, [0, 1, 0]);
 	const view = sceneLookAt([0, 0, 0], forward, up);
 	const dist = len3(fly.position);
-	const [near, far] = orbitNearFar(Math.max(dist, 1e5));
+	const [near, far] = nearFarOverride ?? orbitNearFar(Math.max(dist, 1e5));
 	const projection = scenePerspective(FOVY, aspect, near, far);
 	return sceneMultiply4(projection, view);
 }

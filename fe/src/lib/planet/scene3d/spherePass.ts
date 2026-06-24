@@ -12,6 +12,7 @@ export interface BodyInstance {
 	radius: number; // metres
 	color: Vec3; // rgb 0..1
 	emissive: boolean; // stars render full-bright
+	marker?: boolean; // pin to the far plane so distant dots are never far-clipped
 }
 
 export interface SceneLighting {
@@ -21,7 +22,7 @@ export interface SceneLighting {
 	ambient: Vec3;
 }
 
-const INSTANCE_FLOATS = 20; // mat4(16) + color(4)
+const INSTANCE_FLOATS = 24; // mat4(16) + color(4) + flags(4)
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
 
 export class SpherePass {
@@ -59,7 +60,8 @@ export class SpherePass {
 							{ shaderLocation: 3, offset: 16, format: 'float32x4' },
 							{ shaderLocation: 4, offset: 32, format: 'float32x4' },
 							{ shaderLocation: 5, offset: 48, format: 'float32x4' },
-							{ shaderLocation: 6, offset: 64, format: 'float32x4' }
+							{ shaderLocation: 6, offset: 64, format: 'float32x4' },
+							{ shaderLocation: 7, offset: 80, format: 'float32x4' }
 						]
 					}
 				]
@@ -137,6 +139,7 @@ export class SpherePass {
 			data[b + 17] = c[1];
 			data[b + 18] = c[2];
 			data[b + 19] = instances[i].emissive ? 1 : 0;
+			data[b + 20] = instances[i].marker ? 1 : 0;
 		}
 		this.device.queue.writeBuffer(this.instanceBuf!, 0, data);
 

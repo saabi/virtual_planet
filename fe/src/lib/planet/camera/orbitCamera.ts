@@ -154,6 +154,9 @@ export interface FocusedBodyCameraInput {
 	/** Viewport state, NOT body data. Default 'planet-center' (target the body). */
 	lookMode?: OrbitLookMode;
 	fovDeg?: number;
+	/** Override the distance-derived depth range (e.g. a scene-bounds-fit near/far). */
+	near?: number;
+	far?: number;
 }
 
 /**
@@ -164,7 +167,9 @@ export interface FocusedBodyCameraInput {
  * (plan Phase 1). `lookMode` is viewport state, never body data.
  */
 export function focusedBodyCamera(input: FocusedBodyCameraInput): CameraState {
-	const [near, far] = focusedBodyNearFar(input.distance);
+	const [defNear, defFar] = focusedBodyNearFar(input.distance);
+	const near = input.near ?? defNear;
+	const far = input.far ?? defFar;
 	return createOrbitCamera({
 		distance: input.distance,
 		azimuth: input.azimuth,

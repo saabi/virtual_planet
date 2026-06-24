@@ -86,6 +86,37 @@ export function orbitNearFar(distance: number): [number, number] {
 	return [Math.max(1, distance * 0.002), distance * 20];
 }
 
+/** Near-plane floor (metres). */
+export const NEAR_FLOOR = 1;
+/** far/near cap that keeps a depth24plus forward-Z buffer usable. Bodies beyond the
+ *  resulting far plane are rendered as depth-pinned dots instead of being clipped. */
+export const MAX_DEPTH_RATIO = 1e6;
+
+/**
+ * Dynamic near/far fit to the bodies in view from the camera `eye`. Unlike
+ * {@link orbitNearFar} (keyed on the focused-body distance), this encloses every body so
+ * far ones stay visible, while capping far/near so the shared depth buffer stays precise.
+ * When the cap bites (surface-close + distant siblings), bodies beyond far are kept visible
+ * as far-plane-pinned dots — see the sphere pass marker flag.
+ */
+export function sceneNearFar(
+	eye: Vec3,
+	bodies: { center: Vec3; radius: number }[]
+): [number, number] {
+	let nearD = Infinity;
+	let farD = 0;
+	for (const b of bodies) {
+		const d = len3(sub3(eye, b.center));
+		nearD = Math.min(nearD, d - b.radius);
+		farD = Math.max(farD, d + b.radius);
+	}
+	if (!isFinite(nearD)) return orbitNearFar(1e7); // empty scene fallback
+	const near = Math.max(NEAR_FLOOR, nearD * 0.5);
+	let far = Math.max(farD * 1.05, near * 4);
+	if (far / near > MAX_DEPTH_RATIO) far = near * MAX_DEPTH_RATIO;
+	return [near, far];
+}
+
 function nearFar(distance: number): [number, number] {
 	return orbitNearFar(distance);
 }
@@ -110,12 +141,13 @@ export function viewProjection(cam: OrbitCamera, aspect: number): Float32Array {
 export function bodyRelativeView(
 	cam: OrbitCamera,
 	bodyWorldPos: Vec3,
-	aspect: number
+	aspect: number,
+	nearFarOverride?: [number, number]
 ): { viewProjection: Float32Array; eye: Vec3 } {
 	const eye = sub3(cameraEye(cam), bodyWorldPos);
 	const target = sub3(cam.target, bodyWorldPos);
 	const view = lookAt(eye, target);
-	const [near, far] = nearFar(cam.distance);
+	const [near, far] = nearFarOverride ?? nearFar(cam.distance);
 	return { viewProjection: multiply4(perspective(FOVY, aspect, near, far), view), eye };
 }
 
@@ -172,12 +204,13 @@ export function bodyRelativeCameraFromOrbit(
 	bodyWorldPos: Vec3,
 	planetRadius: number,
 	aspect: number,
-	viewportHeightPx: number
+	viewportHeightPx: number,
+	nearFarOverride?: [number, number]
 ): CameraState {
 	const eye = sub3(cameraEye(cam), bodyWorldPos);
 	const target = sub3(cam.target, bodyWorldPos);
 	const view = lookAt(eye, target);
-	const [near, far] = nearFar(cam.distance);
+	const [near, far] = nearFarOverride ?? nearFar(cam.distance);
 	const projection = perspective(FOVY, aspect, near, far);
 	const viewProjection = multiply4(projection, view);
 	const dist = len3(eye);

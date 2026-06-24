@@ -9,6 +9,7 @@
 		FOVY,
 		projectToScreen,
 		bodyRelativeView,
+		sceneNearFar,
 		type OrbitCamera
 	} from '../scene3d/orbitCamera.js';
 	import { evaluateScene } from '../scene/driver.js';
@@ -159,7 +160,9 @@
 				position: sub3(it.worldPos, eye),
 				radius,
 				color: BODY_COLOR[it.bodyType],
-				emissive: it.bodyType === 'star'
+				emissive: it.bodyType === 'star',
+				// Pin distant dots to the far plane so a near-fit frustum never clips them.
+				marker: it.lod === 'dot'
 			});
 		}
 		return out;
@@ -211,10 +214,20 @@
 		// f32 precise when bodies sit ~1e11 m from the world origin; clip depth is identical
 		// to the absolute view-projection, so the shared depth buffer stays comparable.
 		const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
+		// Depth range fit to every body in view (not just the focused one), so far planets
+		// stay inside the frustum. Shared by spheres, terrain and the atmosphere for depth
+		// parity; bodies beyond the precision-capped far plane render as pinned dots.
+		const nearFar = sceneNearFar(
+			eye,
+			listBodies(animated).map((b) => ({
+				center: getWorldTransform(animated, b.id).position,
+				radius: b.radiusMeters
+			}))
+		);
 		const vpRel =
 			cameraMode === 'freeFly'
-				? sceneFreeFlyViewProjectionRelative(freeFly, aspect)
-				: bodyRelativeView(orbitCam, eye, aspect).viewProjection;
+				? sceneFreeFlyViewProjectionRelative(freeFly, aspect, nearFar)
+				: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
 		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
 		const light = lighting(animated);
 		updateMarker(animated, vpRel, eye);
@@ -243,7 +256,7 @@
 				body: target.body,
 				sceneCamera:
 					cameraMode === 'freeFly'
-						? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect) }
+						? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect, nearFar) }
 						: { mode: 'orbit', camera: orbitCam, lookMode },
 				bodyWorldPos: target.worldPos,
 				width: w,
@@ -254,6 +267,7 @@
 				materialDebug: terrainMaterialDebug,
 				viewportPrefs,
 				blend: target.blend,
+				nearFar,
 				tessellationBudgetScale: tessellationBudgetScaleForBody(
 					target.id,
 					primaryTarget?.id ?? null,
