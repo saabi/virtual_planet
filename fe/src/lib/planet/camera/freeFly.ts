@@ -138,6 +138,23 @@ export function buildSceneFreeFlyCameraState(fly: FreeFlyState, aspect: number):
 	};
 }
 
+/**
+ * Eye-relative free-fly view-projection (camera translated to the origin) for
+ * camera-relative passes like the atmosphere composite. Uses the same projection
+ * and near/far as {@link buildSceneFreeFlyCameraState}, so clip-space depth stays
+ * identical to the geometry pass (only the view translation is removed) — keeping
+ * the shared depth buffer comparable while avoiding large world coordinates.
+ */
+export function sceneFreeFlyViewProjectionRelative(fly: FreeFlyState, aspect: number): Float32Array {
+	const forward = rotateVec3(fly.rotation, [0, 0, -1]);
+	const up = rotateVec3(fly.rotation, [0, 1, 0]);
+	const view = sceneLookAt([0, 0, 0], forward, up);
+	const dist = len3(fly.position);
+	const [near, far] = orbitNearFar(Math.max(dist, 1e5));
+	const projection = scenePerspective(FOVY, aspect, near, far);
+	return sceneMultiply4(projection, view);
+}
+
 export function applyFreeFlyLook(
 	rotation: Quat,
 	dx: number,

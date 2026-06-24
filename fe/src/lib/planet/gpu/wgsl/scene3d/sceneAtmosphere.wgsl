@@ -75,9 +75,13 @@ fn tone_map_reinhard_atmo(color: vec3f) -> vec3f {
   return vec3f(1.0) - exp(-color * max(mat_overrides.exposure, 0.01));
 }
 
-fn projected_depth_world(t: f32, eye_world: vec3f, omega: vec3f) -> f32 {
-  let p_world = eye_world + omega * t;
-  let clip = atmo_frame.view_projection * vec4f(p_world, 1.0);
+// Camera-relative: the camera sits at the origin, so a point at ray distance t is
+// just omega * t. view_projection is the eye-relative matrix, which yields the same
+// clip-space depth as the absolute scene VP (translation does not affect z/w), so
+// this stays comparable to the shared scene depth buffer.
+fn projected_depth_rel(t: f32, omega: vec3f) -> f32 {
+  let p_rel = omega * t;
+  let clip = atmo_frame.view_projection * vec4f(p_rel, 1.0);
   return clip.z / clip.w;
 }
 
@@ -97,17 +101,19 @@ fn scene_color_at(uv: vec2f) -> vec3f {
   return scene_color_sample(uv).rgb;
 }
 
-fn reconstruct_world_from_depth(uv: vec2f, depth: f32) -> vec3f {
+// Reconstruct the camera-relative position of a depth sample. inv_view_projection is
+// the eye-relative inverse, so the result is (world - eye) — small even when the body
+// is far from the world origin, which is what keeps the march boundary precise.
+fn reconstruct_rel_from_depth(uv: vec2f, depth: f32) -> vec3f {
   let ndc_x = uv.x * 2.0 - 1.0;
   let ndc_y = (1.0 - uv.y) * 2.0 - 1.0;
-  let world_h = atmo_frame.inv_view_projection * vec4f(ndc_x, ndc_y, depth, 1.0);
-  return world_h.xyz / world_h.w;
+  let rel_h = atmo_frame.inv_view_projection * vec4f(ndc_x, ndc_y, depth, 1.0);
+  return rel_h.xyz / rel_h.w;
 }
 
 fn body_march_end(
   uv: vec2f,
   eye_rel: vec3f,
-  eye_world: vec3f,
   omega: vec3f,
   atmo: AtmosphereParams,
   shell: vec2f,
@@ -119,13 +125,14 @@ fn body_march_end(
   }
 
   // End the march at tessellated terrain / sphere depth when this body owns the pixel.
+  // Everything here is camera-relative: planet_center is (world - eye) and the depth
+  // sample reconstructs to the same frame, so no large world coordinates are formed.
   let scene = scene_color_sample(uv);
   if (scene.a > 0.02) {
     let depth = scene_depth_at(uv);
-    let world_pt = reconstruct_world_from_depth(uv, depth);
-    let center_world = eye_world + atmo.planet_center;
-    if (length(world_pt - center_world) < atmo.outer_radius * 1.05) {
-      let t_geom = dot(world_pt - eye_world, omega);
+    let p_rel = reconstruct_rel_from_depth(uv, depth);
+    if (length(p_rel - atmo.planet_center) < atmo.outer_radius * 1.05) {
+      let t_geom = dot(p_rel - eye_rel, omega);
       if (t_geom > 0.0) {
         t_max = min(t_max, t_geom);
       }
@@ -161,7 +168,6 @@ fn composite_body_atmosphere(
   uv: vec2f,
   scene_rgb: vec3f,
   eye_rel: vec3f,
-  eye_world: vec3f,
   omega: vec3f,
   sun_dir: vec3f,
   atmo: AtmosphereParams,
@@ -176,12 +182,12 @@ fn composite_body_atmosphere(
     return vec4f(scene_rgb, 1.0);
   }
 
-  let t_max = body_march_end(uv, eye_rel, eye_world, omega, atmo, shell);
+  let t_max = body_march_end(uv, eye_rel, omega, atmo, shell);
 
-  // Foreground occlusion: compare shell entry depth in world clip space against the
-  // shared scene depth (world VP). Integration stays camera-relative for precision.
+  // Foreground occlusion: compare shell entry depth (eye-relative clip space, which
+  // matches the absolute scene VP depth) against the shared scene depth.
   if (shell.x > 0.0) {
-    let shell_front_depth = projected_depth_world(shell.x, eye_world, omega);
+    let shell_front_depth = projected_depth_rel(shell.x, omega);
     let depth = scene_depth_at(uv);
     if (depth + 0.0001 < shell_front_depth) {
       if (hardware_alpha) {
@@ -207,7 +213,8 @@ fn composite_body_atmosphere(
 }
 
 fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f {
-  let eye_world = atmo_frame.camera_pos.xyz;
+  // The composite runs in camera-relative space: the eye is the origin and every
+  // body center / depth sample is relative to it. atmo_frame.camera_pos is unused.
   let eye_rel = vec3f(0.0);
   let omega = world_ray(uv);
   let debug_mode = u32(atmo_frame.debug.x + 0.5);
@@ -257,7 +264,6 @@ fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f 
       uv,
       rgb,
       eye_rel,
-      eye_world,
       omega,
       sun_dir,
       atmo,

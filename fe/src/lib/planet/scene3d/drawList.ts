@@ -46,6 +46,7 @@ function lodWithHysteresis(
 export function buildDrawList(
 	animated: PlanetScene,
 	vp: Float32Array,
+	eye: Vec3,
 	width: number,
 	height: number,
 	lodState: Map<string, LodLevel>,
@@ -55,7 +56,10 @@ export function buildDrawList(
 	const out: DrawItem[] = [];
 	for (const b of listBodies(animated)) {
 		const worldPos = getWorldTransform(animated, b.id).position;
-		const sp = projectToScreen(vp, worldPos, width, height);
+		// `vp` is the eye-relative (floating-origin) view-projection, so project the
+		// eye-relative center to keep screen position/depth precise at planetary scale.
+		// `worldPos` stays absolute — downstream consumers (sphere/atmosphere) rebase as needed.
+		const sp = projectToScreen(vp, [worldPos[0] - eye[0], worldPos[1] - eye[1], worldPos[2] - eye[2]], width, height);
 		const screenRadiusPx = sp ? (b.radiusMeters / sp.depth) * screenScale : 0;
 		out.push({
 			id: b.id,

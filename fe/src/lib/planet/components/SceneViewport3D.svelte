@@ -8,7 +8,7 @@
 		cameraEye,
 		FOVY,
 		projectToScreen,
-		viewProjection,
+		bodyRelativeView,
 		type OrbitCamera
 	} from '../scene3d/orbitCamera.js';
 	import { evaluateScene } from '../scene/driver.js';
@@ -51,6 +51,7 @@
 		freeFlyToOrbit,
 		orbitEyeToFreeFly,
 		sceneFreeFlySpeed,
+		sceneFreeFlyViewProjectionRelative,
 		stepFreeFly,
 		type FreeFlyKeys,
 		type FreeFlyState
@@ -129,14 +130,6 @@
 		return max;
 	}
 
-	function resolveViewProjection(animated: PlanetScene, aspect: number): Float32Array {
-		if (cameraMode === 'freeFly') {
-			return buildSceneFreeFlyCameraState(freeFly, aspect).viewProjectionMatrix;
-		}
-		return viewProjection({ ...camera, target: targetOf(animated) }, aspect);
-	}
-
-
 	// Screen-size LOD lives in buildDrawList (dot/sphere/procedural by projected px, with
 	// ±15% hysteresis via lodState). A dot renders as a fixed-size point so distant
 	// bodies stay visible; sphere/procedural use the true radius (procedural is drawn as
@@ -146,6 +139,7 @@
 
 	function instancesFromDrawList(
 		drawList: DrawItem[],
+		eye: Vec3,
 		excludeIds: ReadonlySet<string> = new Set()
 	): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
@@ -160,7 +154,9 @@
 					? (DOT_RADIUS_PX * it.screen.depth) / screenScale
 					: it.radiusMeters * sphereFadeScale(it.blend, shrinkPercent);
 			out.push({
-				position: it.worldPos,
+				// Eye-relative center: the sphere pass renders with the eye-relative VP, so
+				// vertices stay near the origin and survive f32 at planetary distances.
+				position: sub3(it.worldPos, eye),
 				radius,
 				color: BODY_COLOR[it.bodyType],
 				emissive: it.bodyType === 'star'
@@ -209,11 +205,19 @@
 		if (!device || !context || !engine || !spheres) return;
 		const animated = evaluateScene(scene, time);
 		const aspect = w / h;
-		const vp = resolveViewProjection(animated, aspect);
 		const orbitCam = { ...camera, target: targetOf(animated) };
-		const drawList = buildDrawList(animated, vp, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
+		// Camera-relative (floating-origin) frame shared by spheres, the draw list, the
+		// marker/picking projection, and the atmosphere overlay. Rebasing to the eye keeps
+		// f32 precise when bodies sit ~1e11 m from the world origin; clip depth is identical
+		// to the absolute view-projection, so the shared depth buffer stays comparable.
+		const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
+		const vpRel =
+			cameraMode === 'freeFly'
+				? sceneFreeFlyViewProjectionRelative(freeFly, aspect)
+				: bodyRelativeView(orbitCam, eye, aspect).viewProjection;
+		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
 		const light = lighting(animated);
-		updateMarker(animated, vp);
+		updateMarker(animated, vpRel, eye);
 		updateProcedural(animated, drawList);
 		const terrainMaterialDebug = sceneMaterialDebugMode(materialDebug);
 
@@ -224,7 +228,11 @@
 		const hideSphereIds = new Set(
 			terrainTargets.filter((t) => t.blend >= 1).map((t) => t.id)
 		);
-		const instances = instancesFromDrawList(drawList, hideSphereIds);
+		const instances = instancesFromDrawList(drawList, eye, hideSphereIds);
+		// The sphere shader lights via (lightPos - worldPos); both are eye-relative now, so
+		// the subtraction is precise. The difference is frame-invariant — only its precision
+		// improves.
+		const lightRel: SceneLighting = { ...light, lightPos: sub3(light.lightPos, eye) };
 
 		const primaryTarget =
 			(selectedId ? terrainTargets.find((t) => t.id === selectedId) : undefined) ??
@@ -267,7 +275,6 @@
 					? [primaryTarget, ...atmoCandidates.filter((t) => t.id !== primaryTarget.id)]
 					: atmoCandidates;
 			if (atmoTargets.length > 0) {
-				const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
 				atmoOverlay = (overlay) =>
 					sceneAtmosphere!.record(
 						overlay.pass,
@@ -275,8 +282,8 @@
 						overlay.depthView,
 						overlay.surfaceDistanceView,
 						{
-							invViewProjection: invert4(vp),
-							viewProjection: vp,
+							invViewProjection: invert4(vpRel),
+							viewProjection: vpRel,
 							cameraWorldPos: eye,
 							bodies: atmoTargets.map((target) => {
 								const input = proceduralInputFor(target);
@@ -313,7 +320,7 @@
 			w,
 			h,
 			(pass) => {
-				if (!atmosphereOnWhite) spheres!.record(pass, instances, vp, light);
+				if (!atmosphereOnWhite) spheres!.record(pass, instances, vpRel, lightRel);
 				if (procActive) {
 					const drawOrder = sortProceduralDrawOrder(terrainTargets);
 					for (let i = 0; i < drawOrder.length; i++) {
@@ -333,13 +340,18 @@
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
-	function updateMarker(animated: PlanetScene, vp: Float32Array) {
+	function updateMarker(animated: PlanetScene, vpRel: Float32Array, eye: Vec3) {
 		const node = selectedId ? animated.nodes.get(selectedId) : null;
 		if (!node) {
 			marker = null;
 			return;
 		}
-		const sp = projectToScreen(vp, getWorldTransform(animated, selectedId!).position, w, h);
+		const sp = projectToScreen(
+			vpRel,
+			sub3(getWorldTransform(animated, selectedId!).position, eye),
+			w,
+			h
+		);
 		if (!sp) {
 			marker = null;
 			return;
@@ -361,10 +373,12 @@
 		const px = clientX - rect.left;
 		const py = clientY - rect.top;
 		const animated = evaluateScene(scene, time);
-		const vp = resolveViewProjection(animated, w / h);
+		const orbitCam = { ...camera, target: targetOf(animated) };
+		const eye = cameraEye(orbitCam);
+		const vpRel = bodyRelativeView(orbitCam, eye, w / h).viewProjection;
 		let best: { id: string; depth: number } | null = null;
 		for (const b of listBodies(animated)) {
-			const sp = projectToScreen(vp, getWorldTransform(animated, b.id).position, w, h);
+			const sp = projectToScreen(vpRel, sub3(getWorldTransform(animated, b.id).position, eye), w, h);
 			if (!sp) continue;
 			const screenR = (b.radiusMeters / sp.depth) * (1 / Math.tan(FOVY / 2)) * (h / 2);
 			const hitR = Math.max(screenR, 8);
