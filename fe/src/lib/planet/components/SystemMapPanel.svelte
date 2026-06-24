@@ -27,6 +27,8 @@
 		/** Shared play/pause + speed (the route owns the single clock advancer). */
 		playing?: boolean;
 		speed?: number;
+		/** Selection ring and other non-data editor highlights. */
+		showEditorAids?: boolean;
 	}
 
 	let {
@@ -34,7 +36,8 @@
 		selectedId = $bindable(null),
 		time = 0,
 		playing = $bindable(true),
-		speed = $bindable(1)
+		speed = $bindable(1),
+		showEditorAids = true
 	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -155,7 +158,7 @@
 		ctx.lineWidth = 1;
 		for (const orbit of paths) {
 			ctx.strokeStyle =
-				orbit.bodyId && orbit.bodyId === selectedId
+				showEditorAids && orbit.bodyId && orbit.bodyId === selectedId
 					? 'rgba(158,192,255,0.5)'
 					: 'rgba(255,255,255,0.1)';
 			ctx.beginPath();
@@ -188,7 +191,7 @@
 			ctx.arc(px, py, r, 0, Math.PI * 2);
 			ctx.fillStyle = st.color;
 			ctx.fill();
-			if (b.id === selectedId) {
+			if (showEditorAids && b.id === selectedId) {
 				ctx.beginPath();
 				ctx.arc(px, py, r + 4, 0, Math.PI * 2);
 				ctx.strokeStyle = '#ffffff';
@@ -230,6 +233,7 @@
 		void scene;
 		void selectedId;
 		void followId;
+		void showEditorAids;
 		void canvasW;
 		void canvasH;
 		draw();

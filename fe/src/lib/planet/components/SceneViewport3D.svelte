@@ -471,6 +471,10 @@
 
 	/** Project the selected node to a screen-space ring sized to its body. */
 	function updateMarker(animated: PlanetScene, vpRel: Float32Array, eye: Vec3) {
+		if (!viewportPrefs?.overlays.showEditorAids) {
+			marker = null;
+			return;
+		}
 		const node = selectedId ? animated.nodes.get(selectedId) : null;
 		if (!node) {
 			marker = null;
@@ -1017,7 +1021,7 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
-	{#if marker && !atmosphereDebugActive}
+	{#if marker && !atmosphereDebugActive && viewportPrefs?.overlays.showEditorAids !== false}
 		<div
 			class="sel-ring"
 			style="left:{marker.x}px; top:{marker.y}px; width:{marker.r * 2}px; height:{marker.r * 2}px;"

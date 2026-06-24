@@ -44,6 +44,8 @@ export interface SceneOverlaySettings {
 	showAtmospheres: boolean;
 	/** Which orbit ellipse overlays to draw in 3D/2D. */
 	orbitPaths: OrbitPathOverlayMode;
+	/** Selection ring and other non-data editor highlights in the viewports. */
+	showEditorAids: boolean;
 }
 
 export interface SceneViewportPrefs {
@@ -74,7 +76,8 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		},
 		overlays: {
 			showAtmospheres: true,
-			orbitPaths: 'all'
+			orbitPaths: 'all',
+			showEditorAids: true
 		},
 		tessellation: { ...DEFAULT_TESSELLATION },
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES },
@@ -99,6 +102,7 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void a.blendMode;
 	void p.overlays.showAtmospheres;
 	void p.overlays.orbitPaths;
+	void p.overlays.showEditorAids;
 	void t.detail;
 	void t.vertexBudgetMillions;
 	void t.maxPatchResolution;

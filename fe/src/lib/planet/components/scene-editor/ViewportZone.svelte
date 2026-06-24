@@ -77,7 +77,14 @@
 	/>
 	{#if !atmosphereDebugActive && !spaceflightActive}
 		<div class="map-inset">
-			<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
+			<SystemMapPanel
+				{scene}
+				bind:selectedId
+				time={clock}
+				bind:playing
+				bind:speed
+				showEditorAids={viewportPrefs.overlays.showEditorAids}
+			/>
 		</div>
 	{/if}
 	{#if focusedBody}

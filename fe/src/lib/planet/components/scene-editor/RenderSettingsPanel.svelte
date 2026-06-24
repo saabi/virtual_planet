@@ -94,6 +94,10 @@
 								</select>
 							</label>
 						{/if}
+						<label class="atmo-head">
+							<input type="checkbox" bind:checked={viewportPrefs.overlays.showEditorAids} />
+							Editor aids
+						</label>
 					</EditorSubsection>
 					<EditorSubsection title="Material view" defaultOpen>
 						<label class="atmo-row">

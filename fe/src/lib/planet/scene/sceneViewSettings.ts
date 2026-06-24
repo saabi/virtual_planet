@@ -67,7 +67,8 @@ export function coerceViewportPrefs(raw: unknown): SceneViewportPrefs {
 			orbitPaths:
 				orbitPaths === 'off' || orbitPaths === 'all' || orbitPaths === 'selected'
 					? orbitPaths
-					: d.overlays.orbitPaths
+					: d.overlays.orbitPaths,
+			showEditorAids: overlays.showEditorAids !== false
 		},
 		tessellation: { ...d.tessellation, ...tessellation } as SceneViewportPrefs['tessellation'],
 		materialOverrides: {
