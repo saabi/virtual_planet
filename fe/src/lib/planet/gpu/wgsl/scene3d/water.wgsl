@@ -265,14 +265,18 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let transmittance = transmittance_rgb(column_meters);
 	var transmitted = background * transmittance;
 	let scatter_amt = (vec3f(1.0) - transmittance) * max(u.scatterStrength, 0.0);
-	let inscatter = SCATTER_RGB * scatter_amt * (0.5 + 0.5 * (1.0 - fresnel * 0.65));
+	// In-scatter is scattered sunlight inside the water column, so it dies in shadow (sun_vis
+	// carries the terrain shadow × eclipse, with the shadow-fill floor). Sediment turbidity is
+	// likewise sunlit; the `transmitted * 0.12` mix term keeps the already-shadowed seabed.
+	let inscatter = SCATTER_RGB * scatter_amt * (0.5 + 0.5 * (1.0 - fresnel * 0.65)) * sun_vis;
 	transmitted += inscatter;
 	let turbidity_mix = shore * max(u.turbidityStrength, 0.0);
-	transmitted = mix(transmitted, SHORE_TURBIDITY + transmitted * 0.12, turbidity_mix);
+	transmitted = mix(transmitted, SHORE_TURBIDITY * sun_vis + transmitted * 0.12, turbidity_mix);
 	let base = mix(SHALLOW_WATER, DEEP_WATER, thickness);
 	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * sun_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
-	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05);
+	// Foam is sunlit whitewater — dim it in shadow (the shadow-fill floor keeps it visible).
+	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05) * sun_vis;
 	let specular = u.lightColor.rgb * u.lightColor.w * glint * sun_vis * u.glintStrength * (0.08 + 1.4 * fresnel);
 	let sky_refl = water_sky_reflection(n, v, rough) * eclipse_vis;
 	let sky_weight = fresnel * max(u.skyReflectionStrength, 0.0) * (0.35 + 0.65 * grazing);
