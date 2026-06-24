@@ -163,6 +163,7 @@
 				// vertices stay near the origin and survive f32 at planetary distances.
 				position: sub3(it.worldPos, eye),
 				radius,
+				scale: it.worldScale,
 				color: BODY_COLOR[it.bodyType],
 				emissive: it.bodyType === 'star',
 				// Pin distant dots to the far plane so a near-fit frustum never clips them.
@@ -258,11 +259,12 @@
 				const highLod = orbitMode === 'selected' && isSelected && !systemView;
 				const segments = orbitPathSegmentCount(
 					spec.elements,
-					len3(sub3(spec.center, eye)),
+					len3(sub3(spec.frame.position, eye)),
 					h,
 					highLod
 						? { maxChordPx: 1.5, min: 32, max: 4096 }
-						: { maxChordPx: 4, min: 32, max: 256 }
+						: { maxChordPx: 4, min: 32, max: 256 },
+					spec.frame
 				);
 				return buildOrbitPath3D(spec, segments, time);
 			})
@@ -306,6 +308,7 @@
 				time,
 				lighting: packBodyTerrainLighting(animated, target.worldPos),
 				planetRotation: target.rotation,
+				renderRadius: target.renderRadius,
 				materialDebug: terrainMaterialDebug,
 				viewportPrefs,
 				blend: target.blend,
@@ -349,7 +352,7 @@
 											resolveBodyAtmosphere(target.body),
 											viewportPrefs?.atmosphereIntegrateSteps
 										),
-										target.body.radiusMeters,
+										target.renderRadius,
 										sub3(target.worldPos, eye)
 									),
 									opacity: atmosphereDebugActive

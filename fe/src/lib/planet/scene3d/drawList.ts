@@ -15,6 +15,8 @@ export interface DrawItem {
 	bodyType: BodyType;
 	radiusMeters: number;
 	worldPos: Vec3;
+	/** Node world scale — applied to stand-in sphere geometry. */
+	worldScale: Vec3;
 	/** Screen position (px) + clip-w depth; null when off-screen / behind the camera. */
 	screen: { x: number; y: number; depth: number } | null;
 	/** Projected radius (px) — half the on-screen disc; 0 when off-screen. */
@@ -55,17 +57,26 @@ export function buildDrawList(
 	const screenScale = (1 / Math.tan(FOVY / 2)) * (height / 2);
 	const out: DrawItem[] = [];
 	for (const b of listBodies(animated)) {
-		const worldPos = getWorldTransform(animated, b.id).position;
+		const world = getWorldTransform(animated, b.id);
+		const worldPos = world.position;
+		const worldScale = world.scale;
+		const scaleMag = Math.max(
+			Math.abs(worldScale[0]),
+			Math.abs(worldScale[1]),
+			Math.abs(worldScale[2])
+		);
+		const displayRadius = b.radiusMeters * scaleMag;
 		// `vp` is the eye-relative (floating-origin) view-projection, so project the
 		// eye-relative center to keep screen position/depth precise at planetary scale.
 		// `worldPos` stays absolute — downstream consumers (sphere/atmosphere) rebase as needed.
 		const sp = projectToScreen(vp, [worldPos[0] - eye[0], worldPos[1] - eye[1], worldPos[2] - eye[2]], width, height);
-		const screenRadiusPx = sp ? (b.radiusMeters / sp.depth) * screenScale : 0;
+		const screenRadiusPx = sp ? (displayRadius / sp.depth) * screenScale : 0;
 		out.push({
 			id: b.id,
 			bodyType: b.bodyType,
 			radiusMeters: b.radiusMeters,
 			worldPos,
+			worldScale,
 			screen: sp,
 			screenRadiusPx,
 			lod: sp ? lodWithHysteresis(b.id, screenRadiusPx, lodState, lod) : 'dot',

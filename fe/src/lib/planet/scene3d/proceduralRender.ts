@@ -40,6 +40,8 @@ export interface ProceduralRenderOpts {
 	lighting: LightingUniforms;
 	/** Evaluated body-frame world rotation (spin/tilt) for terrain sampling. */
 	planetRotation: Quat;
+	/** World render radius (base radius × node scale). Defaults to body.radiusMeters. */
+	renderRadius?: number;
 	materialDebug?: MaterialDebugMode;
 	viewportPrefs?: SceneViewportPrefs;
 	/** Terrain alpha (0..1) for the sphere→terrain cross-fade; the LOD blend. Default 1. */
@@ -81,8 +83,8 @@ function buildOrbitSceneCamera(
 }
 
 export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRenderInputs {
-	// World scale: terrain is scale-invariant, so render at radius = radiusMeters.
-	const params = { ...resolveBodyParams(o.body), radius: o.body.radiusMeters };
+	const renderRadius = o.renderRadius ?? o.body.radiusMeters;
+	const params = { ...resolveBodyParams(o.body), radius: renderRadius };
 	const aspect = o.width / Math.max(o.height, 1);
 	const lookMode = o.sceneCamera.mode === 'orbit' ? (o.sceneCamera.lookMode ?? 'planet-center') : 'planet-center';
 	const camera =
@@ -90,13 +92,13 @@ export function buildProceduralRenderInput(o: ProceduralRenderOpts): PlanetRende
 			? bodyRelativeCameraFromWorld(
 					o.sceneCamera.camera,
 					o.bodyWorldPos,
-					o.body.radiusMeters,
+					renderRadius,
 					aspect
 				)
 			: buildOrbitSceneCamera(
 					o.sceneCamera.camera,
 					o.bodyWorldPos,
-					o.body.radiusMeters,
+					renderRadius,
 					aspect,
 					o.height,
 					lookMode,

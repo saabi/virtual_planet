@@ -8,8 +8,9 @@ import type { Vec3 } from '../math/vec.js';
 // See _docs/specs/unified-scene-renderer.md.
 
 export interface BodyInstance {
-	position: Vec3; // world metres
-	radius: number; // metres
+	position: Vec3; // eye-relative metres
+	radius: number; // base metres (before node scale)
+	scale?: Vec3; // node world scale; default [1,1,1]
 	color: Vec3; // rgb 0..1
 	emissive: boolean; // stars render full-bright
 	marker?: boolean; // pin to the far plane so distant dots are never far-clipped
@@ -124,22 +125,24 @@ export class SpherePass {
 		const data = new Float32Array(instances.length * INSTANCE_FLOATS);
 		for (let i = 0; i < instances.length; i++) {
 			const b = i * INSTANCE_FLOATS;
-			const r = instances[i].radius;
-			const p = instances[i].position;
-			// Column-major model = translate(p) · scale(r).
-			data[b + 0] = r;
-			data[b + 5] = r;
-			data[b + 10] = r;
+			const inst = instances[i]!;
+			const r = inst.radius;
+			const s = inst.scale ?? [1, 1, 1];
+			const p = inst.position;
+			// Column-major model = translate(p) · scale(r * nodeScale).
+			data[b + 0] = r * s[0];
+			data[b + 5] = r * s[1];
+			data[b + 10] = r * s[2];
 			data[b + 12] = p[0];
 			data[b + 13] = p[1];
 			data[b + 14] = p[2];
 			data[b + 15] = 1;
-			const c = instances[i].color;
+			const c = inst.color;
 			data[b + 16] = c[0];
 			data[b + 17] = c[1];
 			data[b + 18] = c[2];
-			data[b + 19] = instances[i].emissive ? 1 : 0;
-			data[b + 20] = instances[i].marker ? 1 : 0;
+			data[b + 19] = inst.emissive ? 1 : 0;
+			data[b + 20] = inst.marker ? 1 : 0;
 		}
 		this.device.queue.writeBuffer(this.instanceBuf!, 0, data);
 

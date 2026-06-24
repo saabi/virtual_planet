@@ -29,21 +29,15 @@ export const SECONDARY_TESSELLATION_BUDGET_SCALE = 0.35;
 
 
 export interface ProceduralRenderTarget {
-
 	id: string;
-
 	body: BodyNode;
-
 	worldPos: Vec3;
-
 	rotation: Quat;
-
+	/** World render radius (base radius × node scale). */
+	renderRadius: number;
 	blend: number;
-
 	screenDepth: number;
-
 	screenRadiusPx: number;
-
 }
 
 
@@ -183,6 +177,14 @@ export function selectProceduralTargets(
 			worldPos: item.worldPos,
 
 			rotation: getWorldTransform(animated, item.id).rotation,
+
+			renderRadius:
+				item.radiusMeters *
+				Math.max(
+					Math.abs(item.worldScale[0]),
+					Math.abs(item.worldScale[1]),
+					Math.abs(item.worldScale[2])
+				),
 
 			blend: item.blend,
 

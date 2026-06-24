@@ -41,6 +41,7 @@ function drawItem(
 		bodyType: 'planet',
 		radiusMeters: 6.371e6,
 		worldPos: [0, 0, 0],
+		worldScale: [1, 1, 1],
 		screen: { x: 100, y: 100, depth },
 		screenRadiusPx,
 		lod: 'procedural',
@@ -97,6 +98,7 @@ describe('sortProceduralDrawOrder', () => {
 				body: body('near'),
 				worldPos: [0, 0, 0] as Vec3,
 				rotation: [0, 0, 0, 1] as Quat,
+				renderRadius: 6.371e6,
 				blend: 1,
 				screenDepth: 1,
 				screenRadiusPx: 100
@@ -106,6 +108,7 @@ describe('sortProceduralDrawOrder', () => {
 				body: body('far'),
 				worldPos: [1, 0, 0] as Vec3,
 				rotation: [0, 0, 0, 1] as Quat,
+				renderRadius: 6.371e6,
 				blend: 1,
 				screenDepth: 5,
 				screenRadiusPx: 100

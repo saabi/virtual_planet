@@ -95,12 +95,18 @@ export function worldPositiveX(world: WorldTransform): Vec3 {
 	return normalize3(rotateVec3(world.rotation, [1, 0, 0]));
 }
 
+/** Rotate + scale a vector in node-local space (no translation). */
+export function transformOffset(world: WorldTransform, local: Vec3): Vec3 {
+	return rotateVec3(world.rotation, mulVec3(world.scale, local));
+}
+
+/** Full TRS: local point → world position. */
 export function transformPoint(world: WorldTransform, local: Vec3): Vec3 {
-	const rotated = rotateVec3(world.rotation, local);
+	const offset = transformOffset(world, local);
 	return [
-		world.position[0] + rotated[0],
-		world.position[1] + rotated[1],
-		world.position[2] + rotated[2]
+		world.position[0] + offset[0],
+		world.position[1] + offset[1],
+		world.position[2] + offset[2]
 	];
 }
 

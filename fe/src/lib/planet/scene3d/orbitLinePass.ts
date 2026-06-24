@@ -125,7 +125,7 @@ export class OrbitLinePass {
 			}
 			this.device.queue.writeBuffer(slot.vbuf!, 0, data);
 
-			const centerEye = sub3(path.center, eye);
+			const centerEye = sub3(path.frame.position, eye);
 			const u = new Float32Array(UBUF_FLOATS);
 			u.set(viewProj, 0);
 			u.set(color, 16);

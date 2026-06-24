@@ -61,8 +61,8 @@
 	function orbitPathsForView(animated: PlanetScene, view: MapView): OrbitPath[] {
 		return collectOrbitPathSpecs(animated).map((spec) => {
 			const viewDist = Math.hypot(
-				spec.center[0] - view.worldCenterX,
-				spec.center[2] - view.worldCenterZ
+				spec.frame.position[0] - view.worldCenterX,
+				spec.frame.position[2] - view.worldCenterZ
 			);
 			const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
 			const segments = orbitPathSegmentCount(
@@ -71,7 +71,8 @@
 				view.height,
 				isSelected
 					? { maxChordPx: 2, min: 32, max: 256 }
-					: { maxChordPx: 3, min: 32, max: 128 }
+					: { maxChordPx: 3, min: 32, max: 128 },
+				spec.frame
 			);
 			const path = buildOrbitPath3D(spec, segments, time);
 			return {
@@ -89,9 +90,8 @@
 		const pts: Vec3[] = [];
 		for (const b of bodies) pts.push(getWorldTransform(animated, b.id).position);
 		for (const spec of specs) {
-			const r = spec.elements.semiMajorAxis * (1 + spec.elements.eccentricity);
-			const c = spec.center;
-			pts.push([c[0] + r, 0, c[2]], [c[0] - r, 0, c[2]], [c[0], 0, c[2] + r], [c[0], 0, c[2] - r]);
+			const path = buildOrbitPath3D(spec, 24, time);
+			for (const p of path.points) pts.push(p);
 		}
 		return fitView(xzBounds(pts), canvasW, canvasH, 28);
 	}
