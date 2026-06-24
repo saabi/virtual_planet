@@ -3,6 +3,12 @@
 // the sun as a POINT light (per-fragment direction from the sun's world position, so
 // the terminator is radial/correct per body) + ambient; stars (emissive) full-bright.
 // See _docs/specs/scene-3d-viewport.md.
+//
+// Eclipse: sphere-LOD bodies also receive body-to-body eclipse shadows (so a planet
+// shadows its moon even when the moon is too small to be procedural). The occluder set is
+// scene-wide and eye-relative (matching worldPos here); a body never occludes itself
+// because a surface fragment sits within its own radius.
+#include "../planet/eclipse.wgsl"
 
 struct Uniforms {
 	viewProj : mat4x4<f32>,
@@ -12,6 +18,7 @@ struct Uniforms {
 };
 
 @group(0) @binding(0) var<uniform> u : Uniforms;
+@group(0) @binding(1) var<uniform> eclipse : EclipseUniforms;
 
 struct VSIn {
 	@location(0) pos : vec3<f32>,
@@ -66,7 +73,10 @@ fn fs(in : VSOut) -> FSOut {
 	let n = normalize(in.normal);
 	let l = normalize(u.lightPos.xyz - in.worldPos); // toward the sun's position
 	let ndl = max(dot(n, l), 0.0);
-	let lit = base * (u.ambient.rgb + u.lightColor.rgb * u.lightColor.w * ndl);
+	// Body-to-body eclipse dims the direct sun term (umbra → 0, penumbra graded); ambient
+	// is unaffected, like the terrain shadowFill floor.
+	let eclipse_vis = body_eclipse_visibility(in.worldPos, eclipse);
+	let lit = base * (u.ambient.rgb + u.lightColor.rgb * u.lightColor.w * ndl * eclipse_vis);
 	out.color = vec4<f32>(lit, 1.0);
 	return out;
 }

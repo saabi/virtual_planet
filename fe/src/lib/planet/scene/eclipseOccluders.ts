@@ -2,7 +2,7 @@ import { dot3, len3, normalize3, sub3, type Vec3 } from '../math/vec.js';
 import { getWorldTransform, isNodeEnabled, listBodies } from './sceneTree.js';
 import type { BodyNode, PlanetScene } from './types.js';
 
-export const MAX_ECLIPSE_OCCLUDERS = 4;
+export const MAX_ECLIPSE_OCCLUDERS = 8;
 
 export interface EclipseOccluder {
 	id: string;
@@ -97,6 +97,43 @@ export function collectEclipseOccluders(
 		sunPosition,
 		sunRadius: sun.radiusMeters,
 		occluders: occluders.slice(0, maxOccluders)
+	};
+}
+
+/**
+ * Scene-wide occluder set for receivers that can't run a per-receiver query — the
+ * instanced sphere pass and the multi-body atmosphere composite, which shade many bodies
+ * in one draw. Lists the sun plus the largest bodies (capped at `maxOccluders`) with no
+ * per-receiver alignment culling; the shader skips a body's self-occlusion (a fragment on
+ * its own surface sits within its own radius). Positions stay world-space; the caller
+ * rebases to its render frame with {@link receiverLocalEclipseSet}.
+ */
+export function collectGlobalEclipseOccluders(
+	scene: PlanetScene,
+	options: { maxOccluders?: number } = {}
+): EclipseOccluderSet {
+	const bodies = listBodies(scene).filter((b) => isNodeEnabled(scene, b.id));
+	const sun = bodies.find((b) => b.bodyType === 'star');
+	if (!sun || sun.radiusMeters <= 0) return disabledEclipseSet();
+	const maxOccluders = options.maxOccluders ?? MAX_ECLIPSE_OCCLUDERS;
+	const occluders: EclipseOccluder[] = bodies
+		.filter((b) => b.id !== sun.id)
+		.map((b) => ({
+			id: b.id,
+			center: getWorldTransform(scene, b.id).position,
+			radius: b.radiusMeters,
+			// No receiver to estimate obscuration against; rank by size so the dominant
+			// occluders survive the cap.
+			estimatedObscuration: b.radiusMeters
+		}))
+		.sort((a, b) => b.radius - a.radius)
+		.slice(0, maxOccluders);
+	if (occluders.length === 0) return disabledEclipseSet();
+	return {
+		enabled: true,
+		sunPosition: getWorldTransform(scene, sun.id).position,
+		sunRadius: sun.radiusMeters,
+		occluders
 	};
 }
 

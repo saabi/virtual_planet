@@ -21,7 +21,12 @@
 	import { DEFAULT_LOD_THRESHOLDS, sphereFadeScale, type LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
-	import { collectEclipseOccluders } from '../scene/eclipseOccluders.js';
+	import {
+		collectEclipseOccluders,
+		collectGlobalEclipseOccluders,
+		receiverLocalEclipseSet
+	} from '../scene/eclipseOccluders.js';
+	import { packEclipseUniforms } from '../scene/packEclipse.js';
 	import {
 		MAX_PROCEDURAL_BODIES,
 		packBodyTerrainLighting,
@@ -341,6 +346,13 @@
 		// improves.
 		const lightRel: SceneLighting = { ...light, lightPos: sub3(light.lightPos, eye) };
 
+		// Scene-wide eclipse occluders, rebased eye-relative — shared by the sphere pass and
+		// the atmosphere composite (both render eye/camera-relative). Lets any body shadow any
+		// body, including sphere-LOD moons that are too small to be procedural receivers.
+		const globalEclipse = packEclipseUniforms(
+			receiverLocalEclipseSet(collectGlobalEclipseOccluders(animated), eye)
+		);
+
 		const primaryTarget =
 			(selectedId ? terrainTargets.find((t) => t.id === selectedId) : undefined) ??
 			terrainTargets[0];
@@ -435,7 +447,7 @@
 			w,
 			h,
 			(pass) => {
-				if (!atmosphereOnWhite) spheres!.record(pass, instances, vpRel, lightRel);
+				if (!atmosphereOnWhite) spheres!.record(pass, instances, vpRel, lightRel, globalEclipse);
 				orbitLines!.record(pass, visibleOrbitPaths, vpRel, eye);
 				if (procActive) {
 					const drawOrder = sortProceduralDrawOrder(terrainTargets);

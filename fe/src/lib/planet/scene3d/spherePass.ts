@@ -1,6 +1,12 @@
 import sphereWgsl from '../gpu/wgsl/scene3d/sphere.wgsl';
 import { makeUVSphere } from './sphereMesh.js';
 import type { Vec3 } from '../math/vec.js';
+import {
+	DEFAULT_ECLIPSE_UNIFORMS,
+	ECLIPSE_UNIFORM_SIZE,
+	writeEclipseUniforms,
+	type EclipseUniforms
+} from '../scene/packEclipse.js';
 
 // Instanced sphere draw for the scene engine — one sphere per body. It records into a
 // render pass the engine owns (shared color + depth), so procedural draws can share
@@ -33,6 +39,7 @@ export class SpherePass {
 	private ibuf: GPUBuffer;
 	private indexCount: number;
 	private ubuf: GPUBuffer;
+	private eclipseBuf: GPUBuffer;
 	private bindGroup: GPUBindGroup;
 	private instanceBuf: GPUBuffer | null = null;
 	private instanceCap = 0;
@@ -90,9 +97,20 @@ export class SpherePass {
 			size: 112, // viewProj(64) + lightPos(16) + lightColor(16) + ambient(16)
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
+		this.eclipseBuf = device.createBuffer({
+			size: ECLIPSE_UNIFORM_SIZE,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+		// Default to disabled until the first record(); the shader no-ops eclipse then.
+		const eclipseInit = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
+		writeEclipseUniforms(eclipseInit, DEFAULT_ECLIPSE_UNIFORMS);
+		device.queue.writeBuffer(this.eclipseBuf, 0, eclipseInit);
 		this.bindGroup = device.createBindGroup({
 			layout: this.pipeline.getBindGroupLayout(0),
-			entries: [{ binding: 0, resource: { buffer: this.ubuf } }]
+			entries: [
+				{ binding: 0, resource: { buffer: this.ubuf } },
+				{ binding: 1, resource: { buffer: this.eclipseBuf } }
+			]
 		});
 	}
 
@@ -111,7 +129,8 @@ export class SpherePass {
 		pass: GPURenderPassEncoder,
 		instances: BodyInstance[],
 		viewProj: Float32Array,
-		light: SceneLighting
+		light: SceneLighting,
+		eclipse: EclipseUniforms = DEFAULT_ECLIPSE_UNIFORMS
 	) {
 		const u = new Float32Array(28);
 		u.set(viewProj, 0);
@@ -119,6 +138,12 @@ export class SpherePass {
 		u.set([light.lightColor[0], light.lightColor[1], light.lightColor[2], light.lightIntensity], 20);
 		u.set([light.ambient[0], light.ambient[1], light.ambient[2], 0], 24);
 		this.device.queue.writeBuffer(this.ubuf, 0, u);
+
+		// Eye-relative occluder set (sun positions/centers already rebased by the caller),
+		// matching the eye-relative worldPos the vertex stage emits.
+		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
+		writeEclipseUniforms(eclipseStaging, eclipse);
+		this.device.queue.writeBuffer(this.eclipseBuf, 0, eclipseStaging);
 
 		if (instances.length === 0) return;
 		this.ensureInstances(instances.length);
@@ -158,6 +183,7 @@ export class SpherePass {
 		this.vbuf.destroy();
 		this.ibuf.destroy();
 		this.ubuf.destroy();
+		this.eclipseBuf.destroy();
 		this.instanceBuf?.destroy();
 	}
 }

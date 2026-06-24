@@ -1,4 +1,4 @@
-const MAX_ECLIPSE_OCCLUDERS: u32 = 4u;
+const MAX_ECLIPSE_OCCLUDERS: u32 = 8u;
 const ECLIPSE_PI: f32 = 3.141592653589793;
 
 struct EclipseUniforms {
