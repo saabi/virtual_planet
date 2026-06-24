@@ -39,7 +39,7 @@ export function diffAppearanceOverrides(
 
 export type LodLevel = 'dot' | 'mesh';
 
-export type LodTransitionMode = 'heights' | 'atmosphere' | 'both';
+export type LodTransitionMode = 'none' | 'heights' | 'atmosphere' | 'both';
 
 export interface LodTransitionBlends {
 	/** Vertex radial offset toward displaced surface (terrain band). */
@@ -115,6 +115,10 @@ export function resolveLodTransitionBlends(
 	mode: LodTransitionMode,
 	gamma: number = DEFAULT_FADE_GAMMA
 ): LodTransitionBlends {
+	if (mode === 'none') {
+		return { displacementBlend: 1, heightBlend: 1, atmosphereBlend: 1 };
+	}
+
 	const terrainLinear = proceduralBlend(projectedRadiusPx, t);
 	const terrain = fadeOpacity(terrainLinear, gamma);
 

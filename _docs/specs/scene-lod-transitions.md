@@ -19,8 +19,9 @@ UI labels: **Mesh starts** (`sphereAboveRadiusPx`), **Terrain starts** (`procedu
 
 ## Transition mode
 
-`lod.transitionMode`: `heights` | `atmosphere` | `both`
+`lod.transitionMode`: `none` | `heights` | `atmosphere` | `both`
 
+- **none** — no ramping; full displacement, height, and atmosphere from mesh tier up.
 - **heights** — terrain band ramps vertex displacement + fragment macro relief; atmosphere on from smooth-mesh tier.
 - **atmosphere** — terrain band ramps atmosphere opacity only; relief at full from smooth-mesh tier.
 - **both** — terrain band ramps displacement, height, and atmosphere; both off during smooth-mesh tier.

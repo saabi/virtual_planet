@@ -115,6 +115,19 @@ describe('fadeOpacity', () => {
 });
 
 describe('resolveLodTransitionBlends', () => {
+	it('none mode is always full displacement, height, and atmosphere', () => {
+		expect(resolveLodTransitionBlends(50, T, 'none')).toEqual({
+			displacementBlend: 1,
+			heightBlend: 1,
+			atmosphereBlend: 1
+		});
+		expect(resolveLodTransitionBlends(125, T, 'none')).toEqual({
+			displacementBlend: 1,
+			heightBlend: 1,
+			atmosphereBlend: 1
+		});
+	});
+
 	it('smooth-mesh band: displacement 0, toggled channels off, non-toggled on', () => {
 		expect(resolveLodTransitionBlends(50, T, 'both')).toEqual({
 			displacementBlend: 0,

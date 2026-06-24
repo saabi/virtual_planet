@@ -169,6 +169,7 @@
 										(viewportPrefs.lod.transitionMode = e.currentTarget
 											.value as LodTransitionMode)}
 								>
+									<option value="none">None</option>
 									<option value="heights">Heights</option>
 									<option value="atmosphere">Atmosphere</option>
 									<option value="both">Both</option>

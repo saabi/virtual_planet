@@ -47,6 +47,7 @@ describe('coerceViewportPrefs', () => {
 	});
 
 	it('coerces transitionMode enum', () => {
+		expect(coerceViewportPrefs({ lod: { transitionMode: 'none' } }).lod.transitionMode).toBe('none');
 		expect(coerceViewportPrefs({ lod: { transitionMode: 'heights' } }).lod.transitionMode).toBe('heights');
 		expect(coerceViewportPrefs({ lod: { transitionMode: 'bogus' } }).lod.transitionMode).toBe('both');
 	});
