@@ -14,4 +14,7 @@ export * from './emitGraphEval.js';
 export { emitGraphVec3Eval } from './emitGraphVec3Eval.js';
 export * from './consumers/planeScalarPreview.js';
 export * from './consumers/surfaceMeshPreview.js';
+export * from './consumers/vegetationCandidates.js';
+export * from './vegetationTypes.js';
+export * from './vegetationBuffer.js';
 export * from './surfaceMesh.js';
