@@ -1,17 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
+import { listPrimitives } from '../../graph/src/registry.js';
+import '../../graph/src/primitives/index.js';
+
 import {
 	createStandardLibraryResolver,
 	PROCEDURAL_WGSL_PACKAGE,
 	STANDARD_LIBRARY_MODULES
 } from './index.js';
 
+/**
+ * WGSL module ids referenced by graph primitives that intentionally have no
+ * standard-library module (CPU eval only). Empty while every primitive ships WGSL.
+ */
+const CPU_ONLY_WGSL_MODULE_IDS: readonly string[] = [];
+
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'procedural.uv': 'uv',
 	'noise.perlin3d': 'perlin3d',
+	'noise.simplex': 'simplex3d',
 	'noise.worley': 'worley',
 	'noise.fbm': 'fbm',
+	'noise.ridgedFbm': 'ridgedFbm',
 	'math.remap': 'remap',
 	'math.clamp': 'clamp',
 	'math.smoothstep': 'smoothstep',
@@ -19,9 +30,22 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'math.multiply': 'multiply',
 	'math.mix': 'mix',
 	'math.pow': 'pow',
+	'math.abs': 'abs',
+	'math.bias': 'bias',
+	'math.gain': 'gain',
 	'surface.plane': 'plane',
 	'surface.cubeSphere': 'cubeSphere'
 };
+
+function registeredWgslModuleIds(): string[] {
+	return [
+		...new Set(
+			listPrimitives()
+				.map((primitive) => primitive.wgsl.moduleId)
+				.filter((moduleId) => moduleId.length > 0)
+		)
+	].sort();
+}
 
 describe('@virtual-planet/procedural-wgsl', () => {
 	it('exports its package identity', () => {
@@ -33,6 +57,24 @@ describe('@virtual-planet/procedural-wgsl', () => {
 			expect(STANDARD_LIBRARY_MODULES[moduleId]?.id).toBe(moduleId);
 			expect(STANDARD_LIBRARY_MODULES[moduleId]?.source.length).toBeGreaterThan(0);
 		}
+	});
+
+	it('covers every registered primitive WGSL module id', () => {
+		const primitiveModuleIds = registeredWgslModuleIds();
+		const libraryModuleIds = Object.keys(STANDARD_LIBRARY_MODULES).sort();
+
+		const missingFromLibrary = primitiveModuleIds.filter(
+			(moduleId) =>
+				!CPU_ONLY_WGSL_MODULE_IDS.includes(moduleId) && !STANDARD_LIBRARY_MODULES[moduleId]
+		);
+		expect(missingFromLibrary).toEqual([]);
+
+		const orphanLibraryModules = libraryModuleIds.filter(
+			(moduleId) => !primitiveModuleIds.includes(moduleId)
+		);
+		expect(orphanLibraryModules).toEqual([]);
+
+		expect(libraryModuleIds).toEqual(primitiveModuleIds);
 	});
 
 	it('createStandardLibraryResolver resolves each id with the expected entry fn', async () => {
@@ -53,5 +95,15 @@ describe('@virtual-planet/procedural-wgsl', () => {
 	it('noise.fbm declares a dependency on noise.perlin3d', () => {
 		expect(STANDARD_LIBRARY_MODULES['noise.fbm']?.dependencies).toEqual(['noise.perlin3d']);
 		expect(STANDARD_LIBRARY_MODULES['noise.fbm']?.source).toContain('perlin3d(');
+	});
+
+	it('noise.ridgedFbm declares a dependency on noise.perlin3d', () => {
+		expect(STANDARD_LIBRARY_MODULES['noise.ridgedFbm']?.dependencies).toEqual(['noise.perlin3d']);
+		expect(STANDARD_LIBRARY_MODULES['noise.ridgedFbm']?.source).toContain('perlin3d(');
+	});
+
+	it('math.gain declares a dependency on math.bias', () => {
+		expect(STANDARD_LIBRARY_MODULES['math.gain']?.dependencies).toEqual(['math.bias']);
+		expect(STANDARD_LIBRARY_MODULES['math.gain']?.source).toContain('bias(');
 	});
 });

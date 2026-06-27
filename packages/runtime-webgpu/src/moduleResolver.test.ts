@@ -1,4 +1,5 @@
 import { generateWgsl, sliceGraph } from '@virtual-planet/compiler';
+import { listPrimitives } from '@virtual-planet/graph';
 import { describe, expect, it } from 'vitest';
 
 import { createStandardLibraryResolver, STANDARD_LIBRARY_MODULES } from './moduleResolver.js';
@@ -7,6 +8,21 @@ describe('@virtual-planet/runtime-webgpu moduleResolver', () => {
 	it('re-exports the procedural-wgsl standard library', () => {
 		expect(STANDARD_LIBRARY_MODULES['noise.perlin3d']?.source).toContain('fn perlin3d(');
 		expect(STANDARD_LIBRARY_MODULES['math.add']?.source).toContain('fn add(');
+		expect(STANDARD_LIBRARY_MODULES['noise.simplex']?.source).toContain('fn simplex3d(');
+		expect(STANDARD_LIBRARY_MODULES['math.gain']?.source).toContain('fn gain(');
+	});
+
+	it('resolves every registered graph primitive WGSL module id', async () => {
+		const resolver = createStandardLibraryResolver();
+		const moduleIds = [
+			...new Set(listPrimitives().map((primitive) => primitive.wgsl.moduleId))
+		].sort();
+
+		for (const moduleId of moduleIds) {
+			const mod = await resolver.resolve(moduleId);
+			expect(mod.id).toBe(moduleId);
+			expect(mod.source.length).toBeGreaterThan(0);
+		}
 	});
 
 	it('generateWgsl resolves default preview-graph modules from the standard library', async () => {
