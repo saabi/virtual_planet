@@ -60,7 +60,8 @@ runs what.
 | [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source + clone (T2) | ✅ landed (`1ec544d`) | Cursor (done) |
 | [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract chrome + controls → `@virtual-planet/editor-ui` (T3) | ✅ landed (`3b54458`) | Cursor (done) |
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Frame-graph: pure core landed (T4 `3fc520a`); **GPU executor = round 2** | 🔄 core done; GPU executor pending | Cursor |
-| [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (round 2 keystone) | 📌 contract ready | Opus / Cursor |
+| [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (R2-T0) | ✅ landed (`52334eb`) | Opus (done) |
+| [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette (first graph→pixels) | 📌 contract ready · browser-capable agent | Antigravity/Cursor |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
