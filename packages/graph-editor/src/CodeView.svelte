@@ -106,6 +106,7 @@
 
 <style>
 	.code-view {
+		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
@@ -159,6 +160,7 @@
 	}
 
 	.editor {
+		box-sizing: border-box;
 		flex: 1;
 		min-height: 0;
 		width: 100%;

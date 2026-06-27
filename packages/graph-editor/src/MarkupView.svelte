@@ -85,6 +85,7 @@
 
 <style>
 	.markup {
+		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
@@ -100,6 +101,7 @@
 	}
 
 	.code {
+		box-sizing: border-box;
 		flex: 1;
 		min-height: 0;
 		width: 100%;
