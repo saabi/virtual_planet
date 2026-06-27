@@ -15,6 +15,7 @@ import { NOISE_PERLIN3D_MODULE } from './noise/perlin3d.js';
 import { NOISE_RIDGED_FBM_MODULE } from './noise/ridgedFbm.js';
 import { NOISE_SIMPLEX_MODULE } from './noise/simplex.js';
 import { NOISE_WORLEY_MODULE } from './noise/worley.js';
+import { PROCEDURAL_METRIC_POSITION_MODULE } from './procedural/metricPosition.js';
 import { PROCEDURAL_UV_MODULE } from './procedural/uv.js';
 import { SURFACE_CUBE_SPHERE_MODULE } from './surface/cubeSphere.js';
 import { SURFACE_PLANE_MODULE } from './surface/plane.js';
@@ -33,6 +34,7 @@ function copyModule(mod: {
 /** Stable module id → WGSL source for the procedural standard library. */
 export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[PROCEDURAL_UV_MODULE.id]: copyModule(PROCEDURAL_UV_MODULE),
+	[PROCEDURAL_METRIC_POSITION_MODULE.id]: copyModule(PROCEDURAL_METRIC_POSITION_MODULE),
 	[NOISE_PERLIN3D_MODULE.id]: copyModule(NOISE_PERLIN3D_MODULE),
 	[NOISE_SIMPLEX_MODULE.id]: copyModule(NOISE_SIMPLEX_MODULE),
 	[NOISE_WORLEY_MODULE.id]: copyModule(NOISE_WORLEY_MODULE),
@@ -68,6 +70,7 @@ export {
 	NOISE_RIDGED_FBM_MODULE,
 	NOISE_SIMPLEX_MODULE,
 	NOISE_WORLEY_MODULE,
+	PROCEDURAL_METRIC_POSITION_MODULE,
 	PROCEDURAL_UV_MODULE,
 	SURFACE_CUBE_SPHERE_MODULE,
 	SURFACE_PLANE_MODULE
@@ -88,6 +91,7 @@ export { NOISE_PERLIN3D_SOURCE } from './noise/perlin3d.js';
 export { NOISE_RIDGED_FBM_SOURCE } from './noise/ridgedFbm.js';
 export { NOISE_SIMPLEX_SOURCE } from './noise/simplex.js';
 export { NOISE_WORLEY_SOURCE } from './noise/worley.js';
+export { PROCEDURAL_METRIC_POSITION_SOURCE } from './procedural/metricPosition.js';
 export { PROCEDURAL_UV_SOURCE } from './procedural/uv.js';
 export { SURFACE_CUBE_SPHERE_SOURCE } from './surface/cubeSphere.js';
 export { SURFACE_PLANE_SOURCE } from './surface/plane.js';

@@ -18,6 +18,7 @@ const CPU_ONLY_WGSL_MODULE_IDS: readonly string[] = [];
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'procedural.uv': 'uv',
+	'procedural.metricPosition': 'metricPosition',
 	'noise.perlin3d': 'perlin3d',
 	'noise.simplex': 'simplex3d',
 	'noise.worley': 'worley',
