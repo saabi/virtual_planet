@@ -25,17 +25,19 @@ active brief in [briefs/](./briefs/README.md). Then
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
 | M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `5d891ea` |
 | Vite graph-editor route fix | ✅ | fe check; dev/build | `cb1d789` |
-| M9b.1 — IR-native persistence | ✅ | graph-editor 15/15; fe check | *(uncommitted)* |
-| M9b.2 — markup printer + MarkupView | ✅ | graph-editor 17/17; fe check | *(uncommitted)* |
-| M9b.3 — markup parser + editable sync | ✅ | graph-editor 23/23; fe check | *(uncommitted)* |
-| M9b.4 — CodeView + primitive ripple | ✅ | graph 14/14; graph-editor 29/29; fe check | *(uncommitted)* |
+| M9b.4 — CodeView + primitive ripple | ✅ | graph 14/14; graph-editor 29/29; fe check | `6f8a3ff` |
 | Docs — param form addendum | ✅ | cross-links | `9897d3b` |
+| Graph editor port sync + validation fix | ✅ | graph 17/17; graph-editor 32/32; runtime-cpu 14/14 | `ca493a4` |
+| M10.1 — runtime-webgpu foundation | ✅ | runtime-webgpu 4/4 | `ca493a4` |
+| M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M10 — runtime-webgpu** per
-  [implementation-plan.md](./implementation-plan.md).
-- M9b complete (all four sub-phases ✅). Do not start M14 until M10 consumer path is underway.
+- **Active:** **M10.2 — Plane scalar GPU consumer** per
+  [briefs/M10-runtime-webgpu.md](./briefs/M10-runtime-webgpu.md).
+- M10.1 foundation (device, buffers, consumer types) is landed.
+- Do not start M10.3 editor GPU preview until M10.2 gate is green.
+- M9c (delete + duplicate) is complete; undo/multi-select remain deferred.
 
 ## Resume protocol (any agent)
 
