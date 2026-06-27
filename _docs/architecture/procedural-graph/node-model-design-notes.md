@@ -74,10 +74,14 @@ the **vertex stage**, whose per-vertex invocation *is* the implicit loop over ve
 explicit loop node needed). So: `geometry.cube → stage.vertex[spherify → displace(field)] →
 …`. The transforms compose inside the vertex stage's field subgraph.
 
-Add a **`transform.*` family**: `spherify`, `displace`, `translate`, `rotate`, `scale`,
-`twist`, `bend`. Each is a per-vertex value→value op on `position` (and `normal`), so they
-reuse the existing field-primitive machinery — they are field nodes that happen to consume
-the vertex `position` input.
+**But most transforms are *compositions*, not new primitives** (see §E). At the math level:
+`vector displace` = `add(position, vec)` — *literally* `math.add`; `normal displace` =
+`multiply(normal, height)` → `add(position, …)`; `spherify` = `normalize(position)`. So they
+are **node groups** over elemental ops (add/multiply/normalize), **not** hand-written WGSL —
+a named transform buys *semantic clarity + fewer wires* at **zero runtime cost** (a group
+compiles inline to the same WGSL). Keep `math.add/multiply/normalize` atomic; ship
+`transform.normalDisplace`, `transform.twist`, etc. as **built-in groups**; `vector
+displace` simply *is* `add` (no separate node).
 
 ---
 
@@ -107,9 +111,54 @@ This generalizes far beyond math:
 - **SDF shapes** (`circle/box/hexagon…`, `(p, …) → f32`) — swap family.
 - **Blend modes, surface mappings, tonemap operators, colour spaces** — each a swap family.
 
-**Implementation:** add a `contract` id (a normalized hash of the port signature) to
-primitive metadata (derivable, not hand-authored); the editor groups by `contract` for swap
-+ palette collapse. Cheap, schema-driven, and it is the right answer for a *compiled* graph.
+### Two levels of contract (the vector-add ≡ vector-displace question)
+
+`add(vec3,vec3)→vec3` and "vector displace" have the **same signature** — because they are
+the **same operation** (displace *is* add). That exposes two distinct notions:
+
+- **Mechanical contract** = exact signature → *codegen interchangeability* (add/multiply/min
+  all share `(f32,f32)→f32`). Hashable from the ports.
+- **Role contract** = the *semantic slot* a node fills → *meaningful* swap families. "Vertex
+  position transform" (consumes `position` → produces `position`) is a role; `normalDisplace`,
+  `spherify`, `twist` fill it even though their *secondary* inputs differ. The editor swaps
+  the **primary** edge and leaves secondary inputs to rewire.
+
+**Swap families are defined by role, not raw signature.** Consequence: `vector-displace`
+does not need to exist (it's `add`); `normalDisplace`/`spherify`/`twist` are one role-family
+(swappable), even when each is a **group** (§E).
+
+**Implementation:** primitive metadata carries a mechanical `contract` (derivable signature
+hash) **and** an optional `role` tag; the editor groups by `role` for swap + palette
+collapse, falling back to `contract`. Schema-driven, zero perf cost — the right answer for a
+*compiled* graph.
+
+---
+
+## E. Node groups (subgraphs) as first-class library entries
+
+Your "displace = composition" + "group of nodes with the same contract" lead here:
+
+- **Two groupings:** a **zone/frame** (visual comment box, no semantics — clears clutter)
+  *and* **collapse-to-node** (a *functional* group with an interface). Like Blender node
+  groups / Grasshopper clusters / Houdini subnets.
+- **A group's interface IS its contract** (role + ports) → a group and an atomic node with
+  the same role are **interchangeable** (swap families span both).
+- **"Primitive" unifies to: atomic OR group.** An atomic primitive = WGSL + evalCPU
+  (existing). A **group primitive** = a saved **subgraph** + interface. Both register the
+  same way, both appear in the palette, both compile — a group **inlines** to its subgraph's
+  WGSL (zero runtime cost; it is purely an authoring/view convenience).
+- **Built-in + user groups.** Built-in (hardcoded standard-library subgraphs:
+  `transform.normalDisplace` = multiply+add; `geometry.cubeSphere` = cube + normalize). User:
+  select nodes → **"Save as group"** → a reusable palette entry (stored like a
+  self-describing primitive — a subgraph document with declared in/out ports).
+- **Generalizes `stage.*`** (pipeline-as-graph) — a stage node already "embeds a subgraph";
+  a group is that pattern made general for any node.
+
+**Effect on the library:** keep the **atomic** layer small (math/noise/sdf/normalize/the
+WGSL intrinsics); express convenience nodes (`normalDisplace`, `cubeSphere`, recurring
+effect chains) as **groups**. This realizes "elemental primitives + composition" — fewer
+hand-written WGSL primitives, more composed, swappable, user-extensible groups. See
+[primitive-library.md](./primitive-library.md) (transforms/cubeSphere reclassified as groups).
 
 ---
 

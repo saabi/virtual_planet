@@ -10,6 +10,8 @@ pipeline node families (geometry/buffer/stage/target) from
 
 **Legend:** ✅ built & registered · 📋 planned (pinned/next) · 💭 discussed (not yet pinned)
 · **LHF** = low-hanging fruit (a few hours each — mirrors an existing primitive pattern).
+**atomic** = WGSL + evalCPU · **group** = a saved subgraph over elemental nodes (compiles
+inline, zero cost — node-model-design-notes §E). A library node may be either.
 
 ---
 
@@ -144,25 +146,27 @@ pipeline node families (geometry/buffer/stage/target) from
 
 | id | status | notes |
 |----|--------|-------|
-| `geometry.fullscreenPlane` | 📋 | 2-triangle fullscreen quad (replaces S0's hidden vertex WGSL) |
-| `geometry.plane` | 📋 | parametric `res×res` plane grid (instanceable) |
-| `geometry.cube` | 📋 | six cube faces — a raw vertex list (spherify separately) |
-| `geometry.tessellate` | 📋 | compute mesh-gen over a surface mapping → vertex/index buffers ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |
+| `geometry.fullscreenPlane` | 📋 atomic | 2-triangle fullscreen quad (replaces S0's hidden vertex WGSL) |
+| `geometry.plane` | 📋 atomic | parametric `res×res` plane grid (instanceable) |
+| `geometry.cube` | 📋 atomic | six cube faces — a raw vertex list |
+| `geometry.cubeSphere` | 📋 **group** | = `geometry.cube` + `transform.spherify` (node group, not WGSL) |
+| `geometry.tessellate` | 📋 atomic | compute mesh-gen over a surface mapping → vertex/index buffers ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |
 | `geometry.emitVertices` | 💭 | low-level: write vertex attributes to a buffer |
 | `geometry.emitIndices` / `geometry.emitFaces` | 💭 | low-level: write index/face buffer |
 | `geometry.instancedPatch` | 💭 | per-instance patch grid (planet Mode-A: scheduler-fed) |
 | `geometry.point` `geometry.line` | 💭 | debug/primitive topologies |
 
-### Geometry transforms · `group: Geometry` (per-vertex; run in the vertex stage)
-> Operate on **any** vertex list (plane/cube/grid/mesh) — value→value ops on `position`/
-> `normal`, so they reuse field-primitive machinery (node-model-design-notes §B).
+### Geometry transforms · `group: Geometry` · role: *position transform* (per-vertex, in the vertex stage)
+> Operate on **any** vertex list (plane/cube/grid/mesh). **Most are node groups over
+> elemental ops, not WGSL primitives** (node-model-design-notes §B/§E); swappable by *role*.
 
 | id | status | notes |
 |----|--------|-------|
-| `transform.spherify` | 📋 | normalize positions onto the unit sphere (cube→sphere) |
-| `transform.displace` | 📋 | offset along normal by a field (terrain height) |
-| `transform.translate` `transform.rotate` `transform.scale` | 💭 LHF | affine |
-| `transform.twist` `transform.bend` | 💭 | deformers |
+| `transform.spherify` | 📋 **group/alias** | = `math.normalize(position)` (semantic alias) |
+| `transform.normalDisplace` | 📋 **group** | = `multiply(normal, height)` → `add(position, …)` |
+| *vector displace* | — | **≡ `math.add`** — not a node (§C) |
+| `transform.translate` `transform.rotate` `transform.scale` | 💭 group | affine (compositions) |
+| `transform.twist` `transform.bend` | 💭 group | deformers |
 
 ---
 
