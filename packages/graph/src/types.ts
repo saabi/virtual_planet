@@ -47,9 +47,16 @@ export interface GraphOutput {
 	from: PortRef;
 }
 
+/** WebGPU pipeline stage a consumer's outputs feed (see graph-and-compiler.md). */
+export type PipelineStage = 'compute' | 'vertex' | 'fragment' | 'mesh-gen';
+
 export interface ProceduralConsumer {
 	type: string;
 	outputs: string[];
+	/** Stable id (defaults to `type` when absent). */
+	id?: string;
+	/** Which pipeline stage consumes these outputs. */
+	stage?: PipelineStage;
 }
 
 export interface ResourceDependency {

@@ -10,3 +10,4 @@ export * from './slice.js';
 export * from './codegen.js';
 export * from './linker.js';
 export * from './primitiveLoader.js';
+export * from './compileGraph.js';
