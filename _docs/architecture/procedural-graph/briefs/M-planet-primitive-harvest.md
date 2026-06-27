@@ -4,7 +4,7 @@
 `@virtual-planet/procedural-wgsl` (WGSL modules), `@virtual-planet/graph` (primitives) ·
 **Depends on:** M3 ✅ (self-describing loader), procedural-wgsl library ✅ ·
 **Design authority:**
-[planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md),
+[planet-shaping-pipeline-graph.md](../../../planet-shaping-pipeline-graph.md),
 [wgsl-parsing-and-codegen.md](../wgsl-parsing-and-codegen.md),
 [planet-pipeline-poc-feasibility.md](../planet-pipeline-poc-feasibility.md) · **Contract
 author:** Opus · **Recommended executor:** Cursor.
