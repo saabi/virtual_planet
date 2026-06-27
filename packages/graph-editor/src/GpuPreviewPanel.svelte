@@ -6,9 +6,10 @@
 		graph: GraphDocument;
 		output: PortRef | null;
 		size?: number;
+		refreshEpoch?: number;
 	}
 
-	let { graph, output, size = 64 }: Props = $props();
+	let { graph, output, size = 64, refreshEpoch = 0 }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
@@ -17,6 +18,7 @@
 		typeof navigator !== 'undefined' && typeof navigator.gpu !== 'undefined';
 
 	$effect(() => {
+		void refreshEpoch;
 		if (!canvas || !output) return;
 
 		if (!webGpuAvailable) {

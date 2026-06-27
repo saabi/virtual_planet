@@ -39,3 +39,19 @@ export interface PaneBounds {
 	width: number;
 	height: number;
 }
+
+/** A host-provided action for a pane's zone menu. */
+export interface PaneContextAction {
+	id: string;
+	label: string;
+	disabled?: boolean;
+	run: (ctx: { paneId: string; zone: string }) => void;
+}
+
+/** Emitted when a host opts to fully own the menu instead of supplying actions. */
+export interface PaneContextEvent {
+	paneId: string;
+	zone: string;
+	clientX: number;
+	clientY: number;
+}

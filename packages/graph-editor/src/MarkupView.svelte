@@ -1,15 +1,25 @@
-<script lang="ts">
+<script module lang="ts">
 	import type { GraphDocument } from '@virtual-planet/graph';
-	import { MarkupParseError, parseGraphMarkup } from './markup/parseGraphMarkup.js';
+	import { MarkupParseError } from './markup/parseGraphMarkup.js';
+
+	export interface MarkupViewActions {
+		resyncFromGraph: () => void;
+		copyMarkup: () => void;
+	}
+</script>
+
+<script lang="ts">
+	import { parseGraphMarkup } from './markup/parseGraphMarkup.js';
 	import { printGraphMarkup } from './markup/printGraph.js';
 
 	interface Props {
 		graph: GraphDocument;
 		onchange?: (next: GraphDocument) => void;
 		onerror?: (error: MarkupParseError) => void;
+		registerActions?: (actions: MarkupViewActions) => void;
 	}
 
-	let { graph, onchange, onerror }: Props = $props();
+	let { graph, onchange, onerror, registerActions }: Props = $props();
 
 	let draft = $state('');
 	let editing = $state(false);
@@ -48,6 +58,24 @@
 		editing = true;
 		scheduleParse();
 	}
+
+	function resyncFromGraph() {
+		editing = false;
+		draft = printGraphMarkup(graph);
+		lastGraphJson = JSON.stringify(graph);
+	}
+
+	async function copyMarkup() {
+		try {
+			await navigator.clipboard.writeText(draft);
+		} catch {
+			/* clipboard unavailable */
+		}
+	}
+
+	$effect(() => {
+		registerActions?.({ resyncFromGraph, copyMarkup });
+	});
 </script>
 
 <div class="markup">

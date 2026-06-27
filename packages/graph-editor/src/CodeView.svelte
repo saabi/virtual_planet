@@ -1,14 +1,23 @@
-<script lang="ts">
+<script module lang="ts">
 	import { listPrimitives, type GraphDocument } from '@virtual-planet/graph';
 	import { applyPrimitiveSource, type PrimitiveSaveResult } from './primitiveEditor.js';
 	import { getPrimitiveSource, setPrimitiveSource } from './primitiveSources.js';
 
+	export interface CodeViewActions {
+		save: () => void;
+		revert: () => void;
+		isDirty: () => boolean;
+	}
+</script>
+
+<script lang="ts">
 	interface Props {
 		graph: GraphDocument;
 		moduleId?: string | null;
 		onchange?: (next: GraphDocument) => void;
 		onsave?: (result: PrimitiveSaveResult) => void;
 		onerror?: (message: string) => void;
+		registerActions?: (actions: CodeViewActions) => void;
 	}
 
 	let {
@@ -16,7 +25,8 @@
 		moduleId = $bindable<string | null>('noise.perlin3d'),
 		onchange,
 		onsave,
-		onerror
+		onerror,
+		registerActions
 	}: Props = $props();
 
 	const editablePrimitives = $derived(
@@ -55,6 +65,21 @@
 			onerror?.(error instanceof Error ? error.message : 'Save failed');
 		}
 	}
+
+	function revert() {
+		if (!moduleId) return;
+		draft = getPrimitiveSource(moduleId);
+		dirty = false;
+		status = null;
+	}
+
+	$effect(() => {
+		registerActions?.({
+			save,
+			revert,
+			isDirty: () => dirty
+		});
+	});
 </script>
 
 <div class="code-view">

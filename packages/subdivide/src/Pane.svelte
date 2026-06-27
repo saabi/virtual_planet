@@ -11,6 +11,11 @@
 		clientY: number;
 	}
 
+	interface PaneContextMenuRequest {
+		clientX: number;
+		clientY: number;
+	}
+
 	interface Props {
 		pane: PaneData;
 		layoutTick: number;
@@ -20,6 +25,7 @@
 		availableZones: string[];
 		onsplit?: (event: SplitEvent) => void;
 		onzonechange?: (zone: string) => void;
+		oncontextmenu?: (event: PaneContextMenuRequest) => void;
 	}
 </script>
 
@@ -35,7 +41,8 @@
 		zoneLabels,
 		availableZones,
 		onsplit,
-		onzonechange
+		onzonechange,
+		oncontextmenu
 	}: Props = $props();
 
 	let innerEl = $state<HTMLDivElement | null>(null);
@@ -106,6 +113,20 @@
 	function handleInnerMousemove(event: MouseEvent) {
 		edge = findEdge(event);
 	}
+
+	function isEditableTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) return false;
+		const tag = target.tagName;
+		return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+	}
+
+	function handleContextMenu(event: MouseEvent) {
+		if (isEditableTarget(event.target)) return;
+		if (!oncontextmenu) return;
+		event.preventDefault();
+		event.stopPropagation();
+		oncontextmenu({ clientX: event.clientX, clientY: event.clientY });
+	}
 </script>
 
 <div
@@ -121,6 +142,7 @@
 		style:cursor
 		onmousedown={handleInnerMousedown}
 		onmousemove={handleInnerMousemove}
+		oncontextmenu={handleContextMenu}
 	>
 		<PaneHeader
 			paneId={pane.id}

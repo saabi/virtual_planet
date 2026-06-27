@@ -7,3 +7,4 @@ export * from './layout/build.js';
 export * from './layout/serialize.js';
 export * from './layout/parse.js';
 export * from './layout/defaultLayout.js';
+export * from './layout/menu.js';

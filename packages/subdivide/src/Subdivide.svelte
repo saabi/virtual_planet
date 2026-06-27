@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import type { LayoutDocument } from './layout/types.js';
 	import type { SplitEdge } from './layout/types.js';
+	import type { PaneContextAction, PaneContextEvent } from './layout/types.js';
 	import type { PaneData } from './layout/runtime.js';
 	import type { DividerData } from './layout/runtime.js';
 	import type { GroupData } from './layout/runtime.js';
@@ -31,6 +32,8 @@
 		onlayoutchange?: (event: LayoutChangeEvent) => void;
 		onopen?: (event: PaneEvent) => void;
 		onclose?: (event: PaneEvent) => void;
+		zoneContextMenus?: Record<string, PaneContextAction[]>;
+		onpanecontextmenu?: (event: PaneContextEvent) => void;
 	}
 </script>
 
@@ -50,6 +53,8 @@
 	} from './layout/runtime.js';
 	import Pane from './Pane.svelte';
 	import Divider from './Divider.svelte';
+	import PaneContextMenu from './PaneContextMenu.svelte';
+	import { composePaneMenu, paneMenuSeparator } from './layout/menu.js';
 
 	let {
 		layout = $bindable(),
@@ -60,7 +65,9 @@
 		color = 'white',
 		onlayoutchange,
 		onopen,
-		onclose
+		onclose,
+		zoneContextMenus,
+		onpanecontextmenu
 	}: Props = $props();
 
 	let container = $state<HTMLDivElement | null>(null);
@@ -74,8 +81,16 @@
 	let modifierPressed = $state(false);
 	let savedUserSelect = $state('');
 	let layoutTick = $state(0);
+	let contextMenu = $state<{
+		pane: PaneData;
+		x: number;
+		y: number;
+		items: PaneContextAction[];
+	} | null>(null);
 	/** JSON fingerprint of the last document applied to runtime (prevents effect loops). */
 	let appliedDocJson = '';
+
+	const hasPaneMenus = $derived(zoneContextMenus !== undefined || onpanecontextmenu !== undefined);
 
 	const resolvedZoneLabels = $derived(zoneLabels ?? Object.fromEntries(Object.keys(zones).map((k) => [k, k])));
 	const availableZones = $derived(Object.keys(zones));
@@ -345,6 +360,149 @@
 	function handleKeyup(event: KeyboardEvent) {
 		if (!isModifierPressed(event)) modifierPressed = false;
 	}
+
+	function closeContextMenu() {
+		contextMenu = null;
+	}
+
+	function paneCenterClient(pane: PaneData): { clientX: number; clientY: number } {
+		if (!container) return { clientX: 0, clientY: 0 };
+		const bounds = pane.bounds(container.getBoundingClientRect());
+		return {
+			clientX: bounds.left + bounds.width / 2,
+			clientY: bounds.top + bounds.height / 2
+		};
+	}
+
+	function buildBuiltinActions(pane: PaneData): PaneContextAction[] {
+		const center = paneCenterClient(pane);
+		const zoneChangeActions = availableZones.map((zoneKey) => ({
+			id: `pane-zone-${zoneKey}`,
+			label: resolvedZoneLabels[zoneKey] ?? zoneKey,
+			disabled: zoneKey === pane.zone,
+			run: () => handleZoneChange(pane, zoneKey)
+		}));
+
+		return [
+			{
+				id: 'split-north',
+				label: 'Split north',
+				run: () => split(pane, { edge: NORTH, ...center })
+			},
+			{
+				id: 'split-south',
+				label: 'Split south',
+				run: () => split(pane, { edge: SOUTH, ...center })
+			},
+			{
+				id: 'split-east',
+				label: 'Split east',
+				run: () => split(pane, { edge: EAST, ...center })
+			},
+			{
+				id: 'split-west',
+				label: 'Split west',
+				run: () => split(pane, { edge: WEST, ...center })
+			},
+			paneMenuSeparator(),
+			...zoneChangeActions,
+			paneMenuSeparator(),
+			{
+				id: 'close-pane',
+				label: 'Close pane',
+				run: () => closePane(pane)
+			}
+		];
+	}
+
+	function mergeDivider(divider: DividerData) {
+		const prev = divider.prev;
+		const next = divider.next;
+		if (!prev || !next) return;
+
+		const prevSize = isPaneData(prev) ? prev.size : 0;
+		const victim = prevSize <= 0 ? prev : next;
+
+		removeFromArray(divider.parent.dividers, divider);
+		removeFromArray(dividers, divider);
+
+		if (prevSize <= 0) {
+			const mergedDivider = prev.prev;
+			next.prev = mergedDivider;
+			if (mergedDivider && 'next' in mergedDivider) {
+				mergedDivider.next = next;
+			}
+		} else {
+			const mergedDivider = next.next;
+			prev.next = mergedDivider;
+			if (mergedDivider && 'prev' in mergedDivider) {
+				mergedDivider.prev = prev;
+			}
+		}
+
+		if (isPaneData(victim)) {
+			victim.destroy(panes, dividers);
+			usedIds.delete(victim.id);
+			if (victim.parent) {
+				removeFromArray(victim.parent.children, victim);
+			}
+			onclose?.({ pane: victim, layout: layout! });
+		} else {
+			victim.destroy(panes, dividers);
+		}
+
+		if (root) {
+			panes = collectPanes(root);
+			dividers = collectDividers(root);
+		}
+		commitLayout();
+		bumpLayout();
+	}
+
+	function closePane(pane: PaneData) {
+		if (pane.next instanceof DividerData) {
+			const divider = pane.next;
+			const next = divider.next;
+			if (!next || !isPaneData(next)) return;
+			divider.position = pane.pos;
+			pane.setRange(pane.pos, pane.pos);
+			next.setRange(pane.pos, next.pos + next.size);
+			mergeDivider(divider);
+			return;
+		}
+
+		if (pane.prev instanceof DividerData) {
+			const divider = pane.prev;
+			const prev = divider.prev;
+			if (!prev || !isPaneData(prev)) return;
+			const collapsePos = pane.pos + pane.size;
+			divider.position = collapsePos;
+			pane.setRange(collapsePos, collapsePos);
+			prev.setRange(prev.pos, collapsePos);
+			mergeDivider(divider);
+		}
+	}
+
+	function handlePaneContextMenu(pane: PaneData, event: { clientX: number; clientY: number }) {
+		if (onpanecontextmenu) {
+			onpanecontextmenu({
+				paneId: pane.id,
+				zone: pane.zone,
+				clientX: event.clientX,
+				clientY: event.clientY
+			});
+			return;
+		}
+
+		if (!zoneContextMenus) return;
+
+		contextMenu = {
+			pane,
+			x: event.clientX,
+			y: event.clientY,
+			items: composePaneMenu(pane.zone, zoneContextMenus, buildBuiltinActions(pane))
+		};
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
@@ -365,6 +523,9 @@
 				{availableZones}
 				onsplit={(event) => split(pane, event)}
 				onzonechange={(zone) => handleZoneChange(pane, zone)}
+				oncontextmenu={hasPaneMenus
+					? (event) => handlePaneContextMenu(pane, event)
+					: undefined}
 			/>
 		{/each}
 
@@ -378,6 +539,17 @@
 				role="presentation"
 				aria-hidden="true"
 			></div>
+		{/if}
+
+		{#if contextMenu}
+			<PaneContextMenu
+				x={contextMenu.x}
+				y={contextMenu.y}
+				items={contextMenu.items}
+				paneId={contextMenu.pane.id}
+				zone={contextMenu.pane.zone}
+				onclose={closeContextMenu}
+			/>
 		{/if}
 	</div>
 </div>

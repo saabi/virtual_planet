@@ -6,13 +6,15 @@
 		graph: GraphDocument;
 		output: PortRef | null;
 		size?: number;
+		refreshEpoch?: number;
 	}
 
-	let { graph, output, size = 64 }: Props = $props();
+	let { graph, output, size = 64, refreshEpoch = 0 }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 
 	$effect(() => {
+		void refreshEpoch;
 		if (!canvas || !output) return;
 
 		const context = canvas.getContext('2d');

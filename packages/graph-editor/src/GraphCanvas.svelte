@@ -11,6 +11,7 @@
 
 	import type { GraphDocument } from '@virtual-planet/graph';
 	import GraphNodeView from './GraphNodeView.svelte';
+	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
 	import {
 		applyEditIntent,
 		graphToFlow,
@@ -26,6 +27,7 @@
 		onchange?: (next: GraphDocument) => void;
 		onselectnode?: (nodeId: string | null) => void;
 		onselectedge?: (edgeId: string | null) => void;
+		onregisterfitview?: (api: { fitView: () => void }) => void;
 	}
 
 	let {
@@ -34,7 +36,8 @@
 		selectedEdgeId = null,
 		onchange,
 		onselectnode,
-		onselectedge
+		onselectedge,
+		onregisterfitview
 	}: Props = $props();
 
 	const nodeTypes = { graphNode: GraphNodeView };
@@ -131,6 +134,7 @@
 	>
 		<Background />
 		<Controls />
+		<CanvasFitViewBridge onregister={onregisterfitview} />
 	</SvelteFlow>
 </div>
 

@@ -3,6 +3,7 @@
 	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
 	import type { LayoutDocument } from '@virtual-planet/subdivide';
 	import type { GraphDocument } from '@virtual-planet/graph';
+	import { validateGraph } from '@virtual-planet/graph';
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
@@ -29,6 +30,9 @@
 		pasteOffsetPosition,
 		type GraphNodeClipboard
 	} from './clipboard.js';
+	import { createZoneContextMenus } from './paneMenus.js';
+	import type { CodeViewActions } from './CodeView.svelte';
+	import type { MarkupViewActions } from './MarkupView.svelte';
 
 	interface Props {
 		graph?: GraphDocument;
@@ -46,6 +50,46 @@
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
 	let previewMode = $state<'cpu' | 'gpu'>('cpu');
+	let previewRefreshEpoch = $state(0);
+	let canvasFitView = $state<(() => void) | null>(null);
+	let codeViewActions = $state<CodeViewActions | null>(null);
+	let markupViewActions = $state<MarkupViewActions | null>(null);
+
+	const zoneContextMenus = $derived(
+		createZoneContextMenus({
+			fitCanvasView: () => canvasFitView?.(),
+			hasSelection: () => Boolean(selectedNodeId || selectedEdgeId),
+			hasNodeSelection: () => Boolean(selectedNodeId),
+			deleteSelection,
+			duplicateSelectedNode,
+			setPreviewMode,
+			refreshPreview: () => {
+				previewRefreshEpoch++;
+			},
+			clearSelection,
+			saveCode: () => codeViewActions?.save(),
+			isCodeDirty: () => codeViewActions?.isDirty() ?? false,
+			revertCode: () => codeViewActions?.revert(),
+			resyncMarkup: () => markupViewActions?.resyncFromGraph(),
+			copyMarkup: () => {
+				void markupViewActions?.copyMarkup();
+			},
+			copyValidationReport: () => {
+				const result = validateGraph(graph);
+				const lines: string[] = [];
+				if (markupParseError) lines.push(`Markup: ${markupParseError}`);
+				if (codeSaveError) lines.push(`Code: ${codeSaveError}`);
+				if (result.ok) {
+					lines.push('Graph is valid.');
+				} else {
+					for (const issue of result.issues) {
+						lines.push(String(issue.kind));
+					}
+				}
+				void navigator.clipboard.writeText(lines.join('\n'));
+			}
+		})
+	);
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
 
@@ -301,6 +345,9 @@
 		{selectedNodeId}
 		{selectedEdgeId}
 		onchange={updateGraph}
+		onregisterfitview={(api) => {
+			canvasFitView = () => api.fitView();
+		}}
 		onselectnode={(nodeId) => {
 			selectedNodeId = nodeId;
 			if (nodeId) selectedEdgeId = null;
@@ -335,9 +382,9 @@
 			</button>
 		</div>
 		{#if previewMode === 'cpu'}
-			<CpuPreviewPanel {graph} output={previewOutput} />
+			<CpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
 		{:else}
-			<GpuPreviewPanel {graph} output={previewOutput} />
+			<GpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
 		{/if}
 	</div>
 {/snippet}
@@ -354,6 +401,9 @@
 	<MarkupView
 		{graph}
 		onchange={updateGraph}
+		registerActions={(actions) => {
+			markupViewActions = actions;
+		}}
 		onerror={(error: MarkupParseError) => {
 			markupParseError = error.message;
 		}}
@@ -364,6 +414,9 @@
 	<CodeView
 		{graph}
 		bind:moduleId={selectedPrimitiveModuleId}
+		registerActions={(actions) => {
+			codeViewActions = actions;
+		}}
 		onchange={updateGraph}
 		onerror={(message) => {
 			codeSaveError = message;
@@ -402,6 +455,7 @@
 		<Subdivide
 			bind:layout
 			onlayoutchange={onLayoutChange}
+			{zoneContextMenus}
 			zones={{ palette, canvas, preview, code, inspector, validation, markup }}
 			zoneLabels={{
 				palette: 'Palette',
