@@ -28,7 +28,7 @@ PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`. Tabs; verbati
   `runtime-webgpu/**`, the existing `primitives/terrain/**`.
 - **Hard gate:** verify Use.GPU LICENSE permits redistribution + add attribution per the
   brief BEFORE copying; skip + reauthor anything unclear. Add `category` + `group` frontmatter.
-- **Status:** UNCLAIMED
+- **Status:** DONE 0b69570 — MIT+NMLA verified; 9 graph primitives + WGSL modules (SDF CSG, colour gamma/HSV, noise.ign source); procedural-wgsl 22/22, graph 57/57.
 
 ## R2-T2 — Extract standalone editor → `apps/graph-editor`  ·  Claimed by: Cursor
 
