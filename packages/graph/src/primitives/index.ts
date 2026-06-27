@@ -1,5 +1,11 @@
 import './perlin3d.js';
+import './worley.js';
+import './fbm.js';
 import './remap.js';
+import './add.js';
+import './multiply.js';
+import './mix.js';
+import './pow.js';
 import './clamp.js';
 import './smoothstep.js';
 import './uv.js';

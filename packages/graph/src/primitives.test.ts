@@ -36,4 +36,49 @@ describe('@virtual-planet/graph primitives', () => {
 		expect(a).toBe(b);
 		expect(Math.abs(a)).toBeLessThanOrEqual(1.0001);
 	});
+
+	it('worley evalCPU is deterministic and in [0, 1]', () => {
+		const worley = getPrimitive('noise.worley')!.evalCPU!;
+		const ctx = { inputs: { position: [2.0, 3.5, -1.0] }, params: {} };
+		const a = worley(ctx).value as number;
+		const b = worley(ctx).value as number;
+		expect(a).toBe(b);
+		expect(a).toBeGreaterThanOrEqual(0);
+		expect(a).toBeLessThanOrEqual(1);
+	});
+
+	it('fbm evalCPU is deterministic and bounded', () => {
+		const fbm = getPrimitive('noise.fbm')!.evalCPU!;
+		const ctx = {
+			inputs: { position: [1.0, 2.0, 3.0] },
+			params: { octaves: 4, persistence: 0.5, lacunarity: 2.0 }
+		};
+		const a = fbm(ctx).value as number;
+		const b = fbm(ctx).value as number;
+		expect(a).toBe(b);
+		expect(Math.abs(a)).toBeLessThanOrEqual(1.0001);
+	});
+
+	it('add sums its inputs', () => {
+		const add = getPrimitive('math.add')!.evalCPU!;
+		expect(add({ inputs: { a: 3, b: 4 }, params: {} }).value).toBe(7);
+	});
+
+	it('multiply scales its inputs', () => {
+		const multiply = getPrimitive('math.multiply')!.evalCPU!;
+		expect(multiply({ inputs: { a: 3, b: 4 }, params: {} }).value).toBe(12);
+	});
+
+	it('mix interpolates between a and b', () => {
+		const mix = getPrimitive('math.mix')!.evalCPU!;
+		expect(mix({ inputs: { a: 0, b: 10, t: 0.5 }, params: {} }).value).toBeCloseTo(5);
+		expect(mix({ inputs: { a: 2, b: 6, t: 0 }, params: {} }).value).toBe(2);
+		expect(mix({ inputs: { a: 2, b: 6, t: 1 }, params: {} }).value).toBe(6);
+	});
+
+	it('pow raises x to the exponent', () => {
+		const pow = getPrimitive('math.pow')!.evalCPU!;
+		expect(pow({ inputs: { x: 3 }, params: { exponent: 2 } }).value).toBe(9);
+		expect(pow({ inputs: { x: 8 }, params: { exponent: 1 / 3 } }).value).toBeCloseTo(2);
+	});
 });

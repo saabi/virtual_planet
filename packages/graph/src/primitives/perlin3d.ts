@@ -33,7 +33,7 @@ function grad(hash: number, x: number, y: number, z: number): number {
 	return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
 }
 
-function perlin3d(x: number, y: number, z: number): number {
+export function evalPerlin3d(x: number, y: number, z: number): number {
 	const xi = Math.floor(x) & 255;
 	const yi = Math.floor(y) & 255;
 	const zi = Math.floor(z) & 255;
@@ -93,7 +93,7 @@ const perlin3dPrimitive: NodePrimitive = {
 	wgsl: { moduleId: 'noise.perlin3d', entry: 'perlin3d' },
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
-		const value = perlin3d(position[0], position[1], position[2]);
+		const value = evalPerlin3d(position[0], position[1], position[2]);
 		return { value };
 	}
 };
