@@ -8,6 +8,7 @@
 		"@virtual-planet/compiler": "*",
 		"@virtual-planet/graph": "*",
 		"@virtual-planet/runtime-cpu": "*",
+		"@virtual-planet/runtime-webgpu": "*",
 		"@virtual-planet/schema": "*",
 		"@virtual-planet/subdivide": "*",
 		"@xyflow/svelte": "^1.0.0"
@@ -21,7 +22,8 @@
 		"./ValidationPanel.svelte": "./src/ValidationPanel.svelte",
 		"./MarkupView.svelte": "./src/MarkupView.svelte",
 		"./CodeView.svelte": "./src/CodeView.svelte",
-		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte"
+		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte",
+		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",

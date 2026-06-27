@@ -5,6 +5,7 @@
 	import type { GraphDocument } from '@virtual-planet/graph';
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
+	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -42,6 +43,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
+	let previewMode = $state<'cpu' | 'gpu'>('cpu');
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
 
@@ -344,7 +346,33 @@
 {/snippet}
 
 {#snippet preview()}
-	<CpuPreviewPanel {graph} output={previewOutput} />
+	<div class="preview-zone">
+		<div class="preview-toggle" role="tablist" aria-label="Preview backend">
+			<button
+				type="button"
+				role="tab"
+				aria-selected={previewMode === 'cpu'}
+				class:active={previewMode === 'cpu'}
+				onclick={() => (previewMode = 'cpu')}
+			>
+				CPU
+			</button>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={previewMode === 'gpu'}
+				class:active={previewMode === 'gpu'}
+				onclick={() => (previewMode = 'gpu')}
+			>
+				GPU
+			</button>
+		</div>
+		{#if previewMode === 'cpu'}
+			<CpuPreviewPanel {graph} output={previewOutput} />
+		{:else}
+			<GpuPreviewPanel {graph} output={previewOutput} />
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet inspector()}
@@ -477,5 +505,40 @@
 		min-height: 0;
 		position: relative;
 		overflow: hidden;
+	}
+
+	.preview-zone {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
+	}
+
+	.preview-toggle {
+		display: flex;
+		gap: 4px;
+		padding: 6px 8px 0;
+		flex: 0 0 auto;
+	}
+
+	.preview-toggle button {
+		font-size: 10px;
+		padding: 3px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+		opacity: 0.7;
+	}
+
+	.preview-toggle button.active {
+		opacity: 1;
+		border-color: rgba(255, 255, 255, 0.35);
+		background: #24304a;
+	}
+
+	.preview-toggle button:hover {
+		border-color: rgba(255, 255, 255, 0.3);
 	}
 </style>

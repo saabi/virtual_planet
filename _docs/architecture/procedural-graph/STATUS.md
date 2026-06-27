@@ -31,13 +31,14 @@ active brief in [briefs/](./briefs/README.md). Then
 | M10.1 — runtime-webgpu foundation | ✅ | runtime-webgpu 4/4 | `ca493a4` |
 | M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
 | M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | `ceae0eb` |
+| M10.3 — editor GPU preview pane | ✅ | graph-editor 37/37; fe check; manual `/graph-editor` GPU tab | *(this commit)* |
 
 ## Current front (single serialized task)
 
-- **Active:** **M10.3 — Editor GPU preview pane** per
-  [briefs/M10-runtime-webgpu.md](./briefs/M10-runtime-webgpu.md).
-- M10.2 plane scalar GPU consumer is landed (`executePlaneScalarPreview`).
-- Do not start M11 until M10.3 gate is green.
+- **Active:** **M11 — Tessellation primitives** per
+  [implementation-plan.md](./implementation-plan.md).
+- M10 (runtime-webgpu + editor GPU preview) is complete.
+- Opus pins scheduler + mapping contract before implementation begins.
 
 ## Known deviations / tracked tech-debt
 
