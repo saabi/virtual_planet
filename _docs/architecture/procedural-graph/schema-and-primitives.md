@@ -103,8 +103,9 @@ primitive schema:
   input/output names, WGSL types, the return type, and module dependencies. This
   is everything the type system and port wiring need.
 - **Annotation ⇒ semantics & UX.** The AST cannot know units, ranges, widget
-  preferences, category, documentation, intent, or safe defaults. The author
-  supplies these in a YAML frontmatter block comment.
+  preferences, category, documentation, intent, safe defaults, or **inspector
+  grouping** (sections / super-sections). The author supplies these in a YAML
+  frontmatter block comment.
 
 The two are merged into the complete primitive schema. AST-derived types are
 authoritative for wiring; YAML fills in editor/domain meaning.
@@ -137,6 +138,17 @@ fn perlin3d(position: vec3<f32>, scale: f32) -> f32 {
 Merging the YAML above with the parsed signature produces the same shape a
 TypeScript `definePrimitive` would (`id`, typed `inputs`/`outputs` with
 `wgslType` + units/widgets/ranges/defaults).
+
+**Editor grouping is metadata too.** The frontmatter can also declare how a
+primitive's inputs/params are *grouped* in the inspector — sections and
+super-sections, their order, and collapsed-by-default state — e.g. tagging a param
+`section: Frequency` or declaring an ordered `sections:` list. The auto-generated
+inspector renders these with the ported `EditorSuperSection` / `EditorParamSection`
+/ `EditorSubsection` chrome (see
+[editor.md → UI implementation](./editor.md#ui-implementation-sveltekit-app)).
+Because grouping lives in the same single-source schema, the visual node, inspector,
+declarative component, and MCP all present the same structure — no separately
+authored layout.
 
 **Authoring flow.** Write the function → parse signature & dependencies →
 type-check WGSL types → draft an initial node schema from the AST → prompt the

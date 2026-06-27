@@ -27,8 +27,13 @@ Everything is **schema-driven** (see
 [schema-and-primitives.md](./schema-and-primitives.md)): the palette, node
 appearance, ports, inspector widgets, tooltips, and context menus are generated
 from registered primitive schemas — adding a primitive automatically exposes
-editable properties; no handwritten inspectors. This **extends the repo's existing
-schema-driven node editor** — the `/scene/[...path]` kind-schema forms (see
+editable properties; no handwritten inspectors. Inspector **grouping** —
+collapsible sections and super-sections — is likewise schema-driven: it is declared
+in a primitive's frontmatter (see
+[schema-and-primitives.md](./schema-and-primitives.md#self-describing-wgsl-primitives))
+and rendered with the ported `EditorSuperSection` / `EditorParamSection` /
+`EditorSubsection` chrome. This **extends the repo's existing schema-driven node
+editor** — the `/scene/[...path]` kind-schema forms (see
 [driven-fields-editor.md](../../specs/driven-fields-editor.md)) already render
 inspectors from a node's schema — rather than introducing a parallel editor model. The editor never emits WGSL
 directly; it always goes Editor → Graph IR → Compiler → WGSL, guaranteeing every
@@ -133,3 +138,35 @@ must be **deterministic and stable** (sorted output, fixed formatting) so a smal
 IR change yields a small text diff — not a whole-document churn that destroys cursor
 position and review diffs. Prefer source-mapped, node-scoped regeneration over
 reprinting the entire document on every edit.
+
+## UI implementation (SvelteKit app)
+
+The editor's *model* is framework-agnostic (it edits the Graph IR); its *app* is
+SvelteKit and should reuse what the repo already has.
+
+**Layout.** Use `@virtual-planet/subdivide` (Blender-style resizable panes) to
+organize the display area into zones — graph canvas, inspector, `CodeView` /
+`MarkupView`, and the live preview / `Player`. The existing scene editor is a
+working reference for shell + panel chrome and may be ported as needed:
+`SceneEditorShell.svelte`, the collapsible `EditorSuperSection` /
+`EditorParamSection` / `EditorSubsection` sections, `EditorVerticalTabs`, and
+`layoutStorage.ts` for persisting the pane layout.
+
+**Graph canvas — adopt a library behind a thin adapter; don't roll the canvas
+from scratch.** Pan/zoom, edge routing, handles, hit-testing, and a minimap are a
+lot of undifferentiated work. Default candidate: **Svelte Flow (`@xyflow/svelte`)**
+— the xyflow team's Svelte-native, well-maintained node editor that supplies
+exactly those primitives and lets us render **our** schema-driven nodes in custom
+node slots. Wrap it behind our own adapter so:
+
+- the **Typed Graph IR stays canonical** — the library renders from the IR and
+  emits edit intents that become IR patches; it never owns the model;
+- it is **swappable** — rolling our own, or moving to another engine (e.g. Svelvet,
+  or a framework-agnostic core like Rete.js with a Svelte wrapper), stays a local
+  change behind the adapter.
+
+So the generic components above (`GraphCanvas`, `ConnectionLayer`, `MiniMap`,
+`PortView`) become thin wrappers over the chosen library rather than from-scratch
+implementations. The library dependency lives only in `graph-editor` / the app —
+`graph`, `compiler`, and the runtimes stay framework- and library-agnostic. Confirm
+the library's current maintenance, license, and Svelte 5 support at adoption (M9).

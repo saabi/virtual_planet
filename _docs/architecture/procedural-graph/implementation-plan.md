@@ -44,7 +44,7 @@ apps/
 
 | # | Goal | Key deliverables | Test gate |
 |---|------|------------------|-----------|
-| **M0** | Scaffold packages | `graph`, `compiler`, `procedural-wgsl`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `mcp-server` as workspaces with `check`/`test` stubs | `npm install` (root) links all; `npm run check -w …` green on stubs |
+| **M0** ✅ | Scaffold packages | `graph`, `compiler`, `procedural-wgsl`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `mcp-server` as workspaces with `check`/`test` stubs | `npm install` (root) links all; `npm run check -w …` green on stubs |
 | **M1** | Graph IR on TypeBox | `GraphDocument`/`GraphNode`/`GraphEdge`/`Port` (data type **+ coordinate-space tag**), field types, validation + serialization in `packages/graph` | vitest: build a 2-node graph, round-trip serialize; **reject** a type-mismatched edge and a space-mismatched edge |
 | **M2** | Primitives + CPU eval | `registerPrimitive`, `NodePrimitive` (schema, `evalCPU?`, `WgslSourceRef`); noise + math primitives with CPU evaluators | vitest: `evalCPU` determinism (perlin), `remap`/`clamp`/`smoothstep` numerics |
 | **M3** | Self-describing WGSL | YAML-frontmatter + WGSL signature parse → merged primitive schema (loader in `compiler`) | vitest: load a `.wgsl` with frontmatter; assert merged schema == hand-written `definePrimitive` |
@@ -63,7 +63,7 @@ apps/
 |---|------|------------------|-----------|
 | **M7** | CPU runtime services | `runtime-cpu`: camera frustum (planes from view-proj), pointer→world ray, time | vitest: frustum planes & ray from known matrices |
 | **M8** | Resource inputs | image/mesh/audio typed ports with CPU views (pixel array, attributes, FFT bands) | vitest: sample a pixel; read a mesh attribute; FFT band from a sample buffer |
-| **M9** | Standalone editor | `apps/graph-editor` + `graph-editor` components (canvas, schema-driven palette/inspector, space-typed `PortView`, `ValidationPanel`); `subdivide` panes; plane mapping primitive + CPU preview | manual/Playwright: connect ports (invalid rejected live), edit a param, see a CPU-evaluated field on a plane |
+| **M9** | Standalone editor | `apps/graph-editor` + `graph-editor` components (schema-driven palette/inspector, space-typed `PortView`, `ValidationPanel`); `subdivide` panes (+ ported scene-editor section chrome); **graph canvas via `@xyflow/svelte` behind a swappable adapter** (IR stays canonical); plane mapping primitive + CPU preview | manual/Playwright: connect ports (invalid rejected live), edit a param, see a CPU-evaluated field on a plane |
 | **M9b** | Multi-level editing | `MarkupView` + `CodeView`; **canonical save = Graph IR JSON**; IR→Svelte **printer** (export, no compiler) + constrained-subset parser (editable import); primitive-code edits re-register & ripple; stable deterministic printers. *Optional/deferred:* sandboxed compile-and-run "live document" (the only mode needing `svelte/compiler` at runtime) | vitest: IR→markup→IR round-trip is identity on the declarative subset; `Player` renders exported markup (parse→IR→render) to the same output as the source IR; editing a primitive's WGSL updates its ports & flags broken edges |
 
 ### Stage D — GPU runtime & first generic consumers

@@ -27,6 +27,8 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
+| [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
+| [briefs/](./briefs/README.md) | Routable per-milestone contract briefs (serialized; M1 ready) | per-milestone |
 
 ---
 
@@ -107,7 +109,8 @@ packages/
   compiler/           dependency slicing, WGSL codegen, module resolution, linking
   runtime-webgpu/     buffers, pipelines, bind groups, consumers
   procedural-wgsl/    reusable WGSL function modules (the standard library)
-  graph-editor/       reusable Svelte editor components (no renderer logic)
+  graph-editor/       reusable Svelte editor components (no renderer logic; canvas
+                      via a swappable adapter over @xyflow/svelte; subdivide layout)
   mcp-server/         AI/agent access over the Graph IR (no Svelte/renderer dep)
   runtime-cpu/        CPU services (frustum, picking) + resource sampling + CPU eval
   subdivide/          existing — Svelte split-pane layout (reused by the editor UI)
