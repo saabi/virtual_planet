@@ -55,7 +55,12 @@ runs what.
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Render-target / frame-graph executor (per-target res, feedback, ordering) | 📌 contract ready · after multi-output | Cursor |
 | [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Port planet-shader functions → primitives (feeds planet PoC P2; parity by reference) | 📌 contract ready | Cursor |
 | [M-usegpu-primitive-harvest.md](./M-usegpu-primitive-harvest.md) | Port Use.GPU WGSL fns (SDF/noise/colour) → primitives (license-verify first) | 📌 contract ready | Cursor |
-| [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract section/tab chrome **+ controls** (slider+readout, range, log, checkbox) → `@virtual-planet/editor-ui` | 📌 contract ready · prereq for palette categories + schema form | Cursor |
+| [M-multi-output-compile.md](./M-multi-output-compile.md) | Multi-output compile driver (T0) | ✅ landed (`302667f`) | Opus (done) |
+| [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Planet-shader primitive harvest (T1) | ✅ landed (`3c08c80`) | Cursor (done) |
+| [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source + clone (T2) | ✅ landed (`1ec544d`) | Cursor (done) |
+| [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract chrome + controls → `@virtual-planet/editor-ui` (T3) | ✅ landed (`3b54458`) | Cursor (done) |
+| [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Frame-graph: pure core landed (T4 `3fc520a`); **GPU executor = round 2** | 🔄 core done; GPU executor pending | Cursor |
+| [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (round 2 keystone) | 📌 contract ready | Opus / Cursor |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed

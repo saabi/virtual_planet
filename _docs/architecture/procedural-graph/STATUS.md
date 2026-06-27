@@ -44,24 +44,31 @@ active brief in [briefs/](./briefs/README.md). Then
 | M12.2 — GPU vegetation candidate compute | ✅ | runtime-webgpu 14/14 (2 skip) | `2c75d96` |
 | M12.3 — editor vegetation preview | ✅ | graph-editor 48/48 | `2d01d44` |
 | M9d.3 — CodeMirror syntax highlighting | ✅ | graph-editor 45/45 | `ac77b2d` |
+| **Multi-output PoC build — round 1** | ✅ | see below | — |
+| · T0 multi-output compile driver (keystone, Opus) | ✅ | graph 33/33, compiler 31/31 | `302667f` |
+| · T1 planet-shader primitive harvest (12 terrain primitives) | ✅ | graph 49/49, procedural-wgsl 17/17 | `3c08c80` |
+| · T2 primitive immutability + real WGSL + clone | ✅ | graph-editor 51/51 | `1ec544d` |
+| · T3 extract `@virtual-planet/editor-ui` (chrome + controls) | ✅ | editor-ui 3/3, fe 0 err | `3b54458` |
+| · T4 pass-graph executor — pure core | ✅ | runtime-webgpu frameGraph headless | `3fc520a` |
 
-## Current front (single serialized task)
+## Current front
 
-- **Stages A–D complete:** the generic procedural-graph engine works end-to-end
-  (IR → primitives → compiler → linker → CPU/GPU runtime → editor → tessellation →
-  vegetation). M9d.1–.3, M11.1–.3, M12.1–.3 all landed green; MCP server scaffolded.
-- **M13 is GATED — do not pin/route yet.** Migrating the existing terrain renderer
-  onto the shaping graph is deferred behind
-  [renderer-unification-plan.md](../../renderer-unification-plan.md)'s contract work
-  (explicit param/scale + coordinate-space types, route-parity tests, debug views;
-  plus its Phase 6 / `illumination` items) — `fe/` renderer work on a separate track,
-  not a procedural-graph milestone. (Corrected by Opus 2026-06-27: prior front said
-  "pin M13", which jumps the gate.)
-- **Ungated next options** (decide with user): **(a)** extract
-  `fe/src/routes/graph-editor` → `apps/graph-editor` (tracked tech-debt, due *before*
-  M14/M16 — and M14 is next); **(b)** build out **M15 MCP** (scaffold exists, separate
-  package); **(c)** **M14** document/session model; **(d)** vegetation
-  coverage-render / LOD follow-ons.
+**Round 1 of the multi-output/PoC build is complete and reviewed (Opus 2026-06-27):** the
+keystone `compileGraph` driver + consumer-stage model exists; planet shaping nodes
+harvested at parity; editor shows real WGSL with clone-to-edit; shared `editor-ui` package;
+frame-graph pure core. All packages green; `fe` 0 errors.
+
+**Next — round 2 (unblocked by T0/T4):** stage entry points (Opus —
+[briefs/M-stage-entrypoints.md](./briefs/M-stage-entrypoints.md)), then pass-graph **GPU
+executor** (Part 4 of M-pass-graph-executor), params-as-inputs, usegpu-harvest,
+app-extraction → then the **ShaderToy PoC** (S0 cosine palette → S0.5 Game of Life) → planet
+PoC P0–P5. M13 remains gated (renderer-unification).
+
+**Background:** Stages A–D (the generic engine: IR → primitives → compiler → linker →
+CPU/GPU runtime → editor → tessellation → vegetation) are complete. **M13** (migrating the
+existing terrain renderer onto the shaping graph) stays **gated** behind
+[renderer-unification-plan.md](../../renderer-unification-plan.md); the planet **PoC**
+(P0–P5) proves the graph path without touching the live renderer.
 
 ## Known deviations / tracked tech-debt
 
