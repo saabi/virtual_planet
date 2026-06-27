@@ -61,7 +61,9 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **Do NOT touch:** `graph-editor/package.json` deps or `sceneFree.test.ts` (T3 owns those),
   `graph/` core.
 - **⚠ visual gate** — needs a manual `/graph-editor` check (report what you see).
-- **Status:** UNCLAIMED
+- **Status:** DONE `1ec544d` — CodeView shows real procedural-wgsl sources; built-ins read-only
+  with Clone → `user.*`; graph-editor 51/51 + fe check green. Visual: route HTTP 200; browser
+  MCP could not reach WSL localhost (manual verify Clone/Save in Code pane).
 
 ## T3 — Extract editor-ui (chrome + controls)  ·  Claimed by: cursor-agent
 
