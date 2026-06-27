@@ -12,5 +12,6 @@ export * from './serialize.js';
 export * from './primitive.js';
 export * from './registry.js';
 export * from './ports.js';
+export * from './paramInputs.js';
 
 import './primitives/index.js';
