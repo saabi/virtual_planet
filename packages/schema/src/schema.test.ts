@@ -8,10 +8,15 @@ import {
 	fields,
 	quantity,
 	ref,
+	sectionsOf,
 	Type,
 	withDefault,
 	X_BULK,
-	type Static
+	X_SCALE_BEHAVIOR,
+	X_SECTION,
+	X_SECTIONS,
+	type Static,
+	type TSchema
 } from './schema.js';
 
 describe('quantity', () => {
@@ -107,6 +112,44 @@ describe('fields (form-generation introspection)', () => {
 
 	it('returns no fields for a non-object schema', () => {
 		expect(fields(quantity('km'))).toEqual([]);
+	});
+});
+
+describe('parameter section annotations', () => {
+	it('reads field section/scale behavior and object section layout', () => {
+		const schema = Type.Object(
+			{
+				scale: quantity('1/m', {
+					min: 0.001,
+					max: 1,
+					default: 0.1,
+					widget: 'slider'
+				})
+			},
+			{
+				[X_SECTIONS]: [
+					{ id: 'frequency', label: 'Frequency', order: 10, collapsed: false }
+				]
+			}
+		);
+		const scale = (schema.properties as Record<string, Record<string, unknown>>).scale;
+		scale[X_SECTION] = 'frequency';
+		scale[X_SCALE_BEHAVIOR] = 'freq';
+
+		expect(annotationsOf(scale as TSchema).section).toBe('frequency');
+		expect(annotationsOf(scale as TSchema).scaleBehavior).toBe('freq');
+		expect(sectionsOf(schema)).toEqual([
+			{ id: 'frequency', label: 'Frequency', order: 10, collapsed: false }
+		]);
+
+		const first = sectionsOf(schema);
+		first[0]!.label = 'Changed';
+		expect(sectionsOf(schema)[0]!.label).toBe('Frequency');
+	});
+
+	it('returns no sections for absent or malformed metadata', () => {
+		expect(sectionsOf(Type.Object({}))).toEqual([]);
+		expect(sectionsOf(Type.Object({}, { [X_SECTIONS]: [{ label: 'missing id' }] }))).toEqual([]);
 	});
 });
 

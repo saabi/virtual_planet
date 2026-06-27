@@ -12,7 +12,9 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/graph": "*"
+		"@virtual-planet/graph": "*",
+		"@virtual-planet/schema": "*",
+		"yaml": "^2.4.2"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

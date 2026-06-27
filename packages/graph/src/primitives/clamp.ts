@@ -1,3 +1,5 @@
+import { quantity, Type } from '@virtual-planet/schema';
+
 import type { NodePrimitive } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
@@ -6,10 +8,10 @@ const clamp: NodePrimitive = {
 	category: 'math',
 	inputs: [{ name: 'x', dataType: 'f32' }],
 	outputs: [{ name: 'value', dataType: 'f32' }],
-	params: [
-		{ name: 'min', type: 'f32', default: 0 },
-		{ name: 'max', type: 'f32', default: 1 }
-	],
+	params: Type.Object({
+		min: quantity('none', { default: 0 }),
+		max: quantity('none', { default: 1 })
+	}),
 	wgsl: { moduleId: 'math.clamp', entry: 'clamp' },
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;

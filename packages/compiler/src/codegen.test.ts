@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { registerPrimitive } from '@virtual-planet/graph';
+import { Type } from '@virtual-planet/schema';
 import type { GraphSlice } from './slice.js';
 import { generateWgsl, type WgslModule, type WgslModuleResolver } from './codegen.js';
 
-registerPrimitive({ id: 'test.a', category: 'test', inputs: [], outputs: [{ name: 'value', dataType: 'f32' }], params: [], wgsl: { moduleId: 'mod.a', entry: 'a' } });
-registerPrimitive({ id: 'test.b', category: 'test', inputs: [], outputs: [{ name: 'value', dataType: 'f32' }], params: [], wgsl: { moduleId: 'mod.b', entry: 'b' } });
+registerPrimitive({ id: 'test.a', category: 'test', inputs: [], outputs: [{ name: 'value', dataType: 'f32' }], params: Type.Object({}), wgsl: { moduleId: 'mod.a', entry: 'a' } });
+registerPrimitive({ id: 'test.b', category: 'test', inputs: [], outputs: [{ name: 'value', dataType: 'f32' }], params: Type.Object({}), wgsl: { moduleId: 'mod.b', entry: 'b' } });
 
 const modules: Record<string, WgslModule> = {
 	'mod.util': { id: 'mod.util', source: 'fn util() -> f32 { return 1.0; }' },

@@ -1,3 +1,5 @@
+import { Type } from '@virtual-planet/schema';
+
 import type { NodePrimitive } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
@@ -87,7 +89,7 @@ const perlin3dPrimitive: NodePrimitive = {
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],
 	outputs: [{ name: 'value', dataType: 'f32' }],
-	params: [],
+	params: Type.Object({}),
 	wgsl: { moduleId: 'noise.perlin3d', entry: 'perlin3d' },
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];

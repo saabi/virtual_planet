@@ -1,3 +1,5 @@
+import { quantity, Type } from '@virtual-planet/schema';
+
 import type { NodePrimitive } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
@@ -6,10 +8,10 @@ const smoothstep: NodePrimitive = {
 	category: 'math',
 	inputs: [{ name: 'x', dataType: 'f32' }],
 	outputs: [{ name: 'value', dataType: 'f32' }],
-	params: [
-		{ name: 'edge0', type: 'f32', default: 0 },
-		{ name: 'edge1', type: 'f32', default: 1 }
-	],
+	params: Type.Object({
+		edge0: quantity('none', { default: 0 }),
+		edge1: quantity('none', { default: 1 })
+	}),
 	wgsl: { moduleId: 'math.smoothstep', entry: 'smoothstep' },
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;

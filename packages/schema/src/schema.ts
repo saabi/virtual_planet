@@ -20,6 +20,12 @@ export const X_WIDGET = 'x-widget';
 export const X_SCALE = 'x-scale';
 /** Opt-in global bulk/overlay control for a field (Render panel toggles). */
 export const X_BULK = 'x-bulk';
+/** Inspector section id for one parameter field. */
+export const X_SECTION = 'x-section';
+/** Ordered inspector sections stored on an object schema. */
+export const X_SECTIONS = 'x-sections';
+/** How a value scales when consumer/body context changes. */
+export const X_SCALE_BEHAVIOR = 'x-scale-behavior';
 
 /** Global overlay/bulk control metadata on a schema field. */
 export interface BulkControlAnnotations {
@@ -31,7 +37,17 @@ export interface BulkControlAnnotations {
 }
 
 /** Physical unit for a quantity. `none` = dimensionless (e.g. eccentricity). */
-export type Unit = 'none' | 'm' | 'km' | 'kg' | 's' | 'rad' | 'deg';
+export type Unit = 'none' | 'm' | 'km' | 'kg' | 's' | 'rad' | 'deg' | '1/m';
+
+export type ScaleBehavior = 'freq' | 'ratioR' | 'R_ref' | 'pure' | 'flag' | 'length';
+
+export interface ParamSectionMeta {
+	id: string;
+	label?: string;
+	order?: number;
+	collapsed?: boolean;
+	parent?: string;
+}
 
 export interface QuantityOptions {
 	/** Inclusive lower bound. */
@@ -111,6 +127,8 @@ export interface SchemaAnnotations {
 	default?: unknown;
 	description?: string;
 	bulk?: BulkControlAnnotations;
+	section?: string;
+	scaleBehavior?: ScaleBehavior;
 }
 
 /** Extract the domain annotations from a schema (works on a serialized round-trip too). */
@@ -124,9 +142,34 @@ export function annotationsOf(schema: TSchema): SchemaAnnotations {
 	if (typeof s[X_SCALE] === 'number') out.scale = s[X_SCALE] as number;
 	if ('default' in s) out.default = s.default;
 	if (typeof s.description === 'string') out.description = s.description;
+	if (typeof s[X_SECTION] === 'string') out.section = s[X_SECTION] as string;
+	if (typeof s[X_SCALE_BEHAVIOR] === 'string') {
+		out.scaleBehavior = s[X_SCALE_BEHAVIOR] as ScaleBehavior;
+	}
 	const bulk = bulkOf(schema);
 	if (bulk) out.bulk = bulk;
 	return out;
+}
+
+/** Ordered parameter sections from an object schema; malformed entries are ignored. */
+export function sectionsOf(schema: TSchema): ParamSectionMeta[] {
+	const raw = (schema as Record<string, unknown>)[X_SECTIONS];
+	if (!Array.isArray(raw)) return [];
+
+	const sections: ParamSectionMeta[] = [];
+	for (const value of raw) {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+		const section = value as Record<string, unknown>;
+		if (typeof section.id !== 'string' || section.id.length === 0) continue;
+		sections.push({
+			id: section.id,
+			...(typeof section.label === 'string' ? { label: section.label } : {}),
+			...(typeof section.order === 'number' ? { order: section.order } : {}),
+			...(typeof section.collapsed === 'boolean' ? { collapsed: section.collapsed } : {}),
+			...(typeof section.parent === 'string' ? { parent: section.parent } : {})
+		});
+	}
+	return sections;
 }
 
 /** Extract opt-in bulk/overlay control metadata from a schema field. */

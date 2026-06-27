@@ -1,3 +1,5 @@
+import { quantity, Type } from '@virtual-planet/schema';
+
 import type { NodePrimitive } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
@@ -6,12 +8,12 @@ const remap: NodePrimitive = {
 	category: 'math',
 	inputs: [{ name: 'x', dataType: 'f32' }],
 	outputs: [{ name: 'value', dataType: 'f32' }],
-	params: [
-		{ name: 'inMin', type: 'f32', default: 0 },
-		{ name: 'inMax', type: 'f32', default: 1 },
-		{ name: 'outMin', type: 'f32', default: 0 },
-		{ name: 'outMax', type: 'f32', default: 1 }
-	],
+	params: Type.Object({
+		inMin: quantity('none', { default: 0 }),
+		inMax: quantity('none', { default: 1 }),
+		outMin: quantity('none', { default: 0 }),
+		outMax: quantity('none', { default: 1 })
+	}),
 	wgsl: { moduleId: 'math.remap', entry: 'remap' },
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
