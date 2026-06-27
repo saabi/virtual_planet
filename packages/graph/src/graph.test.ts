@@ -30,6 +30,34 @@ function twoNodeGraph(opts?: {
 	};
 }
 
+function resourceGraph(toType: DataType): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			{
+				id: 'n_image',
+				primitive: 'resource.image',
+				inputs: [],
+				outputs: [{ id: 'resource', name: 'resource', direction: 'out', dataType: 'image' }],
+			},
+			{
+				id: 'n_sample',
+				primitive: 'image.sample',
+				inputs: [{ id: 'resource', name: 'resource', direction: 'in', dataType: toType }],
+				outputs: [{ id: 'color', name: 'color', direction: 'out', dataType: 'vec4f' }],
+			},
+		],
+		edges: [{ id: 'e_resource', from: { node: 'n_image', port: 'resource' }, to: { node: 'n_sample', port: 'resource' } }],
+		outputs: [{ name: 'color', from: { node: 'n_sample', port: 'color' } }],
+		consumers: [{ type: 'preview', outputs: ['color'] }],
+		resources: [
+			{ id: 'heightmap', type: 'image' },
+			{ id: 'surface', type: 'mesh' },
+			{ id: 'music', type: 'audio' },
+		],
+	};
+}
+
 describe('@virtual-planet/graph IR', () => {
 	it('round-trips through serialize/deserialize', () => {
 		const doc = twoNodeGraph();
@@ -54,5 +82,25 @@ describe('@virtual-planet/graph IR', () => {
 		const res = validateGraph(twoNodeGraph({ fromSpace: 'world_dir', toSpace: 'body_dir' }));
 		expect(res.ok).toBe(false);
 		expect(res.issues.some((i) => i.kind === 'space-mismatch')).toBe(true);
+	});
+
+	it('accepts matching resource ports', () => {
+		expect(validateGraph(resourceGraph('image')).ok).toBe(true);
+	});
+
+	it('rejects mismatched resource ports', () => {
+		const res = validateGraph(resourceGraph('mesh'));
+		expect(res.ok).toBe(false);
+		expect(res.issues).toContainEqual({
+			kind: 'type-mismatch',
+			edge: 'e_resource',
+			from: 'image',
+			to: 'mesh',
+		});
+	});
+
+	it('round-trips resource dependencies through serialization', () => {
+		const doc = resourceGraph('image');
+		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
 	});
 });

@@ -1,4 +1,6 @@
-export type DataType = 'f32' | 'vec2f' | 'vec3f' | 'vec4f' | 'bool';
+export type ValueDataType = 'f32' | 'vec2f' | 'vec3f' | 'vec4f' | 'bool';
+export type ResourceDataType = 'image' | 'mesh' | 'audio';
+export type DataType = ValueDataType | ResourceDataType;
 
 /** Coordinate space for spatial ports (see graph-and-compiler.md). 'none' = not spatial. */
 export type CoordinateSpace =
@@ -50,10 +52,16 @@ export interface ProceduralConsumer {
 	outputs: string[];
 }
 
+export interface ResourceDependency {
+	id: string;
+	type: ResourceDataType;
+}
+
 export interface GraphDocument {
 	version: string;
 	nodes: Node[];
 	edges: Edge[];
 	outputs: GraphOutput[];
 	consumers: ProceduralConsumer[];
+	resources?: ResourceDependency[];
 }
