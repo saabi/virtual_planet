@@ -50,7 +50,8 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
   `packages/procedural-wgsl/src/index.ts` (append).
 - **Do NOT touch:** `graph/src/types.ts`, `graph/src/primitive.ts` (Opus). Other primitives.
 - **Note:** parity by reference — copy planet WGSL verbatim; add `category` + `group` frontmatter.
-- **Status:** UNCLAIMED
+- **Status:** DONE `3c08c80` — 12 planet primitives registered; graph 49/49, procedural-wgsl 17/17.
+- **Handoff:** Planet PoC P2 can assemble `domainWarp → voronoi → detailFbm → heightRemap` from real nodes.
 
 ## T2 — Primitive immutability + real WGSL source + clone  ·  Claimed by: Cursor
 
