@@ -22,7 +22,7 @@
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
 
-	const layout = $state<LayoutDocument>({
+	let layout = $state<LayoutDocument>({
 		root: {
 			type: 'group',
 			row: true,
