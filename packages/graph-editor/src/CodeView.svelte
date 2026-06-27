@@ -1,7 +1,13 @@
 <script module lang="ts">
 	import { listPrimitives, type GraphDocument } from '@virtual-planet/graph';
 	import { applyPrimitiveSource, type PrimitiveSaveResult } from './primitiveEditor.js';
-	import { getPrimitiveSource, setPrimitiveSource } from './primitiveSources.js';
+	import {
+		cloneBuiltinPrimitive,
+		getPrimitiveSource,
+		isBuiltinPrimitive,
+		isEditablePrimitive,
+		setPrimitiveSource
+	} from './primitiveSources.js';
 	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
 	export interface CodeViewActions {
@@ -34,6 +40,8 @@
 		listPrimitives().filter((primitive) => primitive.wgsl?.moduleId)
 	);
 
+	const readOnly = $derived(moduleId ? isBuiltinPrimitive(moduleId) : false);
+
 	let draft = $state('');
 	let dirty = $state(false);
 	let status = $state<string | null>(null);
@@ -46,13 +54,14 @@
 	});
 
 	function onDraftChange(next: string) {
+		if (readOnly) return;
 		draft = next;
 		dirty = true;
 		status = null;
 	}
 
 	function save() {
-		if (!moduleId) return;
+		if (!moduleId || readOnly) return;
 
 		try {
 			const result = applyPrimitiveSource(graph, moduleId, draft);
@@ -72,6 +81,18 @@
 		draft = getPrimitiveSource(moduleId);
 		dirty = false;
 		status = null;
+	}
+
+	function cloneSelected() {
+		if (!moduleId || !isBuiltinPrimitive(moduleId)) return;
+		try {
+			const userId = cloneBuiltinPrimitive(moduleId);
+			moduleId = userId;
+			status = `Cloned to ${userId}`;
+		} catch (error) {
+			status = null;
+			onerror?.(error instanceof Error ? error.message : 'Clone failed');
+		}
 	}
 
 	$effect(() => {
@@ -97,17 +118,26 @@
 				<option value={primitive.id}>{primitive.id}</option>
 			{/each}
 		</select>
-		<button class="save" type="button" disabled={!moduleId || !dirty} onclick={save}>Save</button>
+		{#if readOnly}
+			<span class="badge">built-in · read-only</span>
+			<button class="clone" type="button" onclick={cloneSelected}>Clone</button>
+		{:else if moduleId && isEditablePrimitive(moduleId)}
+			<span class="badge user">user · editable</span>
+			<button class="save" type="button" disabled={!dirty} onclick={save}>Save</button>
+		{/if}
 		{#if status}
 			<span class="status">{status}</span>
 		{/if}
 	</div>
-	<CodeMirrorEditor
-		class="editor"
-		language="primitive-source"
-		bind:value={draft}
-		onchange={onDraftChange}
-	/>
+	{#key `${moduleId ?? 'none'}-${readOnly}`}
+		<CodeMirrorEditor
+			class="editor"
+			language="primitive-source"
+			bind:value={draft}
+			readOnly={readOnly}
+			onchange={onDraftChange}
+		/>
+	{/key}
 </div>
 
 <style>
@@ -124,6 +154,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
+		flex-wrap: wrap;
 	}
 
 	.title {
@@ -143,7 +174,22 @@
 		color: inherit;
 	}
 
-	.save {
+	.badge {
+		font-size: 10px;
+		padding: 2px 6px;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		opacity: 0.85;
+		white-space: nowrap;
+	}
+
+	.badge.user {
+		border-color: rgba(93, 140, 255, 0.45);
+		color: #9ec1ff;
+	}
+
+	.save,
+	.clone {
 		font-size: 11px;
 		padding: 4px 8px;
 		border: 1px solid rgba(255, 255, 255, 0.15);

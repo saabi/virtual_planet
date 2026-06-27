@@ -12,6 +12,8 @@ import {
 } from '@virtual-planet/graph';
 import { Value, type TSchema } from '@virtual-planet/schema';
 import { resyncGraphPortMetadata } from './graphSync.js';
+import { isBuiltinPrimitive } from './primitiveSources.js';
+import { registerUserPrimitiveFromSource } from './userPrimitives.js';
 
 export interface PrimitiveSaveResult {
 	loaded: LoadedWgslPrimitive;
@@ -71,6 +73,10 @@ export function applyPrimitiveSource(
 	moduleId: string,
 	source: string
 ): PrimitiveSaveResult {
+	if (isBuiltinPrimitive(moduleId)) {
+		throw new Error('Built-in primitives are read-only; clone to create an editable copy.');
+	}
+
 	const previous = getPrimitive(moduleId);
 	if (!previous) {
 		throw new Error(`Primitive not registered: ${moduleId}`);
@@ -99,3 +105,5 @@ export function applyPrimitiveSource(
 		validationIssues: validation.issues
 	};
 }
+
+export { registerUserPrimitiveFromSource };

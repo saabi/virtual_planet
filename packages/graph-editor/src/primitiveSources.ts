@@ -1,65 +1,156 @@
 import { getPrimitive, type NodePrimitive } from '@virtual-planet/graph';
-import { NOISE_PERLIN3D_SOURCE } from './fixtures/perlin3d.source.js';
+import { Value } from '@virtual-planet/schema';
+import { STANDARD_LIBRARY_MODULES } from '@virtual-planet/procedural-wgsl';
 
-const SOURCE_FIXTURES: Record<string, string> = {
-	'noise.perlin3d': NOISE_PERLIN3D_SOURCE
-};
+import {
+	hydrateUserPrimitives,
+	isUserPrimitiveId,
+	listUserPrimitiveSources,
+	persistUserPrimitiveSource,
+	registerUserPrimitiveFromSource
+} from './userPrimitives.js';
+
+const STUB_MARKER = 'return 0.0;';
 
 const sourceOverrides = new Map<string, string>();
 
-function buildStubSource(primitive: NodePrimitive): string {
-	const yamlInputs =
-		primitive.inputs.length > 0
-			? `inputs:\n${primitive.inputs
-					.map(
-						(port) =>
-							`  ${port.name}:\n    space: ${port.space ?? 'none'}`
-					)
-					.join('\n')}\n`
-			: '';
-
-	const yamlOutputs =
-		primitive.outputs.length > 0
-			? `outputs:\n${primitive.outputs.map((port) => `  ${port.name}:`).join('\n')}\n`
-			: '';
-
-	const fnParams = [
-		...primitive.inputs.map((port) => `${port.name}: vec3<f32>`),
-		'...'
-	].join(', ');
-
-	return `/*---
-id: ${primitive.id}
-entry: ${primitive.wgsl.entry}
-category: ${primitive.category}
-${yamlInputs}${yamlOutputs}---*/
-fn ${primitive.wgsl.entry}(${fnParams}) -> f32 {
-	return 0.0;
+function ensureReady(): void {
+	hydrateUserPrimitives();
 }
-`;
+
+function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string {
+	const lines = [
+		`id: ${primitive.id}`,
+		`entry: ${primitive.wgsl.entry}`,
+		`category: ${primitive.category}`
+	];
+
+	if (primitive.metadata?.description) {
+		lines.push(`description: ${JSON.stringify(primitive.metadata.description)}`);
+	}
+
+	if (primitive.inputs.length > 0) {
+		lines.push('inputs:');
+		for (const port of primitive.inputs) {
+			lines.push(`  ${port.name}:`);
+			if (port.space && port.space !== 'none') {
+				lines.push(`    space: ${port.space}`);
+			}
+		}
+	}
+
+	const defaults = Value.Create(primitive.params) as Record<string, unknown>;
+	const paramKeys = Object.keys(defaults);
+	if (paramKeys.length > 0) {
+		lines.push('params:');
+		for (const key of paramKeys) {
+			lines.push(`  ${key}:`);
+			const value = defaults[key];
+			if (typeof value === 'number') {
+				lines.push(`    default: ${value}`);
+			} else if (typeof value === 'boolean') {
+				lines.push(`    default: ${value}`);
+			}
+		}
+	}
+
+	if (primitive.outputs.length > 0) {
+		lines.push('outputs:');
+		for (const port of primitive.outputs) {
+			lines.push(`  ${port.name}:`);
+		}
+	}
+
+	return `/*---\n${lines.join('\n')}\n---*/\n${wgslBody.trim()}\n`;
+}
+
+function resolveBuiltinWgslBody(moduleId: string): string | null {
+	const mod = STANDARD_LIBRARY_MODULES[moduleId];
+	return mod?.source ?? null;
+}
+
+function rewriteFrontmatterId(source: string, userId: string): string {
+	return source.replace(/^id: .*$/m, `id: ${userId}`);
+}
+
+export function isBuiltinPrimitive(id: string): boolean {
+	ensureReady();
+	return !isUserPrimitiveId(id) && getPrimitive(id) !== undefined;
+}
+
+export function isEditablePrimitive(id: string): boolean {
+	ensureReady();
+	return isUserPrimitiveId(id) && getPrimitive(id) !== undefined;
 }
 
 export function getDefaultPrimitiveSource(moduleId: string): string {
-	const fixture = SOURCE_FIXTURES[moduleId];
-	if (fixture) return fixture;
+	ensureReady();
+
+	const userStored = listUserPrimitiveSources().get(moduleId);
+	if (userStored) return userStored;
 
 	const primitive = getPrimitive(moduleId);
 	if (!primitive) {
 		throw new Error(`Unknown primitive: ${moduleId}`);
 	}
 
-	return buildStubSource(primitive);
+	const wgslBody = resolveBuiltinWgslBody(primitive.wgsl.moduleId);
+	if (wgslBody === null) {
+		return `/*---\nid: ${moduleId}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\n---*/\n// No WGSL source available for this module.\n`;
+	}
+
+	return formatBuiltinSource(primitive, wgslBody);
 }
 
 export function getPrimitiveSource(moduleId: string): string {
+	ensureReady();
 	return sourceOverrides.get(moduleId) ?? getDefaultPrimitiveSource(moduleId);
 }
 
 export function setPrimitiveSource(moduleId: string, source: string): void {
+	if (isBuiltinPrimitive(moduleId)) {
+		throw new Error('Built-in primitives are read-only');
+	}
 	sourceOverrides.set(moduleId, source);
+	if (isUserPrimitiveId(moduleId)) {
+		persistUserPrimitiveSource(moduleId, source);
+	}
+}
+
+export function defaultCloneUserId(builtinId: string): string {
+	let candidate = `user.${builtinId.replace(/\./g, '-')}-copy`;
+	let suffix = 2;
+	while (getPrimitive(candidate)) {
+		candidate = `user.${builtinId.replace(/\./g, '-')}-copy-${suffix}`;
+		suffix += 1;
+	}
+	return candidate;
+}
+
+export function cloneBuiltinPrimitive(builtinId: string, userId?: string): string {
+	ensureReady();
+	if (!isBuiltinPrimitive(builtinId)) {
+		throw new Error(`Cannot clone non-built-in primitive: ${builtinId}`);
+	}
+
+	const targetId = userId ?? defaultCloneUserId(builtinId);
+	if (!isUserPrimitiveId(targetId)) {
+		throw new Error('Cloned primitive ids must start with user.');
+	}
+	if (getPrimitive(targetId)) {
+		throw new Error(`Primitive already registered: ${targetId}`);
+	}
+
+	const source = rewriteFrontmatterId(getDefaultPrimitiveSource(builtinId), targetId);
+	const previous = getPrimitive(builtinId);
+	registerUserPrimitiveFromSource(targetId, source, previous?.evalCPU);
+	sourceOverrides.set(targetId, source);
+	return targetId;
 }
 
 /** Reset in-memory source overrides — for tests. */
 export function resetPrimitiveSources(): void {
 	sourceOverrides.clear();
 }
+
+export { STUB_MARKER };
