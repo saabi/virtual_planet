@@ -24,14 +24,16 @@ active brief in [briefs/](./briefs/README.md). Then
 | M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
 | M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `5d891ea` |
+| Vite graph-editor route fix | ✅ | fe check; dev/build | `cb1d789` |
 | Docs — param form addendum | ✅ | cross-links | `9897d3b` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M9b — multi-level editing** — next per
-  [implementation-plan.md](./implementation-plan.md) (brief TBD when pinned).
-- **Read order:** this status → [editor.md](./editor.md) → M9 brief (landed) for
-  baseline editor scope.
+- **Active:** **M9b.1 — IR-native persistence** per
+  [briefs/M9b-multi-level-editing.md](./briefs/M9b-multi-level-editing.md).
+- Full M9b is phased: M9b.1 save/load → M9b.2 markup printer → M9b.3 parser →
+  M9b.4 CodeView ripple.
+- Do not start M9b.2 until M9b.1 gate is green.
 
 ## Resume protocol (any agent)
 

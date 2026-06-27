@@ -34,7 +34,8 @@ runs what.
 | [M6-linker.md](./M6-linker.md) | M6 — ShaderLinker + tree-shake | ✅ landed (`8b19ece`) | Cursor (done) |
 | [M7-cpu-runtime.md](./M7-cpu-runtime.md) | M7 — CPU runtime services | ✅ landed (`a579686`, 4/4 green) | Codex (done) |
 | [M8-resource-inputs.md](./M8-resource-inputs.md) | M8 — resource inputs + CPU views | ✅ landed (`790a898`; graph 13/13, runtime-cpu 11/11) | Codex (done) |
-| [M9-standalone-editor.md](./M9-standalone-editor.md) | M9 — standalone graph editor | ✅ landed (`5d891ea`; graph 13/13, runtime-cpu 14/14, graph-editor 7/7) | Sonnet (impl); Composer (bulk) |
+| [M9-standalone-editor.md](./M9-standalone-editor.md) | M9 — standalone graph editor | ✅ landed (`5d891ea`; graph 13/13, runtime-cpu 14/14, graph-editor 7/7) | Opus/Cursor (done) |
+| [M9b-multi-level-editing.md](./M9b-multi-level-editing.md) | M9b — multi-level editing (phased) | 📌 contract pinned | Composer (M9b.1–2); Sonnet (M9b.3–4) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 Live status + resume entry point: [../STATUS.md](../STATUS.md).
