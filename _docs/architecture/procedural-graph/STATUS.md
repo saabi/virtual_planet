@@ -23,21 +23,20 @@ active brief in [briefs/](./briefs/README.md). Then
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
 | M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
-
-(M3 — self-describing WGSL loader: not started; parallel track, unblocked.)
+| Docs — param form addendum | ✅ | cross-links | `9897d3b` |
 
 ## Current front (single serialized task)
 
-- **Active:** pin the M9 standalone-editor contract before implementation.
-- **M3/M9 read order:** this status →
-  [parameter-and-form-schema.md](./parameter-and-form-schema.md) → active brief →
-  `fe/src/lib/planet/components/SchemaForm.svelte` and
-  `packages/schema/src/schema.ts`.
-- M3/M7/M8 complete the compiler and CPU/runtime prerequisites for M9.
-- M9 must consume `NodePrimitive.params` through the shared TypeBox form path; do
-  not add handwritten primitive inspectors, extend `paramEditorSchema`, or expose
-  uniform-struct editing.
-- Execution stays serialized until the synchronization workflow is documented.
+- **Active:** **M9 — standalone graph editor** — implement per
+  [briefs/M9-standalone-editor.md](./briefs/M9-standalone-editor.md).
+- **Read order:** this status →
+  [parameter-and-form-schema.md](./parameter-and-form-schema.md) →
+  [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) →
+  M9 brief → [editor.md](./editor.md).
+- M3/M7/M8 prerequisites are complete.
+- Inspector = `ParamForm` + `PortBindingList`; no resource upload in M9.
+- **Delegate:** Sonnet for `evalGraph` + `irAdapter` + Svelte/xyflow; Composer for
+  deps/route wiring.
 
 ## Resume protocol (any agent)
 
