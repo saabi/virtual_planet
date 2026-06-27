@@ -3,6 +3,7 @@ import {
 	serializeGraph,
 	type GraphDocument
 } from '@virtual-planet/graph';
+import { resyncGraphPortMetadata } from './graphSync.js';
 
 export const GRAPH_EDITOR_STORAGE_KEY = 'virtual-planet:graph-editor:v1';
 
@@ -11,6 +12,19 @@ function storage(): Storage {
 		throw new Error('localStorage is not available');
 	}
 	return localStorage;
+}
+
+export function parseGraphFile(json: string): GraphDocument {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(json);
+	} catch {
+		throw new Error('Invalid graph JSON');
+	}
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		throw new Error('Graph JSON must be an object');
+	}
+	return resyncGraphPortMetadata(deserializeGraph(json));
 }
 
 export function loadGraphFromStorage(key = GRAPH_EDITOR_STORAGE_KEY): GraphDocument | null {
@@ -25,19 +39,6 @@ export function saveGraphToStorage(doc: GraphDocument, key = GRAPH_EDITOR_STORAG
 
 export function clearGraphStorage(key = GRAPH_EDITOR_STORAGE_KEY): void {
 	storage().removeItem(key);
-}
-
-export function parseGraphFile(json: string): GraphDocument {
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(json);
-	} catch {
-		throw new Error('Invalid graph JSON');
-	}
-	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-		throw new Error('Graph JSON must be an object');
-	}
-	return deserializeGraph(json);
 }
 
 export function formatGraphForDownload(doc: GraphDocument): string {

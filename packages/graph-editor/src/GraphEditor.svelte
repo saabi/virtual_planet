@@ -21,6 +21,11 @@
 	import { applyEditIntent } from './irAdapter.js';
 	import { defaultPreviewGraph, primaryPreviewOutput } from './defaultGraph.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
+	import {
+		copyNodeToClipboard,
+		pasteOffsetPosition,
+		type GraphNodeClipboard
+	} from './clipboard.js';
 
 	interface Props {
 		graph?: GraphDocument;
@@ -30,6 +35,8 @@
 	let { graph = $bindable(defaultPreviewGraph()), onchange }: Props = $props();
 
 	let selectedNodeId = $state<string | null>(null);
+	let selectedEdgeId = $state<string | null>(null);
+	let nodeClipboard = $state<GraphNodeClipboard | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let storageMessage = $state<string | null>(null);
 	let markupParseError = $state<string | null>(null);
@@ -142,7 +149,7 @@
 	function newGraph() {
 		const next = defaultPreviewGraph();
 		clearGraphStorage();
-		selectedNodeId = null;
+		clearSelection();
 		updateGraph(next);
 		storageMessage = 'New graph';
 	}
@@ -159,6 +166,7 @@
 			return;
 		}
 		selectedNodeId = null;
+		selectedEdgeId = null;
 		updateGraph(stored, false);
 		storageMessage = 'Loaded';
 	}
@@ -188,7 +196,7 @@
 		reader.onload = () => {
 			try {
 				const next = parseGraphFile(String(reader.result ?? ''));
-				selectedNodeId = null;
+				clearSelection();
 				updateGraph(next);
 				storageMessage = 'Uploaded';
 			} catch (error) {
@@ -208,6 +216,110 @@
 			})
 		);
 	}
+
+	function clearSelection() {
+		selectedNodeId = null;
+		selectedEdgeId = null;
+	}
+
+	function deleteSelection() {
+		if (selectedNodeId) {
+			updateGraph(applyEditIntent(graph, { kind: 'remove-node', nodeId: selectedNodeId }));
+			clearSelection();
+			return;
+		}
+		if (selectedEdgeId) {
+			updateGraph(applyEditIntent(graph, { kind: 'remove-edge', edgeId: selectedEdgeId }));
+			clearSelection();
+		}
+	}
+
+	function duplicateSelectedNode() {
+		if (!selectedNodeId) return;
+		const source = graph.nodes.find((node) => node.id === selectedNodeId);
+		if (!source) return;
+
+		const position = pasteOffsetPosition(source.position ?? { x: 0, y: 0 });
+		const next = applyEditIntent(graph, {
+			kind: 'duplicate-node',
+			sourceNodeId: selectedNodeId,
+			position
+		});
+		updateGraph(next);
+		const duplicate = next.nodes[next.nodes.length - 1];
+		selectedNodeId = duplicate?.id ?? null;
+		selectedEdgeId = null;
+	}
+
+	function copySelectedNode() {
+		if (!selectedNodeId) return;
+		nodeClipboard = copyNodeToClipboard(graph, selectedNodeId);
+	}
+
+	function pasteClipboardNode() {
+		if (!nodeClipboard) return;
+		const offset = graph.nodes.length * 24;
+		const next = applyEditIntent(graph, {
+			kind: 'add-node',
+			primitiveId: nodeClipboard.primitiveId,
+			position: { x: 40 + offset, y: 40 + offset }
+		});
+		let withParams = next;
+		if (nodeClipboard.params !== undefined) {
+			const nodeId = next.nodes[next.nodes.length - 1]?.id;
+			if (nodeId) {
+				withParams = applyEditIntent(next, {
+					kind: 'set-params',
+					nodeId,
+					params: { ...nodeClipboard.params }
+				});
+			}
+		}
+		updateGraph(withParams);
+		const pasted = withParams.nodes[withParams.nodes.length - 1];
+		selectedNodeId = pasted?.id ?? null;
+		selectedEdgeId = null;
+	}
+
+	function isEditableTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) return false;
+		const tag = target.tagName;
+		return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+	}
+
+	function onWindowKeydown(event: KeyboardEvent) {
+		if (isEditableTarget(event.target)) return;
+
+		if (event.key === 'Delete' || event.key === 'Backspace') {
+			if (!selectedNodeId && !selectedEdgeId) return;
+			event.preventDefault();
+			deleteSelection();
+			return;
+		}
+
+		const mod = event.ctrlKey || event.metaKey;
+		if (!mod) return;
+
+		if (event.key === 'd' || event.key === 'D') {
+			if (!selectedNodeId) return;
+			event.preventDefault();
+			duplicateSelectedNode();
+			return;
+		}
+
+		if (event.key === 'c' || event.key === 'C') {
+			if (!selectedNodeId) return;
+			event.preventDefault();
+			copySelectedNode();
+			return;
+		}
+
+		if (event.key === 'v' || event.key === 'V') {
+			if (!nodeClipboard) return;
+			event.preventDefault();
+			pasteClipboardNode();
+		}
+	}
 </script>
 
 {#snippet palette()}
@@ -218,8 +330,16 @@
 	<GraphCanvas
 		{graph}
 		{selectedNodeId}
+		{selectedEdgeId}
 		onchange={updateGraph}
-		onselect={(nodeId) => (selectedNodeId = nodeId)}
+		onselectnode={(nodeId) => {
+			selectedNodeId = nodeId;
+			if (nodeId) selectedEdgeId = null;
+		}}
+		onselectedge={(edgeId) => {
+			selectedEdgeId = edgeId;
+			if (edgeId) selectedNodeId = null;
+		}}
 	/>
 {/snippet}
 
@@ -256,6 +376,8 @@
 	/>
 {/snippet}
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div class="graph-editor">
 	<header class="toolbar">
 		<button type="button" onclick={newGraph}>New</button>
@@ -263,6 +385,13 @@
 		<button type="button" onclick={loadGraph}>Load</button>
 		<button type="button" onclick={downloadGraph}>Download</button>
 		<button type="button" onclick={triggerUpload}>Upload</button>
+		<button
+			type="button"
+			disabled={!selectedNodeId && !selectedEdgeId}
+			onclick={deleteSelection}
+		>
+			Delete
+		</button>
 		{#if storageMessage}
 			<span class="status">{storageMessage}</span>
 		{/if}
@@ -326,6 +455,11 @@
 
 	.toolbar button:hover {
 		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.toolbar button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.status {

@@ -132,11 +132,34 @@ function evaluateNode(
 	}
 
 	const params = resolveParams(node, primitive.params);
-	return primitive.evalCPU({
+	const raw = primitive.evalCPU({
 		inputs,
 		params,
 		procedural: sample.procedural
 	});
+
+	const outputs: Record<string, CpuValue> = {};
+	for (const port of node.outputs) {
+		if (port.name in raw) {
+			outputs[port.id] = raw[port.name]!;
+			continue;
+		}
+		if (port.id in raw) {
+			outputs[port.id] = raw[port.id]!;
+			continue;
+		}
+	}
+
+	// Single-output fallback when evalCPU keys lag a renamed port in the registry.
+	if (node.outputs.length === 1 && node.outputs[0] && Object.keys(raw).length === 1) {
+		const onlyPort = node.outputs[0];
+		const onlyValue = raw[Object.keys(raw)[0]!]!;
+		if (!(onlyPort.id in outputs)) {
+			outputs[onlyPort.id] = onlyValue;
+		}
+	}
+
+	return outputs;
 }
 
 export function evaluateGraphOutput(

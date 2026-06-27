@@ -162,4 +162,54 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 		});
 		expect(doc.edges).toHaveLength(1);
 	});
+
+	it('removes edges when removing a node', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 100, y: 0 }
+		});
+		const first = doc.nodes[0]!;
+		const second = doc.nodes[1]!;
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: first.id, port: 'value' },
+			to: { node: second.id, port: 'x' }
+		});
+		expect(doc.edges).toHaveLength(1);
+
+		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: first.id });
+		expect(doc.nodes).toHaveLength(1);
+		expect(doc.edges).toHaveLength(0);
+	});
+
+	it('removes a single edge', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 100, y: 0 }
+		});
+		const first = doc.nodes[0]!;
+		const second = doc.nodes[1]!;
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: first.id, port: 'value' },
+			to: { node: second.id, port: 'x' }
+		});
+		const edgeId = doc.edges[0]!.id;
+
+		doc = applyEditIntent(doc, { kind: 'remove-edge', edgeId });
+		expect(doc.nodes).toHaveLength(2);
+		expect(doc.edges).toHaveLength(0);
+	});
 });

@@ -10,15 +10,15 @@ describe('@virtual-planet/graph-editor applyPrimitiveSource', () => {
 		resetPrimitiveSources();
 	});
 
-	it('flags edges when an output port is renamed in YAML', () => {
+	it('rewires single-output edges when an output port is renamed in YAML', () => {
 		const renamedSource = NOISE_PERLIN3D_SOURCE.replace(
 			'outputs:\n  value:',
 			'outputs:\n  noise:'
 		);
 		const result = applyPrimitiveSource(defaultPreviewGraph(), 'noise.perlin3d', renamedSource);
 
-		expect(result.validationIssues.some((issue) => issue.kind === 'unknown-port')).toBe(true);
-		expect(result.validationIssues.some((issue) => issue.port === 'value')).toBe(true);
+		expect(result.validationIssues.some((issue) => issue.kind === 'unknown-port')).toBe(false);
+		expect(result.graph.edges.find((edge) => edge.id === 'e_perlin_remap')?.from.port).toBe('noise');
 	});
 
 	it('ripples new params onto graph instances', () => {

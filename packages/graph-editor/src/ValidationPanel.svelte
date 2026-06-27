@@ -21,7 +21,16 @@
 	{:else}
 		<ul class="issues">
 			{#each result.issues as issue, index (index)}
-				<li>{issue.kind}{'edge' in issue ? ` (${issue.edge})` : ''}</li>
+				<li>
+					{issue.kind}
+					{#if issue.kind === 'unknown-port'}
+						({issue.edge}: {issue.node}.{issue.port})
+					{:else if issue.kind === 'type-mismatch'}
+						({issue.edge}: {issue.from} → {issue.to})
+					{:else if 'edge' in issue}
+						({issue.edge})
+					{/if}
+				</li>
 			{/each}
 		</ul>
 	{/if}

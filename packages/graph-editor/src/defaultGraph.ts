@@ -1,47 +1,77 @@
-import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+import '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@virtual-planet/graph';
 
+function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
+	return specs.map((spec) => ({
+		id: spec.name,
+		name: spec.name,
+		direction,
+		dataType: spec.dataType,
+		space: spec.space ?? 'none'
+	}));
+}
+
+function snapshotNode(
+	id: string,
+	primitiveId: string,
+	position: { x: number; y: number },
+	params?: Record<string, unknown>
+): Node {
+	const primitive = getPrimitive(primitiveId);
+	if (!primitive) {
+		throw new Error(`Unknown primitive: ${primitiveId}`);
+	}
+
+	return {
+		id,
+		primitive: primitiveId,
+		position,
+		inputs: instantiatePorts(primitive.inputs, 'in'),
+		outputs: instantiatePorts(primitive.outputs, 'out'),
+		...(params !== undefined ? { params } : {})
+	};
+}
+
+function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', index: number) {
+	const primitive = getPrimitive(primitiveId);
+	if (!primitive) {
+		throw new Error(`Unknown primitive: ${primitiveId}`);
+	}
+	const ports = direction === 'in' ? primitive.inputs : primitive.outputs;
+	const port = ports[index];
+	if (!port) {
+		throw new Error(`Missing ${direction} port ${index} on ${primitiveId}`);
+	}
+	return { node: nodeId, port: port.name };
+}
+
+/** Default uv → perlin → remap preview graph using live primitive port names. */
 export function defaultPreviewGraph(): GraphDocument {
 	return {
 		version: '1',
 		nodes: [
-			{
-				id: 'n_uv',
-				primitive: 'procedural.uv',
-				position: { x: 0, y: 80 },
-				inputs: [],
-				outputs: [{ id: 'uv', name: 'uv', direction: 'out', dataType: 'vec2f', space: 'none' }]
-			},
-			{
-				id: 'n_perlin',
-				primitive: 'noise.perlin3d',
-				position: { x: 220, y: 60 },
-				inputs: [
-					{ id: 'position', name: 'position', direction: 'in', dataType: 'vec3f', space: 'none' }
-				],
-				outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32', space: 'none' }]
-			},
-			{
-				id: 'n_remap',
-				primitive: 'math.remap',
-				position: { x: 460, y: 80 },
-				params: { inMin: -1, inMax: 1, outMin: 0, outMax: 1 },
-				inputs: [{ id: 'x', name: 'x', direction: 'in', dataType: 'f32', space: 'none' }],
-				outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32', space: 'none' }]
-			}
+			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 80 }),
+			snapshotNode('n_perlin', 'noise.perlin3d', { x: 220, y: 60 }),
+			snapshotNode('n_remap', 'math.remap', { x: 460, y: 80 }, {
+				inMin: -1,
+				inMax: 1,
+				outMin: 0,
+				outMax: 1
+			})
 		],
 		edges: [
 			{
 				id: 'e_uv_perlin',
-				from: { node: 'n_uv', port: 'uv' },
-				to: { node: 'n_perlin', port: 'position' }
+				from: portRef('n_uv', 'procedural.uv', 'out', 0),
+				to: portRef('n_perlin', 'noise.perlin3d', 'in', 0)
 			},
 			{
 				id: 'e_perlin_remap',
-				from: { node: 'n_perlin', port: 'value' },
-				to: { node: 'n_remap', port: 'x' }
+				from: portRef('n_perlin', 'noise.perlin3d', 'out', 0),
+				to: portRef('n_remap', 'math.remap', 'in', 0)
 			}
 		],
-		outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
+		outputs: [{ name: 'field', from: portRef('n_remap', 'math.remap', 'out', 0) }],
 		consumers: [{ type: 'preview', outputs: ['field'] }]
 	};
 }

@@ -4,6 +4,9 @@
 	"private": true,
 	"description": "WebGPU runtime: buffers, pipelines, bind groups, consumers, tessellation scheduling.",
 	"type": "module",
+	"dependencies": {
+		"@virtual-planet/graph": "*"
+	},
 	"exports": {
 		".": "./src/index.ts"
 	},
@@ -12,6 +15,7 @@
 		"test": "vitest run"
 	},
 	"devDependencies": {
+		"@webgpu/types": "^0.1.70",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
 	}

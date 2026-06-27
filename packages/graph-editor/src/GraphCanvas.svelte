@@ -22,11 +22,20 @@
 	interface Props {
 		graph: GraphDocument;
 		selectedNodeId?: string | null;
+		selectedEdgeId?: string | null;
 		onchange?: (next: GraphDocument) => void;
-		onselect?: (nodeId: string | null) => void;
+		onselectnode?: (nodeId: string | null) => void;
+		onselectedge?: (edgeId: string | null) => void;
 	}
 
-	let { graph, selectedNodeId = null, onchange, onselect }: Props = $props();
+	let {
+		graph,
+		selectedNodeId = null,
+		selectedEdgeId = null,
+		onchange,
+		onselectnode,
+		onselectedge
+	}: Props = $props();
 
 	const nodeTypes = { graphNode: GraphNodeView };
 
@@ -40,15 +49,25 @@
 			type: 'graphNode',
 			selected: node.id === selectedNodeId
 		}));
-		edges = flow.edges;
+		edges = flow.edges.map((edge) => ({
+			...edge,
+			selected: edge.id === selectedEdgeId
+		}));
 	});
 
 	function onNodeClick({ node }: { node: Node }) {
-		onselect?.(node.id);
+		onselectedge?.(null);
+		onselectnode?.(node.id);
+	}
+
+	function onEdgeClick({ edge }: { edge: Edge }) {
+		onselectnode?.(null);
+		onselectedge?.(edge.id);
 	}
 
 	function onPaneClick() {
-		onselect?.(null);
+		onselectnode?.(null);
+		onselectedge?.(null);
 	}
 
 	function onNodeDragStop({ targetNode }: { targetNode: Node | null }) {
@@ -106,6 +125,7 @@
 		fitView
 		onconnect={onConnect}
 		onnodeclick={onNodeClick}
+		onedgeclick={onEdgeClick}
 		onpaneclick={onPaneClick}
 		onnodedragstop={onNodeDragStop}
 	>

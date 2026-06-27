@@ -78,6 +78,34 @@ describe('@virtual-planet/graph IR', () => {
 		expect(res.issues.some((i) => i.kind === 'type-mismatch')).toBe(true);
 	});
 
+	it('accepts vec2f to vec3f promotion on an edge', () => {
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_uv',
+					primitive: 'procedural.uv',
+					inputs: [],
+					outputs: [{ id: 'uv', name: 'uv', direction: 'out', dataType: 'vec2f', space: 'none' }]
+				},
+				{
+					id: 'n_perlin',
+					primitive: 'noise.perlin3d',
+					inputs: [
+						{ id: 'position', name: 'position', direction: 'in', dataType: 'vec3f', space: 'none' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32', space: 'none' }]
+				}
+			],
+			edges: [
+				{ id: 'e_uv_perlin', from: { node: 'n_uv', port: 'uv' }, to: { node: 'n_perlin', port: 'position' } }
+			],
+			outputs: [],
+			consumers: []
+		};
+		expect(validateGraph(doc).ok).toBe(true);
+	});
+
 	it('rejects a coordinate-space-mismatched edge', () => {
 		const res = validateGraph(twoNodeGraph({ fromSpace: 'world_dir', toSpace: 'body_dir' }));
 		expect(res.ok).toBe(false);

@@ -35,7 +35,9 @@ runs what.
 | [M7-cpu-runtime.md](./M7-cpu-runtime.md) | M7 — CPU runtime services | ✅ landed (`a579686`, 4/4 green) | Codex (done) |
 | [M8-resource-inputs.md](./M8-resource-inputs.md) | M8 — resource inputs + CPU views | ✅ landed (`790a898`; graph 13/13, runtime-cpu 11/11) | Codex (done) |
 | [M9-standalone-editor.md](./M9-standalone-editor.md) | M9 — standalone graph editor | ✅ landed (`5d891ea`; graph 13/13, runtime-cpu 14/14, graph-editor 7/7) | Opus/Cursor (done) |
-| [M9b-multi-level-editing.md](./M9b-multi-level-editing.md) | M9b — multi-level editing (phased) | 📌 contract pinned | Composer (M9b.1–2); Sonnet (M9b.3–4) |
+| [M9b-multi-level-editing.md](./M9b-multi-level-editing.md) | M9b — multi-level editing (phased) | ✅ landed (`6f8a3ff`) | Composer (M9b.1–2); Sonnet (M9b.3–4) |
+| [M10-runtime-webgpu.md](./M10-runtime-webgpu.md) | M10 — runtime-webgpu (phased) | 📌 contract pinned | Sonnet (M10.1–2); Composer (M10.3) |
+| [M9c-editor-ux-polish.md](./M9c-editor-ux-polish.md) | M9c — delete + duplicate (optional parallel) | 📌 contract pinned | Composer |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
-Live status + resume entry point: [../STATUS.md](../STATUS.md).
+**M9c** may run in parallel with M10 (does not block GPU). Live status + resume entry point: [../STATUS.md](../STATUS.md).

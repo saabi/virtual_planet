@@ -1,4 +1,5 @@
 import type { CoordinateSpace, DataType, GraphDocument, Node, Port } from './types.js';
+import { compatibleDataTypes } from './ports.js';
 
 export type ValidationIssue =
 	| { kind: 'unknown-node'; edge: string; node: string }
@@ -53,7 +54,7 @@ export function validateGraph(doc: GraphDocument): ValidationResult {
 			issues.push({ kind: 'bad-direction', edge: edge.id, end: 'to' });
 		}
 
-		if (fromPort.dataType !== toPort.dataType) {
+		if (!compatibleDataTypes(fromPort.dataType, toPort.dataType)) {
 			issues.push({ kind: 'type-mismatch', edge: edge.id, from: fromPort.dataType, to: toPort.dataType });
 		}
 

@@ -1,6 +1,5 @@
 <script module lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-	import { getPrimitive } from '@virtual-planet/graph';
 	import type { FlowNodeData } from './irAdapter.js';
 </script>
 
@@ -8,44 +7,41 @@
 	let { data, selected }: NodeProps = $props();
 
 	const nodeData = $derived(data as FlowNodeData);
-	const primitive = $derived(getPrimitive(nodeData.primitiveId));
 </script>
 
-{#if primitive}
-	<div class="graph-node" class:selected>
-		<div class="label">{nodeData.label}</div>
-		<div class="ports">
-			<div class="inputs">
-				{#each primitive.inputs as input (input.name)}
-					<div class="port in">
-						<Handle
-							type="target"
-							position={Position.Left}
-							id={input.name}
-							style="top: auto; position: relative; transform: none;"
-						/>
-						<span>{input.name}</span>
-						<span class="type">{input.dataType}</span>
-					</div>
-				{/each}
-			</div>
-			<div class="outputs">
-				{#each primitive.outputs as output (output.name)}
-					<div class="port out">
-						<span class="type">{output.dataType}</span>
-						<span>{output.name}</span>
-						<Handle
-							type="source"
-							position={Position.Right}
-							id={output.name}
-							style="top: auto; position: relative; transform: none;"
-						/>
-					</div>
-				{/each}
-			</div>
+<div class="graph-node" class:selected>
+	<div class="label">{nodeData.label}</div>
+	<div class="ports">
+		<div class="inputs">
+			{#each nodeData.inputs as input (input.id)}
+				<div class="port in">
+					<Handle
+						type="target"
+						position={Position.Left}
+						id={input.id}
+						style="top: auto; position: relative; transform: none;"
+					/>
+					<span>{input.name}</span>
+					<span class="type">{input.dataType}</span>
+				</div>
+			{/each}
+		</div>
+		<div class="outputs">
+			{#each nodeData.outputs as output (output.id)}
+				<div class="port out">
+					<span class="type">{output.dataType}</span>
+					<span>{output.name}</span>
+					<Handle
+						type="source"
+						position={Position.Right}
+						id={output.id}
+						style="top: auto; position: relative; transform: none;"
+					/>
+				</div>
+			{/each}
 		</div>
 	</div>
-{/if}
+</div>
 
 <style>
 	.graph-node {

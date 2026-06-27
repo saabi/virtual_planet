@@ -11,6 +11,7 @@ import {
 	type ValidationIssue
 } from '@virtual-planet/graph';
 import { Value, type TSchema } from '@virtual-planet/schema';
+import { resyncGraphPortMetadata } from './graphSync.js';
 
 export interface PrimitiveSaveResult {
 	loaded: LoadedWgslPrimitive;
@@ -56,9 +57,10 @@ function rippleNode(node: Node, primitive: NodePrimitive): Node {
 }
 
 function rippleGraph(graph: GraphDocument, primitiveId: string, primitive: NodePrimitive): GraphDocument {
+	const synced = resyncGraphPortMetadata(graph);
 	return {
-		...graph,
-		nodes: graph.nodes.map((node) =>
+		...synced,
+		nodes: synced.nodes.map((node) =>
 			node.primitive === primitiveId ? rippleNode(node, primitive) : node
 		)
 	};

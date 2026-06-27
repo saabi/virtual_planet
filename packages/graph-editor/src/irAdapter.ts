@@ -1,6 +1,7 @@
 import {
 	getPrimitive,
 	validateGraph,
+	compatibleDataTypes,
 	type CoordinateSpace,
 	type DataType,
 	type GraphDocument,
@@ -16,6 +17,8 @@ export interface FlowNodeData {
 	nodeId: string;
 	primitiveId: string;
 	label: string;
+	inputs: Port[];
+	outputs: Port[];
 }
 
 export interface FlowEdgeData {
@@ -27,6 +30,7 @@ export interface FlowEdgeData {
 export type GraphEditIntent =
 	| { kind: 'add-node'; primitiveId: string; position: { x: number; y: number } }
 	| { kind: 'remove-node'; nodeId: string }
+	| { kind: 'duplicate-node'; sourceNodeId: string; position: { x: number; y: number } }
 	| { kind: 'add-edge'; from: PortRef; to: PortRef }
 	| { kind: 'remove-edge'; edgeId: string }
 	| { kind: 'move-node'; nodeId: string; position: { x: number; y: number } }
@@ -43,12 +47,6 @@ function nextNodeId(primitiveId: string): string {
 function nextEdgeId(): string {
 	edgeCounter += 1;
 	return `e_${edgeCounter}`;
-}
-
-function compatibleDataTypes(from: DataType, to: DataType): boolean {
-	if (from === to) return true;
-	if (from === 'vec2f' && to === 'vec3f') return true;
-	return false;
 }
 
 function findPort(node: Node, portId: string): Port | undefined {
@@ -97,7 +95,9 @@ export function graphToFlow(doc: GraphDocument): {
 		data: {
 			nodeId: node.id,
 			primitiveId: node.primitive,
-			label: node.primitive
+			label: node.primitive,
+			inputs: node.inputs,
+			outputs: node.outputs
 		}
 	}));
 
@@ -189,6 +189,23 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 				edges: doc.edges.filter(
 					(edge) => edge.from.node !== intent.nodeId && edge.to.node !== intent.nodeId
 				)
+			};
+		}
+		case 'duplicate-node': {
+			const source = doc.nodes.find((node) => node.id === intent.sourceNodeId);
+			if (!source) {
+				throw new Error(`Unknown node: ${intent.sourceNodeId}`);
+			}
+			const node = createNode(source.primitive, intent.position);
+			return {
+				...doc,
+				nodes: [
+					...doc.nodes,
+					{
+						...node,
+						...(source.params !== undefined ? { params: { ...source.params } } : {})
+					}
+				]
 			};
 		}
 		case 'add-edge': {
