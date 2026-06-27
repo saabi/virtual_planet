@@ -47,12 +47,21 @@ active brief in [briefs/](./briefs/README.md). Then
 
 ## Current front (single serialized task)
 
-- **Active:** pin the **M13 planet shaping graph** contract per the roadmap in [implementation-plan.md](./implementation-plan.md).
-- M12.3 (editor vegetation preview) is complete.
-- M12.2 (GPU vegetation compute) is complete.
-- M9d.3 (syntax highlighting) is complete.
-- M11 (tessellation primitives) is complete.
-- Parallel standard-library agents A, B, and C are all landed and integrated.
+- **Stages A–D complete:** the generic procedural-graph engine works end-to-end
+  (IR → primitives → compiler → linker → CPU/GPU runtime → editor → tessellation →
+  vegetation). M9d.1–.3, M11.1–.3, M12.1–.3 all landed green; MCP server scaffolded.
+- **M13 is GATED — do not pin/route yet.** Migrating the existing terrain renderer
+  onto the shaping graph is deferred behind
+  [renderer-unification-plan.md](../../renderer-unification-plan.md)'s contract work
+  (explicit param/scale + coordinate-space types, route-parity tests, debug views;
+  plus its Phase 6 / `illumination` items) — `fe/` renderer work on a separate track,
+  not a procedural-graph milestone. (Corrected by Opus 2026-06-27: prior front said
+  "pin M13", which jumps the gate.)
+- **Ungated next options** (decide with user): **(a)** extract
+  `fe/src/routes/graph-editor` → `apps/graph-editor` (tracked tech-debt, due *before*
+  M14/M16 — and M14 is next); **(b)** build out **M15 MCP** (scaffold exists, separate
+  package); **(c)** **M14** document/session model; **(d)** vegetation
+  coverage-render / LOD follow-ons.
 
 ## Known deviations / tracked tech-debt
 
