@@ -8,6 +8,7 @@
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
 	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
+	import VegetationPreviewPanel from './VegetationPreviewPanel.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -50,7 +51,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let previewMode = $state<'cpu' | 'gpu' | 'mesh'>('cpu');
+	let previewMode = $state<'cpu' | 'gpu' | 'mesh' | 'vegetation'>('cpu');
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -106,7 +107,11 @@
 	}
 
 	const debouncedSaveChrome = debounce(
-		(chrome: { version: 1; layout: LayoutDocument; previewMode: 'cpu' | 'gpu' | 'mesh' }) => {
+		(chrome: {
+			version: 1;
+			layout: LayoutDocument;
+			previewMode: 'cpu' | 'gpu' | 'mesh' | 'vegetation';
+		}) => {
 			saveEditorChrome(chrome);
 		},
 		300
@@ -120,7 +125,7 @@
 		scheduleChromeSave(event.layout);
 	}
 
-	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh') {
+	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh' | 'vegetation') {
 		previewMode = mode;
 		scheduleChromeSave();
 	}
@@ -390,13 +395,24 @@
 			>
 				Mesh
 			</button>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={previewMode === 'vegetation'}
+				class:active={previewMode === 'vegetation'}
+				onclick={() => setPreviewMode('vegetation')}
+			>
+				Vegetation
+			</button>
 		</div>
 		{#if previewMode === 'cpu'}
 			<CpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
 		{:else if previewMode === 'gpu'}
 			<GpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
-		{:else}
+		{:else if previewMode === 'mesh'}
 			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} />
+		{:else}
+			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} />
 		{/if}
 	</div>
 {/snippet}
