@@ -31,6 +31,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) | Resource/host inputs vs param form; inspector boundaries (M9+) | `graph-editor`, M10, M14 |
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
+| [design-vs-implementation-audit.md](./design-vs-implementation-audit.md) | **Audit (2026-06-27):** built vs designed; multi-output gap + remediation | `graph`, `compiler` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
 | [briefs/](./briefs/README.md) | Routable per-milestone contract briefs (serialized; M1 ready) | per-milestone |
 
