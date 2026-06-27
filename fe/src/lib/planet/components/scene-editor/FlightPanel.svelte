@@ -38,7 +38,6 @@
 	import { toggleRcsMode } from '$lib/planet/flight/controls.js';
 	import { atmosphereDensity, altitudeAboveSurface } from '$lib/planet/flight/atmosphereDensity.js';
 	import { resolveBodyAtmosphere } from '$lib/planet/scene/bodyAtmosphere.js';
-	import EditorAccordionSection from './EditorAccordionSection.svelte';
 
 	let {
 		scene,
@@ -215,7 +214,7 @@
 			</div>
 		</div>
 
-		<EditorAccordionSection title="Controls" open={true}>
+		<div class="flight-controls">
 			<p class="gamepad-status">
 				Gamepad: {gamepadConnected ? gamepadId || 'Connected' : 'None'}
 			</p>
@@ -234,7 +233,7 @@
 					<li>Mouse · fine trim (pointer lock)</li>
 				</ul>
 			{/if}
-		</EditorAccordionSection>
+		</div>
 	{/if}
 </div>
 

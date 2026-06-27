@@ -48,7 +48,7 @@
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
 	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
-	import EditorAccordionSection from './EditorAccordionSection.svelte';
+	import EditorVerticalTabs from './EditorVerticalTabs.svelte';
 	import EditorSubsection from './EditorSubsection.svelte';
 	import {
 		PROPS_SUPER_SECTIONS,
@@ -92,6 +92,13 @@
 		new Map(PROPS_SUPER_SECTIONS.map((s) => [s.id, s] as const))
 	);
 
+	const tabList = $derived(
+		visibleSections.flatMap((sectionId) => {
+			const meta = sectionMeta.get(sectionId);
+			return meta ? [{ id: sectionId, title: meta.title, icon: meta.icon }] : [];
+		})
+	);
+
 	let openSuperSection = $state<PropsSuperSectionId>('transform');
 
 	$effect(() => {
@@ -120,105 +127,102 @@
 		</nav>
 		<span class="edit-name">{selectedNode.name}</span>
 
-		<div class="super-sections">
-			{#each visibleSections as sectionId (sectionId)}
-				{@const meta = sectionMeta.get(sectionId)}
-				{#if meta}
-					<EditorAccordionSection
-						title={meta.title}
-						open={openSuperSection === sectionId}
-						onToggle={() => onSuperToggle(sectionId)}
-					>
-						{#if sectionId === 'transform'}
-							<EditorSubsection title="Position" defaultOpen>
-								<TransformEditor
-									node={selectedNode}
-									evaluated={evaluatedNode ?? selectedNode}
-									channels="position"
-									onchange={onTransformChange}
-								/>
-							</EditorSubsection>
-							<EditorSubsection title="Rotation">
-								<TransformEditor
-									node={selectedNode}
-									evaluated={evaluatedNode ?? selectedNode}
-									channels="rotation"
-									onchange={onTransformChange}
-								/>
-							</EditorSubsection>
-							<EditorSubsection title="Scale">
-								<TransformEditor
-									node={selectedNode}
-									evaluated={evaluatedNode ?? selectedNode}
-									channels="scale"
-									onchange={onTransformChange}
-								/>
-							</EditorSubsection>
-						{:else if sectionId === 'node' && editor?.mode === 'schema'}
-							<EditorSubsection title="Fields" defaultOpen>
+		<div class="tabbed-sections">
+			<EditorVerticalTabs
+				tabs={tabList}
+				activeId={openSuperSection}
+				onSelect={(id) => onSuperToggle(id as PropsSuperSectionId)}
+			>
+				{#snippet content(sectionId)}
+					{#if sectionId === 'transform'}
+						<EditorSubsection title="Position" defaultOpen>
+							<TransformEditor
+								node={selectedNode}
+								evaluated={evaluatedNode ?? selectedNode}
+								channels="position"
+								onchange={onTransformChange}
+							/>
+						</EditorSubsection>
+						<EditorSubsection title="Rotation">
+							<TransformEditor
+								node={selectedNode}
+								evaluated={evaluatedNode ?? selectedNode}
+								channels="rotation"
+								onchange={onTransformChange}
+							/>
+						</EditorSubsection>
+						<EditorSubsection title="Scale">
+							<TransformEditor
+								node={selectedNode}
+								evaluated={evaluatedNode ?? selectedNode}
+								channels="scale"
+								onchange={onTransformChange}
+							/>
+						</EditorSubsection>
+					{:else if sectionId === 'node' && editor?.mode === 'schema'}
+						<EditorSubsection title="Fields" defaultOpen>
+							<SchemaForm
+								schema={editor.schema}
+								value={schemaValue}
+								onchange={onFieldChange}
+							/>
+						</EditorSubsection>
+					{:else if sectionId === 'motion'}
+						{#if selectedNode.driver}
+							<EditorSubsection title="Driver · {selectedNode.driver.type}" defaultOpen>
 								<SchemaForm
-									schema={editor.schema}
-									value={schemaValue}
-									onchange={onFieldChange}
+									schema={driverSchemaFor(selectedNode.driver)}
+									value={driverValue}
+									onchange={onDriverChange}
 								/>
-							</EditorSubsection>
-						{:else if sectionId === 'motion'}
-							{#if selectedNode.driver}
-								<EditorSubsection title="Driver · {selectedNode.driver.type}" defaultOpen>
-									<SchemaForm
-										schema={driverSchemaFor(selectedNode.driver)}
-										value={driverValue}
-										onchange={onDriverChange}
-									/>
-									<span class="driver-outputs">
-										outputs: {driverOutputs(selectedNode.driver).join(', ')}
-									</span>
-								</EditorSubsection>
-							{/if}
-							<EditorSubsection title="Bindings" defaultOpen={!selectedNode.driver}>
-								<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
-							</EditorSubsection>
-							<EditorSubsection title="Constraints">
-								<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
-							</EditorSubsection>
-						{:else if sectionId === 'display'}
-							{#if selectedNode.driver?.type === 'kepler' || selectedNode.orbit}
-								<EditorSubsection title="Overlays" defaultOpen>
-									<label class="display-row">
-										<input
-											type="checkbox"
-											checked={selectedNode.display?.orbitPath !== false}
-											onchange={(e) =>
-												onDisplayChange?.({
-													orbitPath: e.currentTarget.checked ? undefined : false
-												})}
-										/>
-										Show orbit path
-									</label>
-									<p class="display-hint">
-										Respects the global orbit-path mode in Render → View → Overlays.
-									</p>
-								</EditorSubsection>
-							{/if}
-						{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
-							<AppearanceEditor body={bodyNode} onappearance={onAppearanceChange} />
-						{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
-							<EditorSubsection title="Design" defaultOpen>
-								<AtmosphereEditor
-									body={bodyNode}
-									onatmosphere={(a) => onAtmosphereChange?.(a)}
-								/>
-							</EditorSubsection>
-						{:else if sectionId === 'actions' && bodyNode && hasAppearance}
-							<EditorSubsection title="Procedural" defaultOpen>
-								<button type="button" class="render-btn" onclick={onRenderProcedural}>
-									Render procedurally →
-								</button>
+								<span class="driver-outputs">
+									outputs: {driverOutputs(selectedNode.driver).join(', ')}
+								</span>
 							</EditorSubsection>
 						{/if}
-					</EditorAccordionSection>
-				{/if}
-			{/each}
+						<EditorSubsection title="Bindings" defaultOpen={!selectedNode.driver}>
+							<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
+						</EditorSubsection>
+						<EditorSubsection title="Constraints">
+							<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
+						</EditorSubsection>
+					{:else if sectionId === 'display'}
+						{#if selectedNode.driver?.type === 'kepler' || selectedNode.orbit}
+							<EditorSubsection title="Overlays" defaultOpen>
+								<label class="display-row">
+									<input
+										type="checkbox"
+										checked={selectedNode.display?.orbitPath !== false}
+										onchange={(e) =>
+											onDisplayChange?.({
+												orbitPath: e.currentTarget.checked ? undefined : false
+											})}
+									/>
+									Show orbit path
+								</label>
+								<p class="display-hint">
+									Respects the global orbit-path mode in Render → View → Overlays.
+								</p>
+							</EditorSubsection>
+						{/if}
+					{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
+						<AppearanceEditor body={bodyNode} onappearance={onAppearanceChange} />
+					{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
+						<EditorSubsection title="Design" defaultOpen>
+							<AtmosphereEditor
+								body={bodyNode}
+								onatmosphere={(a) => onAtmosphereChange?.(a)}
+							/>
+						</EditorSubsection>
+					{:else if sectionId === 'actions' && bodyNode && hasAppearance}
+						<EditorSubsection title="Procedural" defaultOpen>
+							<button type="button" class="render-btn" onclick={onRenderProcedural}>
+								Render procedurally →
+							</button>
+						</EditorSubsection>
+					{/if}
+				{/snippet}
+			</EditorVerticalTabs>
 		</div>
 	{:else}
 		<p class="empty-state">Select a node in the outliner or viewport to edit its properties.</p>
@@ -232,7 +236,8 @@
 		flex-direction: column;
 		gap: 10px;
 		height: 100%;
-		overflow-y: auto;
+		min-height: 0;
+		overflow: hidden;
 		padding: 12px;
 	}
 
@@ -273,10 +278,11 @@
 		font-size: 13px;
 	}
 
-	.super-sections {
+	.tabbed-sections {
 		display: flex;
-		flex-direction: column;
-		gap: 2px;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.driver-outputs {

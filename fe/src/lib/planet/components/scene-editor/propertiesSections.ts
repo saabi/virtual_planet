@@ -1,5 +1,6 @@
 import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
 import type { SceneNode } from '$lib/planet/scene/types.js';
+import type { EditorTabIconId } from './editorTabIcons.js';
 
 export type PropsSuperSectionId =
 	| 'transform'
@@ -13,17 +14,18 @@ export type PropsSuperSectionId =
 export interface PropsSectionDef {
 	id: PropsSuperSectionId;
 	title: string;
+	icon: EditorTabIconId;
 	defaultOpen?: boolean;
 }
 
 export const PROPS_SUPER_SECTIONS: PropsSectionDef[] = [
-	{ id: 'transform', title: 'Transform', defaultOpen: true },
-	{ id: 'node', title: 'Node' },
-	{ id: 'motion', title: 'Motion' },
-	{ id: 'display', title: 'Display' },
-	{ id: 'appearance', title: 'Appearance' },
-	{ id: 'atmosphere', title: 'Atmosphere' },
-	{ id: 'actions', title: 'Actions' }
+	{ id: 'transform', title: 'Transform', icon: 'move-3d', defaultOpen: true },
+	{ id: 'node', title: 'Node', icon: 'component' },
+	{ id: 'motion', title: 'Motion', icon: 'route' },
+	{ id: 'display', title: 'Display', icon: 'orbit' },
+	{ id: 'appearance', title: 'Appearance', icon: 'layers' },
+	{ id: 'atmosphere', title: 'Atmosphere', icon: 'cloud' },
+	{ id: 'actions', title: 'Actions', icon: 'zap' }
 ];
 
 export interface PropsSectionContext {

@@ -20,8 +20,9 @@
 <script lang="ts">
 	import Range from '../controls/Range.svelte';
 	import '../controls/sliderList.css';
-	import EditorAccordionSection from './EditorAccordionSection.svelte';
+	import EditorVerticalTabs from './EditorVerticalTabs.svelte';
 	import EditorSubsection from './EditorSubsection.svelte';
+	import type { EditorTabIconId } from './editorTabIcons.js';
 
 	let {
 		materialDebug = $bindable(),
@@ -34,11 +35,16 @@
 
 	type RenderSuperSectionId = 'view' | 'quality' | 'debug' | 'shading';
 
-	const RENDER_SECTIONS: { id: RenderSuperSectionId; title: string; defaultOpen?: boolean }[] = [
-		{ id: 'view', title: 'View', defaultOpen: true },
-		{ id: 'quality', title: 'Quality' },
-		{ id: 'debug', title: 'Debug' },
-		{ id: 'shading', title: 'Shading' }
+	const RENDER_SECTIONS: {
+		id: RenderSuperSectionId;
+		title: string;
+		icon: EditorTabIconId;
+		defaultOpen?: boolean;
+	}[] = [
+		{ id: 'view', title: 'View', icon: 'eye', defaultOpen: true },
+		{ id: 'quality', title: 'Quality', icon: 'gauge' },
+		{ id: 'debug', title: 'Debug', icon: 'bug' },
+		{ id: 'shading', title: 'Shading', icon: 'sun' }
 	];
 
 	let openSuperSection = $state<RenderSuperSectionId>('view');
@@ -49,14 +55,13 @@
 </script>
 
 <div class="render-settings-panel">
-	<div class="super-sections">
-		{#each RENDER_SECTIONS as section (section.id)}
-			<EditorAccordionSection
-				title={section.title}
-				open={openSuperSection === section.id}
-				onToggle={() => onSuperToggle(section.id)}
-			>
-				{#if section.id === 'view'}
+	<EditorVerticalTabs
+		tabs={RENDER_SECTIONS}
+		activeId={openSuperSection}
+		onSelect={(id) => onSuperToggle(id as RenderSuperSectionId)}
+	>
+		{#snippet content(sectionId)}
+			{#if sectionId === 'view'}
 					<EditorSubsection title="Look" defaultOpen>
 						<label class="atmo-head">
 							<input
@@ -122,7 +127,7 @@
 							</select>
 						</label>
 					</EditorSubsection>
-				{:else if section.id === 'quality'}
+			{:else if sectionId === 'quality'}
 					<EditorSubsection title="Level of detail" defaultOpen>
 						<ul class="slider-list">
 							<Range
@@ -245,7 +250,7 @@
 							/>
 						</ul>
 					</EditorSubsection>
-				{:else if section.id === 'debug'}
+			{:else if sectionId === 'debug'}
 					<EditorSubsection title="Overlays" defaultOpen>
 						<label class="atmo-head">
 							<input type="checkbox" bind:checked={viewportPrefs.debug.wireframe} />
@@ -264,7 +269,7 @@
 							Ring colors
 						</label>
 					</EditorSubsection>
-				{:else if section.id === 'shading'}
+			{:else if sectionId === 'shading'}
 					<EditorSubsection title="Scene shading" defaultOpen>
 						<label class="atmo-head">
 							<input type="checkbox" bind:checked={viewportPrefs.materialOverrides.shadows} />
@@ -415,6 +420,33 @@
 								variant="scene"
 								bind:value={viewportPrefs.materialOverrides.waterShoreWidth}
 							/>
+							<li class="checkbox-row">
+								<label>
+									<input
+										type="checkbox"
+										bind:checked={viewportPrefs.materialOverrides.waterTerrainShadows}
+									/>
+									Water terrain shadows
+								</label>
+							</li>
+							<li class="checkbox-row">
+								<label>
+									<input
+										type="checkbox"
+										bind:checked={viewportPrefs.materialOverrides.waterEclipseShadows}
+									/>
+									Water eclipse shadows
+								</label>
+							</li>
+							<li class="checkbox-row">
+								<label>
+									<input
+										type="checkbox"
+										bind:checked={viewportPrefs.materialOverrides.waterFoamShadows}
+									/>
+									Water foam shadows
+								</label>
+							</li>
 							<Range
 								id="aerial-fog"
 								label="Aerial Fog"
@@ -426,24 +458,20 @@
 							/>
 						</ul>
 					</EditorSubsection>
-				{/if}
-			</EditorAccordionSection>
-		{/each}
-	</div>
+			{/if}
+		{/snippet}
+	</EditorVerticalTabs>
 </div>
 
 <style>
 	.render-settings-panel {
 		box-sizing: border-box;
-		height: 100%;
-		overflow-y: auto;
-		padding: 12px;
-	}
-
-	.super-sections {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		height: 100%;
+		min-height: 0;
+		overflow: hidden;
+		padding: 12px;
 	}
 
 	.atmo-head {
@@ -473,5 +501,19 @@
 	.atmo-row select {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.checkbox-row {
+		display: flex;
+		align-items: center;
+		min-height: 24px;
+		font-size: 11px;
+		color: #d6deef;
+	}
+
+	.checkbox-row label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 	}
 </style>
