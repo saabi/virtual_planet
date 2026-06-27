@@ -12,3 +12,5 @@ export * from './device.js';
 export * from './moduleResolver.js';
 export * from './emitGraphEval.js';
 export * from './consumers/planeScalarPreview.js';
+export * from './consumers/surfaceMeshPreview.js';
+export * from './surfaceMesh.js';

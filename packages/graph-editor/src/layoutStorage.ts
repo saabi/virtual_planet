@@ -5,7 +5,7 @@ export const GRAPH_EDITOR_LAYOUT_KEY = 'virtual-planet:graph-editor-layout:v1';
 export interface StoredEditorChrome {
 	version: 1;
 	layout: LayoutDocument;
-	previewMode?: 'cpu' | 'gpu';
+	previewMode?: 'cpu' | 'gpu' | 'mesh';
 }
 
 function storage(): Storage {
@@ -40,7 +40,7 @@ export function loadEditorChrome(
 	try {
 		const layout = parseLayoutDocument(parsed.layout, defaultZone);
 		const chrome: StoredEditorChrome = { version: 1, layout };
-		if (parsed.previewMode === 'cpu' || parsed.previewMode === 'gpu') {
+		if (parsed.previewMode === 'cpu' || parsed.previewMode === 'gpu' || parsed.previewMode === 'mesh') {
 			chrome.previewMode = parsed.previewMode;
 		}
 		return chrome;

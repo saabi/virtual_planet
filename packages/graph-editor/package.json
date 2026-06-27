@@ -23,7 +23,8 @@
 		"./MarkupView.svelte": "./src/MarkupView.svelte",
 		"./CodeView.svelte": "./src/CodeView.svelte",
 		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte",
-		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte"
+		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte",
+		"./MeshPreviewPanel.svelte": "./src/MeshPreviewPanel.svelte"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",

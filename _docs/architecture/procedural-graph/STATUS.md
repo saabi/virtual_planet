@@ -35,20 +35,21 @@ active brief in [briefs/](./briefs/README.md). Then
 | M11.1 — surface-mapping primitives | ✅ | graph 20/20 | `e8300a9` |
 | M9d.1 — editor layout persistence | ✅ | graph-editor 42/42 | `4d8da96` |
 | M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `cfa2c29` |
+| M9d.2 — zone-aware pane menus | ✅ | graph-editor 42/42 | `7ae1929` |
+| M11.3 — cube-sphere mesh preview | ✅ | runtime-webgpu 10/10 (2 skip); graph-editor 42/42; fe check | *(this commit)* |
 
 ## Current front (single serialized task)
 
-- **Active:** **M11.3 — Cube-sphere mesh preview** per
-  [briefs/M11-tessellation.md](./briefs/M11-tessellation.md) § M11.3.
-- M11.1 (surface primitives) and M11.2 (frustum cull) are complete.
-- **Coordination:** land M9d.1 before M11.3 if the same agent owns both (M9d.1 ✅).
+- **Active:** **M12 — Vegetation consumer** per
+  [vegetation.md](./vegetation.md) and [implementation-plan.md](./implementation-plan.md).
+- M11 (tessellation primitives) is complete.
 
 ## Known deviations / tracked tech-debt
 
 | Item | Severity | State | Resolve by |
 |------|----------|-------|-----------|
 | Standalone editor is a scene-free **route** in `fe/` (`fe/src/routes/graph-editor`), not the `apps/graph-editor` workspace the editor ADR requires | low | Accepted interim — package + route verified scene-free, **guarded** by `packages/graph-editor/src/sceneFree.test.ts` | Extract `fe/src/routes/graph-editor` → `apps/graph-editor` **before M14/M16** (embedded editor / collaboration), ahead of M17 WebGPUToy |
-| M9d editor shell polish (pane context menus, code highlighting) | — | M9d.1 ✅; M9d.2 contract ready — [briefs/M9d2-pane-context-menus.md](./briefs/M9d2-pane-context-menus.md) | M9d.2 parallel to M11.3 |
+| M9d editor shell polish (code highlighting) | — | M9d.2 ✅; M9d.3 optional — [briefs/M9d-editor-shell-polish-proposal.md](./briefs/M9d-editor-shell-polish-proposal.md) | M9d.3 optional parallel |
 
 Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green
 (schema 18, graph 17, compiler 26, runtime-cpu 14, runtime-webgpu 5+1-skip,

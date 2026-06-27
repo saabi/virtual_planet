@@ -7,6 +7,7 @@
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
+	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -49,7 +50,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let previewMode = $state<'cpu' | 'gpu'>('cpu');
+	let previewMode = $state<'cpu' | 'gpu' | 'mesh'>('cpu');
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -105,7 +106,7 @@
 	}
 
 	const debouncedSaveChrome = debounce(
-		(chrome: { version: 1; layout: LayoutDocument; previewMode: 'cpu' | 'gpu' }) => {
+		(chrome: { version: 1; layout: LayoutDocument; previewMode: 'cpu' | 'gpu' | 'mesh' }) => {
 			saveEditorChrome(chrome);
 		},
 		300
@@ -119,7 +120,7 @@
 		scheduleChromeSave(event.layout);
 	}
 
-	function setPreviewMode(mode: 'cpu' | 'gpu') {
+	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh') {
 		previewMode = mode;
 		scheduleChromeSave();
 	}
@@ -380,11 +381,22 @@
 			>
 				GPU
 			</button>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={previewMode === 'mesh'}
+				class:active={previewMode === 'mesh'}
+				onclick={() => setPreviewMode('mesh')}
+			>
+				Mesh
+			</button>
 		</div>
 		{#if previewMode === 'cpu'}
 			<CpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
-		{:else}
+		{:else if previewMode === 'gpu'}
 			<GpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
+		{:else}
+			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} />
 		{/if}
 	</div>
 {/snippet}
