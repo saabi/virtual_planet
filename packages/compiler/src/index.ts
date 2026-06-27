@@ -11,3 +11,4 @@ export * from './codegen.js';
 export * from './linker.js';
 export * from './primitiveLoader.js';
 export * from './compileGraph.js';
+export * from './stageEntry.js';
