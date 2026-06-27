@@ -7,3 +7,4 @@
 export const COMPILER_PACKAGE = '@virtual-planet/compiler' as const;
 
 export * from './slice.js';
+export * from './codegen.js';
