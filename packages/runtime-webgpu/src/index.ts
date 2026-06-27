@@ -9,3 +9,6 @@ export const RUNTIME_WEBGPU_PACKAGE = '@virtual-planet/runtime-webgpu' as const;
 export * from './types.js';
 export * from './buffers.js';
 export * from './device.js';
+export * from './moduleResolver.js';
+export * from './emitGraphEval.js';
+export * from './consumers/planeScalarPreview.js';

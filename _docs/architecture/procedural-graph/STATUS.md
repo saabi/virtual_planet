@@ -30,14 +30,14 @@ active brief in [briefs/](./briefs/README.md). Then
 | Graph editor port sync + validation fix | ✅ | graph 17/17; graph-editor 32/32; runtime-cpu 14/14 | `ca493a4` |
 | M10.1 — runtime-webgpu foundation | ✅ | runtime-webgpu 4/4 | `ca493a4` |
 | M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
+| M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | *(this commit)* |
 
 ## Current front (single serialized task)
 
-- **Active:** **M10.2 — Plane scalar GPU consumer** per
+- **Active:** **M10.3 — Editor GPU preview pane** per
   [briefs/M10-runtime-webgpu.md](./briefs/M10-runtime-webgpu.md).
-- M10.1 foundation (device, buffers, consumer types) is landed.
-- Do not start M10.3 editor GPU preview until M10.2 gate is green.
-- M9c (delete + duplicate) is complete; undo/multi-select remain deferred.
+- M10.2 plane scalar GPU consumer is landed (`executePlaneScalarPreview`).
+- Do not start M11 until M10.3 gate is green.
 
 ## Resume protocol (any agent)
 

@@ -5,7 +5,9 @@
 	"description": "WebGPU runtime: buffers, pipelines, bind groups, consumers, tessellation scheduling.",
 	"type": "module",
 	"dependencies": {
-		"@virtual-planet/graph": "*"
+		"@virtual-planet/compiler": "*",
+		"@virtual-planet/graph": "*",
+		"@virtual-planet/schema": "*"
 	},
 	"exports": {
 		".": "./src/index.ts"
