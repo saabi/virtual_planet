@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>/scene Render Pipeline Graph</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1018;
+      --panel: #121a27;
+      --panel-2: #172233;
+      --line: #3a4b64;
+      --text: #e7eefb;
+      --muted: #9caec7;
+      --cpu: #88c0d0;
+      --gpu: #a3be8c;
+      --tex: #b48ead;
+      --debug: #ebcb8b;
+      --warn: #bf616a;
+      --active: #5e81ac;
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid #263247;
+      background: #0e1520;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 1040px;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(760px, 1fr) 360px;
+      gap: 16px;
+      padding: 16px;
+      min-height: calc(100vh - 91px);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid #34435a;
+      border-radius: 6px;
+      background: #172233;
+      color: var(--text);
+      padding: 7px 10px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button:hover,
+    button.active {
+      background: #243550;
+      border-color: #587399;
+    }
+
+    .graph-shell,
+    aside {
+      background: var(--panel);
+      border: 1px solid #263247;
+      border-radius: 8px;
+      box-shadow: 0 18px 40px var(--shadow);
+    }
+
+    .graph-shell {
+      padding: 14px;
+      overflow: auto;
+    }
+
+    svg {
+      display: block;
+      min-width: 1120px;
+      min-height: 780px;
+    }
+
+    .edge {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 2.2;
+      marker-end: url(#arrow);
+      opacity: 0.88;
+    }
+
+    .edge.conditional {
+      stroke-dasharray: 8 6;
+      opacity: 0.72;
+    }
+
+    .edge.dim,
+    .node.dim {
+      opacity: 0.18;
+    }
+
+    .lane-label {
+      fill: #6f819b;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .lane-line {
+      stroke: #202b3d;
+      stroke-width: 1;
+    }
+
+    .node {
+      cursor: pointer;
+      transition: opacity 140ms ease;
+    }
+
+    .node rect {
+      stroke-width: 1.4;
+      rx: 7;
+      filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.22));
+    }
+
+    .node.cpu rect {
+      fill: #102631;
+      stroke: var(--cpu);
+    }
+
+    .node.gpu rect {
+      fill: #18251a;
+      stroke: var(--gpu);
+    }
+
+    .node.texture rect {
+      fill: #251d31;
+      stroke: var(--tex);
+    }
+
+    .node.debug rect {
+      fill: #302817;
+      stroke: var(--debug);
+    }
+
+    .node.warn rect {
+      fill: #321b20;
+      stroke: var(--warn);
+    }
+
+    .node.selected rect {
+      stroke: #81a1c1;
+      stroke-width: 3;
+    }
+
+    .node-title {
+      fill: var(--text);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .node-subtitle {
+      fill: var(--muted);
+      font-size: 11px;
+    }
+
+    aside {
+      padding: 16px;
+      min-height: 500px;
+      position: sticky;
+      top: 16px;
+      align-self: start;
+    }
+
+    aside h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: var(--panel-2);
+      color: var(--muted);
+      border: 1px solid #314056;
+      font-size: 12px;
+    }
+
+    .badge.cpu {
+      color: var(--cpu);
+      border-color: color-mix(in srgb, var(--cpu), #000 35%);
+    }
+
+    .badge.gpu {
+      color: var(--gpu);
+      border-color: color-mix(in srgb, var(--gpu), #000 35%);
+    }
+
+    .badge.texture {
+      color: var(--tex);
+      border-color: color-mix(in srgb, var(--tex), #000 35%);
+    }
+
+    .badge.debug {
+      color: var(--debug);
+      border-color: color-mix(in srgb, var(--debug), #000 35%);
+    }
+
+    .detail-block {
+      margin: 14px 0;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    code {
+      color: #d8dee9;
+      background: #0b1018;
+      border: 1px solid #263247;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, max-content);
+      gap: 8px 12px;
+      align-items: center;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 4px;
+      vertical-align: -1px;
+    }
+
+    .footnote {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>/scene Render Pipeline Graph</h1>
+    <div class="subtitle">
+      Interactive snapshot of the current Svelte/WebGPU render path. Click a node for its
+      source files, inputs, outputs, and mode-specific behavior.
+    </div>
+  </header>
+
+  <main class="layout">
+    <section>
+      <div class="toolbar" aria-label="Graph filters">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="frame">Frame assembly</button>
+        <button data-filter="tessellation">Tessellation</button>
+        <button data-filter="geometry">Geometry pass</button>
+        <button data-filter="water">Water</button>
+        <button data-filter="atmosphere">Atmosphere</button>
+        <button data-filter="debug">Debug branches</button>
+        <button data-action="reset">Reset selection</button>
+      </div>
+      <div class="graph-shell">
+        <svg viewBox="0 0 1120 780" role="img" aria-label="Interactive /scene render pipeline graph">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L8,3 z" fill="#3a4b64"></path>
+            </marker>
+          </defs>
+
+          <text class="lane-label" x="28" y="38">CPU frame assembly</text>
+          <line class="lane-line" x1="24" y1="54" x2="1090" y2="54"></line>
+          <text class="lane-label" x="28" y="260">GPU geometry pass</text>
+          <line class="lane-line" x1="24" y1="276" x2="1090" y2="276"></line>
+          <text class="lane-label" x="28" y="494">Post-geometry passes</text>
+          <line class="lane-line" x1="24" y1="510" x2="1090" y2="510"></line>
+
+          <path class="edge" data-tags="frame" d="M168 116 C205 116 205 116 242 116"></path>
+          <path class="edge" data-tags="frame" d="M392 116 C430 116 430 116 468 116"></path>
+          <path class="edge" data-tags="frame" d="M618 116 C655 116 655 116 692 116"></path>
+          <path class="edge" data-tags="frame geometry" d="M790 166 C760 218 634 230 572 308"></path>
+          <path class="edge" data-tags="frame geometry" d="M790 166 C830 218 868 240 908 308"></path>
+          <path class="edge" data-tags="frame geometry" d="M790 166 C610 208 338 232 166 308"></path>
+          <path class="edge" data-tags="frame water" d="M842 166 C860 322 888 388 890 548"></path>
+          <path class="edge" data-tags="frame atmosphere" d="M842 166 C990 300 1018 392 1016 548"></path>
+          <path class="edge" data-tags="frame tessellation" d="M728 166 C698 188 648 200 618 214"></path>
+          <path class="edge" data-tags="tessellation" d="M618 214 C650 214 660 224 692 224"></path>
+          <path class="edge" data-tags="tessellation geometry" d="M780 262 C734 286 696 304 664 326"></path>
+
+          <path class="edge" data-tags="geometry" d="M168 360 C272 394 400 394 514 360"></path>
+          <path class="edge" data-tags="geometry" d="M626 360 C692 386 788 386 856 360"></path>
+          <path class="edge" data-tags="geometry" d="M626 360 C636 420 666 432 692 432"></path>
+          <path class="edge" data-tags="geometry tessellation" d="M590 382 C590 392 590 392 590 402"></path>
+          <path class="edge" data-tags="geometry tessellation" d="M664 440 C674 430 682 426 692 426"></path>
+          <path class="edge" data-tags="geometry water" d="M744 432 C806 456 862 482 890 548"></path>
+          <path class="edge" data-tags="geometry atmosphere" d="M744 432 C846 452 974 480 1016 548"></path>
+
+          <path class="edge" data-tags="water" d="M890 608 C890 636 822 650 744 650"></path>
+          <path class="edge" data-tags="water atmosphere" d="M744 650 C830 664 940 650 1016 608"></path>
+          <path class="edge conditional" data-tags="atmosphere" d="M1016 608 C990 690 732 714 590 700"></path>
+          <path class="edge conditional" data-tags="water" d="M890 608 C838 704 692 724 590 700"></path>
+          <path class="edge" data-tags="geometry" d="M514 360 C522 492 550 588 590 700"></path>
+
+          <path class="edge conditional" data-tags="debug" d="M280 548 C320 592 408 622 514 650"></path>
+          <path class="edge conditional" data-tags="debug water" d="M280 548 C482 500 724 498 856 548"></path>
+          <path class="edge conditional" data-tags="debug atmosphere" d="M280 548 C550 512 870 510 982 548"></path>
+
+          <g class="node cpu" data-id="route" data-tags="frame" transform="translate(28 78)">
+            <rect width="140" height="76"></rect>
+            <text class="node-title" x="14" y="28">/scene route</text>
+            <text class="node-subtitle" x="14" y="49">scene, prefs, time</text>
+          </g>
+
+          <g class="node cpu" data-id="evaluate" data-tags="frame" transform="translate(242 78)">
+            <rect width="150" height="76"></rect>
+            <text class="node-title" x="14" y="28">evaluateScene</text>
+            <text class="node-subtitle" x="14" y="49">animated graph</text>
+          </g>
+
+          <g class="node cpu" data-id="camera" data-tags="frame" transform="translate(468 78)">
+            <rect width="150" height="76"></rect>
+            <text class="node-title" x="14" y="28">camera frame</text>
+            <text class="node-subtitle" x="14" y="49">eye-relative VP</text>
+          </g>
+
+          <g class="node cpu" data-id="manifest" data-tags="frame geometry water atmosphere" transform="translate(692 72)">
+            <rect width="176" height="94"></rect>
+            <text class="node-title" x="14" y="28">frame manifest</text>
+            <text class="node-subtitle" x="14" y="49">draw list, LOD</text>
+            <text class="node-subtitle" x="14" y="66">proc/water/atmo targets</text>
+          </g>
+
+          <g class="node cpu" data-id="tess-targets" data-tags="frame tessellation geometry" transform="translate(468 178)">
+            <rect width="150" height="74"></rect>
+            <text class="node-title" x="14" y="28">tess targets</text>
+            <text class="node-subtitle" x="14" y="49">body + budget scale</text>
+          </g>
+
+          <g class="node cpu" data-id="patch-scheduler" data-tags="tessellation geometry" transform="translate(692 188)">
+            <rect width="176" height="74"></rect>
+            <text class="node-title" x="14" y="28">patch scheduler</text>
+            <text class="node-subtitle" x="14" y="49">cube faces + LOD rings</text>
+          </g>
+
+          <g class="node gpu" data-id="sphere" data-tags="geometry" transform="translate(28 308)">
+            <rect width="140" height="74"></rect>
+            <text class="node-title" x="14" y="28">SpherePass</text>
+            <text class="node-subtitle" x="14" y="49">dots + sphere LOD</text>
+          </g>
+
+          <g class="node gpu" data-id="orbits" data-tags="geometry" transform="translate(244 308)">
+            <rect width="140" height="74"></rect>
+            <text class="node-title" x="14" y="28">OrbitLinePass</text>
+            <text class="node-subtitle" x="14" y="49">orbit polylines</text>
+          </g>
+
+          <g class="node gpu" data-id="terrain" data-tags="geometry atmosphere water" transform="translate(514 308)">
+            <rect width="150" height="74"></rect>
+            <text class="node-title" x="14" y="28">TerrainPass</text>
+            <text class="node-subtitle" x="14" y="49">PlanetRenderer.recordInto</text>
+          </g>
+
+          <g class="node gpu" data-id="terrain-vertex" data-tags="geometry tessellation" transform="translate(514 402)">
+            <rect width="150" height="74"></rect>
+            <text class="node-title" x="14" y="28">terrain vertex</text>
+            <text class="node-subtitle" x="14" y="49">patch -> displaced mesh</text>
+          </g>
+
+          <g class="node texture" data-id="gbuffers" data-tags="geometry water atmosphere" transform="translate(692 396)">
+            <rect width="154" height="74"></rect>
+            <text class="node-title" x="14" y="28">scene buffers</text>
+            <text class="node-subtitle" x="14" y="49">color, depth, surface_t</text>
+          </g>
+
+          <g class="node texture" data-id="scene-engine" data-tags="geometry water atmosphere" transform="translate(856 308)">
+            <rect width="186" height="74"></rect>
+            <text class="node-title" x="14" y="28">SceneEngine</text>
+            <text class="node-subtitle" x="14" y="49">pass lifecycle + textures</text>
+          </g>
+
+          <g class="node debug" data-id="debug" data-tags="debug" transform="translate(28 510)">
+            <rect width="252" height="76"></rect>
+            <text class="node-title" x="14" y="28">debug mode switches</text>
+            <text class="node-subtitle" x="14" y="49">water black, depth, atmo white</text>
+          </g>
+
+          <g class="node gpu" data-id="water" data-tags="water" transform="translate(856 548)">
+            <rect width="170" height="74"></rect>
+            <text class="node-title" x="14" y="28">WaterPass</text>
+            <text class="node-subtitle" x="14" y="49">copy + sea shells</text>
+          </g>
+
+          <g class="node gpu" data-id="atmosphere" data-tags="atmosphere" transform="translate(982 548)">
+            <rect width="130" height="74"></rect>
+            <text class="node-title" x="14" y="28">Atmosphere</text>
+            <text class="node-subtitle" x="14" y="49">fullscreen overlay</text>
+          </g>
+
+          <g class="node texture" data-id="post-water" data-tags="water atmosphere" transform="translate(590 614)">
+            <rect width="154" height="74"></rect>
+            <text class="node-title" x="14" y="28">post-water color</text>
+            <text class="node-subtitle" x="14" y="49">waterColor or swapchain</text>
+          </g>
+
+          <g class="node texture" data-id="present" data-tags="geometry water atmosphere" transform="translate(484 662)">
+            <rect width="106" height="74"></rect>
+            <text class="node-title" x="14" y="28">present</text>
+            <text class="node-subtitle" x="14" y="49">queue.submit</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend" aria-label="Legend">
+        <span><span class="swatch" style="background:#102631;border:1px solid var(--cpu)"></span>CPU</span>
+        <span><span class="swatch" style="background:#18251a;border:1px solid var(--gpu)"></span>GPU pass</span>
+        <span><span class="swatch" style="background:#251d31;border:1px solid var(--tex)"></span>texture/data</span>
+        <span><span class="swatch" style="background:#302817;border:1px solid var(--debug)"></span>debug branch</span>
+      </div>
+    </section>
+
+    <aside aria-live="polite">
+      <h2 id="detail-title">Select a node</h2>
+      <div class="badge-row" id="detail-badges">
+        <span class="badge">click graph nodes</span>
+      </div>
+      <p id="detail-summary">
+        This graph follows the current `/scene` renderer from Svelte state through frame
+        assembly, the shared geometry pass, optional water, optional atmosphere, and final
+        presentation.
+      </p>
+      <div class="detail-block">
+        <h3>Inputs</h3>
+        <ul id="detail-inputs">
+          <li>Use the filters to isolate frame assembly, geometry, water, atmosphere, or debug branches.</li>
+        </ul>
+      </div>
+      <div class="detail-block">
+        <h3>Outputs</h3>
+        <ul id="detail-outputs">
+          <li>Click a node to inspect its source files and render-target contracts.</li>
+        </ul>
+      </div>
+      <div class="detail-block">
+        <h3>Source</h3>
+        <ul id="detail-source">
+          <li><code>fe/src/lib/planet/components/SceneViewport3D.svelte</code></li>
+          <li><code>fe/src/lib/planet/scene3d/sceneEngine.ts</code></li>
+        </ul>
+      </div>
+      <p class="footnote">
+        Conditional dashed edges indicate paths enabled only by debug modes, water, or
+        explicit atmosphere compositing.
+      </p>
+    </aside>
+  </main>
+
+  <script>
+    const details = {
+      route: {
+        title: "/scene route",
+        tags: ["CPU", "Svelte", "state"],
+        summary: "The scene page owns the editable PlanetScene document, URL selection, viewport preferences, clock, and panel layout.",
+        inputs: ["Serialized or default PlanetScene.", "Selected node id from the URL path.", "Viewport preferences from localStorage and editor controls."],
+        outputs: ["Props for SceneViewport3D.", "Shared clock and selectedId binding.", "Render/debug settings used by frame assembly."],
+        source: ["fe/src/routes/scene/[...path]/+page.svelte", "_docs/scene-route-rendering-pipeline.md"]
+      },
+      evaluate: {
+        title: "evaluateScene",
+        tags: ["CPU", "simulation"],
+        summary: "Evaluates orbital/body animation for the current clock before any render decisions are made.",
+        inputs: ["PlanetScene graph.", "Current route clock time."],
+        outputs: ["Animated scene snapshot.", "Evaluated world transforms for bodies.", "Light positions and orbit states."],
+        source: ["fe/src/lib/planet/scene/driver.ts", "fe/src/lib/planet/scene/sceneTree.ts"]
+      },
+      camera: {
+        title: "camera frame",
+        tags: ["CPU", "floating origin"],
+        summary: "Builds the camera-relative frame used by spheres, terrain, water, atmosphere, picking, and overlays.",
+        inputs: ["Orbit, free-fly, or spaceflight camera state.", "Selected body target.", "Scene-wide near/far fit."],
+        outputs: ["Eye-relative viewProjection matrix.", "Camera world position.", "Rebased light and body positions."],
+        source: ["fe/src/lib/planet/components/SceneViewport3D.svelte", "fe/src/lib/planet/scene3d/orbitCamera.ts", "fe/src/lib/planet/camera/freeFly.ts"]
+      },
+      manifest: {
+        title: "frame manifest",
+        tags: ["CPU", "LOD", "routing", "tessellation"],
+        summary: "Builds the per-frame render manifest: visible bodies, LOD tiers, procedural tessellation targets, water targets, and atmosphere targets.",
+        inputs: ["Animated scene.", "View-projection and viewport size.", "LOD thresholds and debug settings."],
+        outputs: ["DrawItem list with screenRadiusPx and procedural blends.", "ProceduralRenderTarget array capped by MAX_PROCEDURAL_BODIES.", "Water instances, atmosphere body uniforms, eclipse uniforms."],
+        source: ["fe/src/lib/planet/scene3d/drawList.ts", "fe/src/lib/planet/scene3d/proceduralBodies.ts", "fe/src/lib/planet/scene3d/waterLod.ts", "fe/src/lib/planet/scene/eclipseOccluders.ts"]
+      },
+      "tess-targets": {
+        title: "tess targets",
+        tags: ["CPU", "tessellation", "budget"],
+        summary: "Selects which planet/moon bodies will receive tessellated procedural terrain this frame and how much of the global tessellation budget each body gets.",
+        inputs: ["DrawItem list from buildDrawList.", "Scene nodes and evaluated transforms.", "Selected id, projected body radius, and MAX_PROCEDURAL_BODIES."],
+        outputs: ["ProceduralRenderTarget entries with renderRadius, rotation, screenDepth, screenRadiusPx, displacementBlend, heightBlend, and atmosphereBlend.", "Primary body keeps the full tessellation budget; secondary procedural bodies receive a scaled share through tessellationBudgetScaleForBody()."],
+        source: ["fe/src/lib/planet/scene3d/proceduralBodies.ts", "fe/src/lib/planet/scene3d/proceduralRender.ts", "fe/src/lib/planet/patches/tessellationSettings.ts"]
+      },
+      "patch-scheduler": {
+        title: "patch scheduler",
+        tags: ["CPU", "WASM", "tessellation"],
+        summary: "Turns tessellation settings plus camera/screen-space error into packed terrain patches before the GPU draw is recorded.",
+        inputs: ["PlanetRenderInputs from buildProceduralRenderInput().", "Tessellation settings from viewportPrefs, optionally scaled for secondary bodies.", "Focused-body camera derived from the scene camera.", "Planet radius and displacement/height blend settings."],
+        outputs: ["Packed orbit/surface patch buckets consumed by WebGPUBackend.recordTerrainInto().", "Patch count and vertex budget decisions.", "Per-patch cube-sphere coordinates, level, face, and ring/LOD data."],
+        source: ["fe/src/lib/planet/render/planetRenderer.ts", "fe/src/lib/planet/render/buildRenderFrame.ts", "fe/src/lib/planet/patches/cubeSphereScheduler.ts", "fe/src/lib/planet/patches/wasm/scheduler.ts", "fe/src/lib/planet/render/passes/terrainPass.ts"]
+      },
+      sphere: {
+        title: "SpherePass",
+        tags: ["GPU", "geometry pass"],
+        summary: "Draws dot and sphere LOD bodies as instanced UV spheres into the shared geometry pass.",
+        inputs: ["BodyInstance array.", "Eye-relative viewProjection.", "Scene light and global eclipse uniforms."],
+        outputs: ["Scene color for dot/sphere bodies.", "Shared depth for occlusion.", "No surface-distance output."],
+        source: ["fe/src/lib/planet/scene3d/spherePass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/sphere.wgsl"]
+      },
+      orbits: {
+        title: "OrbitLinePass",
+        tags: ["GPU", "geometry pass"],
+        summary: "Draws visible orbit paths after CPU orbit tessellation and LOD selection.",
+        inputs: ["OrbitPath3D polylines.", "Eye-relative viewProjection.", "Camera-relative orbit centers."],
+        outputs: ["Orbit line color in the shared scene target.", "Depth-tested or blended path fragments depending on shader state."],
+        source: ["fe/src/lib/planet/scene3d/orbitLinePass.ts", "fe/src/lib/planet/scene/orbitPaths.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/orbitLine.wgsl"]
+      },
+      terrain: {
+        title: "TerrainPass",
+        tags: ["GPU", "procedural terrain", "tessellation"],
+        summary: "Records the scheduled terrain patch mesh for each procedural planet/moon into the same render pass and shared depth target as spheres.",
+        inputs: ["Packed terrain patch buckets from the scheduler.", "PlanetParameters resolved from body appearance.", "Focused-body camera built from the scene camera.", "Material overrides, displacementBlend, heightBlend, and eclipse uniforms."],
+        outputs: ["Terrain color.", "Shared depth.", "R32Float surface distance used by atmosphere termination.", "Per-fragment material/debug output."],
+        source: ["fe/src/lib/planet/scene3d/proceduralRender.ts", "fe/src/lib/planet/render/planetRenderer.ts", "fe/src/lib/planet/render/WebGPUBackend.ts", "fe/src/lib/planet/render/passes/terrainPass.ts"]
+      },
+      "terrain-vertex": {
+        title: "terrain vertex",
+        tags: ["GPU", "WGSL", "tessellation"],
+        summary: "The GPU vertex path maps each scheduled patch vertex from cube-face coordinates to the ideal sphere, samples terrain height in body-local coordinates, and applies radial displacement.",
+        inputs: ["Packed patch vertex data and per-patch face/LOD descriptors.", "Planet parameter uniforms.", "Planet rotation uniform for body-local terrain sampling.", "displacementBlend for scene LOD transitions."],
+        outputs: ["Clip-space displaced terrain vertices.", "Interpolants used by fragment material, debug views, depth, and surface-distance output.", "Terrain shape that water and atmosphere later compare against via shared depth/surface_t."],
+        source: ["fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl", "fe/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl", "fe/src/lib/planet/gpu/wgsl/planet/kernel.wgsl", "fe/src/lib/planet/gpu/wgsl/planet/material.wgsl"]
+      },
+      gbuffers: {
+        title: "scene buffers",
+        tags: ["texture", "render targets"],
+        summary: "The shared frame products created by SceneEngine and consumed by later passes.",
+        inputs: ["Geometry pass writes.", "Viewport dimensions.", "Overlay/water mode determines whether color is offscreen or the swapchain."],
+        outputs: ["sceneColor: sampleable color when water or explicit atmosphere is active.", "depth24plus: sampled by water and atmosphere after geometry pass ends.", "surfaceDistance r32float: terrain-owned atmosphere endpoint metric."],
+        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+      },
+      "scene-engine": {
+        title: "SceneEngine",
+        tags: ["GPU", "pass host"],
+        summary: "Owns the command encoder, shared depth, offscreen scene color, water color, surface distance texture, and render-pass ordering.",
+        inputs: ["recordScene callback.", "Optional recordWater callback.", "Optional recordOverlay callback.", "Clear color and overlay composite mode."],
+        outputs: ["One submitted command buffer.", "Correct pass separation so depth/color can be sampled only after their attachment pass ends."],
+        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+      },
+      debug: {
+        title: "debug mode switches",
+        tags: ["debug", "routing"],
+        summary: "Material/debug modes reroute or simplify the pass graph so diagnostics expose one subsystem at a time.",
+        inputs: ["materialDebug SceneDebugMode.", "waterDebugOnBlack, waterDebugDepthTest, atmosphereWhite helpers."],
+        outputs: ["Water on black skips terrain/spheres but still draws water targets.", "Water depth test disables normal water and records a depth overlay.", "Atmosphere on white can render terrain surface-only under atmosphere diagnostics."],
+        source: ["fe/src/lib/planet/scene/sceneDebug.ts", "fe/src/lib/planet/components/SceneViewport3D.svelte"]
+      },
+      water: {
+        title: "WaterPass",
+        tags: ["GPU", "water"],
+        summary: "Runs after geometry so it can sample scene color and depth, copy the pre-water scene, then draw transparent sea-level shells.",
+        inputs: ["Water instances selected from procedural targets.", "Pre-water sceneColor.", "Shared scene depth.", "ViewProjection and inverse ViewProjection.", "Water material sliders and eclipse/shadow uniforms."],
+        outputs: ["Post-water color.", "Manual depth-tested water over terrain.", "Transmission, absorption, scattering, glint, wave normals, foam, and water debug views."],
+        source: ["fe/src/lib/planet/scene3d/waterPass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/water.wgsl", "_docs/ocean-rendering-research.md"]
+      },
+      atmosphere: {
+        title: "SceneAtmospherePass",
+        tags: ["GPU", "atmosphere"],
+        summary: "Fullscreen composite over procedural atmosphere bodies, using scene depth and terrain surface distance to terminate/occlude the march.",
+        inputs: ["Composite source color.", "Shared scene depth.", "Terrain surface-distance texture.", "Atmosphere params per procedural body.", "Lighting, material overrides, eclipse uniforms."],
+        outputs: ["Explicit composite: sceneColor * transmittance + inscatter.", "Hardware-alpha mode: inscatter with fixed-function alpha blending.", "Atmosphere diagnostic views."],
+        source: ["fe/src/lib/planet/scene3d/sceneAtmospherePass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/sceneAtmosphere.wgsl"]
+      },
+      "post-water": {
+        title: "post-water color",
+        tags: ["texture", "water"],
+        summary: "Intermediate color target used when water and explicit atmosphere both need a sampleable source.",
+        inputs: ["WaterPass output.", "SceneEngine overlay mode."],
+        outputs: ["Read source for explicit atmosphere overlay.", "Or direct swapchain output when no explicit overlay follows."],
+        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+      },
+      present: {
+        title: "present",
+        tags: ["GPU", "swapchain"],
+        summary: "The final color is written to the current canvas texture and submitted to the GPU queue.",
+        inputs: ["Geometry-only color, post-water color, or atmosphere-composited color depending on active passes."],
+        outputs: ["Presented WebGPU canvas frame."],
+        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+      }
+    };
+
+    const nodes = Array.from(document.querySelectorAll(".node"));
+    const edges = Array.from(document.querySelectorAll(".edge"));
+    const buttons = Array.from(document.querySelectorAll("button[data-filter]"));
+    const resetButton = document.querySelector("button[data-action='reset']");
+
+    function renderDetail(id) {
+      const detail = details[id];
+      if (!detail) return;
+      document.querySelector("#detail-title").textContent = detail.title;
+      document.querySelector("#detail-summary").textContent = detail.summary;
+      document.querySelector("#detail-badges").innerHTML = detail.tags
+        .map((tag) => `<span class="badge ${tag.toLowerCase()}">${tag}</span>`)
+        .join("");
+      document.querySelector("#detail-inputs").innerHTML = detail.inputs.map((item) => `<li>${item}</li>`).join("");
+      document.querySelector("#detail-outputs").innerHTML = detail.outputs.map((item) => `<li>${item}</li>`).join("");
+      document.querySelector("#detail-source").innerHTML = detail.source.map((item) => `<li><code>${item}</code></li>`).join("");
+      nodes.forEach((node) => node.classList.toggle("selected", node.dataset.id === id));
+    }
+
+    function applyFilter(filter) {
+      buttons.forEach((button) => button.classList.toggle("active", button.dataset.filter === filter));
+      const all = filter === "all";
+      nodes.forEach((node) => {
+        const tags = (node.dataset.tags || "").split(/\s+/);
+        node.classList.toggle("dim", !all && !tags.includes(filter));
+      });
+      edges.forEach((edge) => {
+        const tags = (edge.dataset.tags || "").split(/\s+/);
+        edge.classList.toggle("dim", !all && !tags.includes(filter));
+      });
+    }
+
+    nodes.forEach((node) => {
+      node.addEventListener("click", () => renderDetail(node.dataset.id));
+      node.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") renderDetail(node.dataset.id);
+      });
+      node.setAttribute("tabindex", "0");
+      node.setAttribute("role", "button");
+    });
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => applyFilter(button.dataset.filter));
+    });
+
+    resetButton.addEventListener("click", () => {
+      nodes.forEach((node) => node.classList.remove("selected"));
+      applyFilter("all");
+      document.querySelector("#detail-title").textContent = "Select a node";
+      document.querySelector("#detail-badges").innerHTML = '<span class="badge">click graph nodes</span>';
+      document.querySelector("#detail-summary").textContent =
+        "This graph follows the current `/scene` renderer from Svelte state through frame assembly, the shared geometry pass, optional water, optional atmosphere, and final presentation.";
+      document.querySelector("#detail-inputs").innerHTML =
+        "<li>Use the filters to isolate frame assembly, geometry, water, atmosphere, or debug branches.</li>";
+      document.querySelector("#detail-outputs").innerHTML =
+        "<li>Click a node to inspect its source files and render-target contracts.</li>";
+      document.querySelector("#detail-source").innerHTML =
+        "<li><code>fe/src/lib/planet/components/SceneViewport3D.svelte</code></li><li><code>fe/src/lib/planet/scene3d/sceneEngine.ts</code></li>";
+    });
+
+    renderDetail("scene-engine");
+  </script>
+</body>
+</html>

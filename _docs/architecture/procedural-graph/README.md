@@ -1,0 +1,253 @@
+# Procedural Graph System
+
+**Status:** architecture reference + development plan · **Scope:** new
+`packages/graph`, `packages/compiler`, `packages/runtime-webgpu`,
+`packages/graph-editor`, `packages/procedural-wgsl`, `packages/mcp-server`;
+builds on the existing `@virtual-planet/schema` package and the cube-sphere
+`patches/` system in `fe/`.
+
+> This is the canonical architecture for **the procedural language of Virtual
+> Planet** — a design discussion that started with procedural vegetation and grew
+> into a typed, schema-driven graph from which every planetary system is derived.
+> Treat this folder as the project's **primary Architecture Decision Record**: the
+> single architectural reference, from which the smaller per-package specs (one
+> file per development stream) derive. This README holds the consolidated
+> "shell + plan"; see the index below for the streams. Source transcript:
+> [`../../conversations/node-editor-and-then-some.md`](../../conversations/node-editor-and-then-some.md).
+
+## Index
+
+| Doc | Covers | Primary packages |
+|-----|--------|------------------|
+| [schema-and-primitives.md](./schema-and-primitives.md) | Schema as single source of truth; primitive library | `schema`, `graph`, `procedural-wgsl` |
+| [graph-and-compiler.md](./graph-and-compiler.md) | Typed graph/ports; dependency slicing, WGSL gen, module resolver, linker, tree shaking | `graph`, `compiler` |
+| [runtime-and-tessellation.md](./runtime-and-tessellation.md) | Consumers, WebGPU pipelines, shared/graph-described surfaces | `runtime-webgpu` |
+| [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Generic inputs, CPU runtime services, image/mesh/audio resources, tessellation-as-primitives | `graph`, `runtime-webgpu`, `runtime-cpu` |
+| [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
+| [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
+| [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
+| [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
+
+---
+
+## 1. Vision
+
+### Goals
+
+Build a single, typed **procedural field graph** that is the canonical
+description of a planet — terrain, vegetation, materials, water, atmosphere,
+collision, navigation, and future gameplay are all *consumers* of the same
+graph, not separate authored programs.
+
+- Infinite, deterministic procedural generation with zero persisted instance data.
+- One graph, many outputs, compiled per-consumer down to minimal WGSL.
+- Strong typing end-to-end, driven by a single schema source of truth.
+- Multiple authoring surfaces (visual editor, declarative markup, JSON,
+  programmatic API, AI/MCP) over one shared IR.
+- Framework- and topology-independent core; Svelte and the cube-sphere planet
+  are the *first* adapters, not the foundation.
+
+### Design philosophy
+
+**The procedural graph describes the planet, not the rendering.** Shader stages
+(vertex / fragment / compute / mesh-generation) are implementation details the
+compiler distributes work across, chosen by dependency analysis — not concepts
+the author manipulates directly. The author describes *fields*; the compiler
+decides *where they run*.
+
+### Long-term vision
+
+The graph engine is not planet-specific. It should evolve into a reusable
+procedural programming environment for WebGPU — a **"WebGPUToy"**: a ShaderToy-
+like platform that operates at the procedural-graph level (sharable graphs,
+publishable primitives, live preview, generated-WGSL inspection, benchmarking).
+Virtual Planet becomes its flagship application. See §4 below.
+
+---
+
+## 2. High-level architecture
+
+```
+Authoring Layer
+  Visual Graph Editor · Declarative Svelte · JSON · Programmatic API · MCP
+        │
+        ▼
+  Typed Graph IR            ← the single authoritative representation
+        │
+        ▼
+  Semantic analysis · type checking · validation
+        │
+        ▼
+  Dependency slicing  (per requested output / per consumer)
+        │
+        ▼
+  WGSL function generation
+        │
+        ▼
+  WGSL module resolution + Shader Linker
+        │
+        ▼
+  WebGPU pipeline assembly
+        │
+        ├──────────────┬──────────────┬──────────────┬──────────────┐
+        ▼              ▼              ▼              ▼
+  Mesh generation   Compute       Vertex        Fragment
+```
+
+Every authoring method produces the **same** Typed Graph IR. The Graph IR is the
+only authoritative model — the visual editor edits it directly, and declarative
+markup is just another view of it.
+
+Package layout (framework-agnostic core, adapters at the edges):
+
+```
+packages/
+  schema/             existing — single source of truth for typed objects
+  graph/              Typed Graph IR, node defs, primitive registration, validation
+  compiler/           dependency slicing, WGSL codegen, module resolution, linking
+  runtime-webgpu/     buffers, pipelines, bind groups, consumers
+  procedural-wgsl/    reusable WGSL function modules (the standard library)
+  graph-editor/       reusable Svelte editor components (no renderer logic)
+  mcp-server/         AI/agent access over the Graph IR (no Svelte/renderer dep)
+  runtime-cpu/        CPU services (frustum, picking) + resource sampling + CPU eval
+  subdivide/          existing — Svelte split-pane layout (reused by the editor UI)
+apps/
+  planet/             main Virtual Planet app (first consumer/adapter)
+  graph-editor/       standalone editor app (canonical save = Graph IR JSON; Svelte
+                      is an export/optional-import projection — see editor.md)
+future:
+  @virtual-planet/react · @virtual-planet/vue
+```
+
+Rule: **framework components are only authoring/runtime adapters; they never own
+the graph model.**
+
+---
+
+## 3. Prior art & existing renderer docs
+
+The engine is **generic from the start** (see
+[inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md)) — planets and terrain
+are not privileged. But this architecture is also the **generalization of work
+already specced in this repo**, and it must stay consistent with these documents
+rather than duplicate or contradict them:
+
+- **[`planet-shaping-pipeline-graph.md`](../../planet-shaping-pipeline-graph.md)**
+  — the concrete precursor. It proposes a typed `PlanetShapingPipeline` schema for
+  the *existing* terrain: graph nodes with **coordinate-space-typed ports**,
+  shader-stage eligibility, and a compiler that emits an ordered WGSL include list
+  plus `sampleShape()` / `sampleMaterial()` / `sampleNormal()` wrappers for the
+  cube-sphere and surface-patch shaders. In the generic model it is **one consumer
+  expressed as a composition of primitives**, not a special subsystem; its node set
+  (BodyDirection, LayerGate, MacroDistortion, MacroVoronoi, DetailFbm, HeightRemap,
+  FineTextureNoise, PolarTerm, BiomeMaterial, NormalEstimator, WorldNormal,
+  SelfShadow, PbrLighting) seeds the terrain primitives in the standard library.
+- **[`renderer-unification-plan.md`](../../renderer-unification-plan.md)** — the
+  authoritative renderer roadmap. It defers *migrating the existing terrain
+  renderer onto a graph compiler* behind its own contract work (param/scale +
+  coordinate-space types, route-parity tests, debug views). That deferral governs
+  **when this one consumer adopts the graph**, not whether the generic engine is
+  built — the engine proceeds independently (validated on trivial surfaces and
+  primitives), and the existing terrain migrates when that plan's contracts land.
+- **[`driven-fields-editor.md`](../../specs/driven-fields-editor.md)** and the
+  `/scene/[...path]` node editor — existing **schema-driven** node forms
+  (kind-schema → inspector). Concrete prior art for "the schema drives the editor";
+  the graph editor extends this model rather than inventing a new one.
+- **`fe/vite-wgsl.ts`** — the existing WGSL composition layer (`#include`
+  expansion). This textual precursor is what the typed Shader Linker upgrades; the
+  GLSL mirror is `fe/vite-glslify.ts`.
+
+Existing terrain-shaping source map (under `fe/src/lib/planet/`):
+`params/planetParams.ts`, `params/presets.ts`, `planet/layers.ts`,
+`gpu/wgsl/planet/{kernel,material,normal,shadow,lighting}.wgsl`, and
+`gpu/wgsl/terrain/{cubeSphereVertex,surfacePatchVertex}.wgsl`.
+
+---
+
+## 4. Future platform (WebGPUToy)
+
+The same architecture generalizes into a public procedural-GPU playground that
+operates at the graph level rather than on handwritten fragment shaders:
+
+```
+Graph Editor → Typed Graph → Compiler → WGSL → WebGPU Runtime → Interactive Playground
+```
+
+Capabilities: create/share graphs, publish reusable primitives, live preview,
+generated-WGSL inspection, parameter animation, dependency visualization,
+profiling/benchmarking, and a third-party primitive plugin system. The same
+hosted MCP interface ([collaboration-and-mcp.md](./collaboration-and-mcp.md))
+lets agents generate, optimize, explain, and debug graphs. Virtual Planet is the
+first application on a general procedural platform that can equally power
+materials, terrain tools, scientific viz, simulation, and education.
+
+---
+
+## 5. Implementation roadmap
+
+Phased so each stage is independently useful and testable (pure-TS modules with
+`npm run check` / `vitest`, per repo convention). The concrete, milestone-level
+build plan — packages, deliverables, test gates, critical path, and the smallest
+end-to-end vertical slice — is in
+[implementation-plan.md](./implementation-plan.md); the phases below are its
+summary.
+
+**Generic first.** The core (IR, primitives, compiler, linker, editor) is built
+domain-agnostic and validated on trivial surfaces (a plane) and primitives — it
+does **not** wait on any concrete consumer. Tessellation, terrain, and mesh
+generation arrive as standard-library **primitives with optional CPU support**
+([inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md)), and the generic
+CPU runtime essentials (camera frustum, pointer/picking, image/mesh/audio resource
+inputs) are part of the early phases because the editor needs them for preview and
+interaction. Migrating the *existing* terrain renderer
+([`PlanetShapingPipeline`](../../planet-shaping-pipeline-graph.md)) onto the graph
+follows [renderer-unification-plan.md](../../renderer-unification-plan.md)'s
+contract timeline — that is one consumer's adoption schedule, not a gate on the
+engine.
+
+1. **Typed Graph IR** — extend `@virtual-planet/schema` with node/port/field
+   metadata; `packages/graph` with validation and serialization (`GraphDocument`
+   shape: `version, nodes, edges, outputs, consumers`).
+   → [graph-and-compiler.md](./graph-and-compiler.md)
+2. **Primitive registration** — `registerPrimitive` + the primitive library
+   (noise/math first, then tessellation/mesh-gen primitives), each with schema,
+   optional CPU evaluator, and a `WgslSourceRef`; plus the self-describing WGSL path
+   (AST inference + YAML frontmatter loader) so user-authored functions register
+   themselves. → [schema-and-primitives.md](./schema-and-primitives.md)
+3. **Graph compiler** — dependency slicing, multi-output compilation, WGSL
+   function generation, WGSL module resolver (`packages/procedural-wgsl`).
+   → [graph-and-compiler.md](./graph-and-compiler.md)
+4. **WGSL linker** — minimal `ShaderLinker` behind an internal interface;
+   optionally back it with `@use-gpu/shader` initially; WGSL-level tree shaking.
+5. **Standalone editor + CPU runtime essentials** — `apps/graph-editor` +
+   `packages/graph-editor` components; schema-driven palette/inspector; plane
+   tessellation (as primitives) for isolated testing; generic `runtime-cpu`
+   services (camera frustum, pointer→world ray) and resource inputs
+   (image/mesh/audio) for preview, picking, and headless tests; one shared,
+   app-agnostic `GraphDocument` store.
+   → [editor.md](./editor.md), [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md)
+6. **Embedded editor + shared surfaces** — mount the same components in
+   `apps/planet`; renderer reacts to graph changes. Move the cube-sphere surface
+   *mapping* into a shared standard-library document (keeping LOD/patch
+   scheduling in `runtime-webgpu`), so the planet tessellation is authored/edited
+   from either app. → [runtime-and-tessellation.md](./runtime-and-tessellation.md)
+7. **Procedural vegetation** — dual-frequency fields, peak detection,
+   coverage-vs-instance split, metric coordinates; CPU consumer first, then a
+   WGSL compute consumer wired through the cube-sphere streaming budget.
+   → [vegetation.md](./vegetation.md)
+8. **MCP server** — `packages/mcp-server`; documents + sessions tools; auth +
+   scopes; audit log. → [collaboration-and-mcp.md](./collaboration-and-mcp.md)
+9. **Collaborative editing** — multi-tab/session sync over WebSocket/SSE; patch
+   conflict handling; temporary-document autosave/promotion.
+10. **WebGPUToy** — public sharing, presets, third-party primitives, plugin system.
+
+---
+
+## Guiding principle
+
+The Typed Graph IR is the universal representation of procedural computation for
+Virtual Planet. Geometry comes from interchangeable tessellation providers;
+execution from interchangeable WebGPU pipelines; authoring from visual editors,
+declarative components, programmatic APIs, and AI assistants — all operating on
+exactly the same strongly typed graph. The graph describes the planet; everything
+else is a consumer.

@@ -164,8 +164,11 @@ See [_docs/specs/ocean-water-slice-plan.md](specs/ocean-water-slice-plan.md).
 absorptionStrength)` filters scene color; `(1 - transmittance) * SCATTER_RGB *
 scatterStrength` adds volume scatter. **Water Scatter** slider in Render → Shading.
 
-**Slice B (refraction UV):** scene color is sampled at a wave-normal-offset UV
-(shallow water refracts more). **Water Refraction** slider in Render → Shading.
+**Slice B (refraction UV):** scene color and depth are sampled at a projected wave-normal
+offset UV. The offset is derived from the screen-space difference between the base water
+shell normal and the perturbed wave normal, is clamped to a small radius, and falls back to
+the original pixel when the refracted sample would pull foreground geometry or empty sky.
+**Water Refraction** slider in Render → Shading.
 
 **Slice C (sky reflection):** Fresnel-weighted analytic sky/atmosphere color at grazing
 angles; `skyTint` from the focused body's atmosphere design. **Water Sky Reflect** slider.

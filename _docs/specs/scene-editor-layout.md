@@ -25,7 +25,7 @@ registers snippets and labels:
 |----------|-------|---------|
 | `outliner` | Outliner | `SystemTreePanel` — scene tree, save/reset, add/delete |
 | `properties` | Properties | Node editor — fields, transform, drivers, appearance |
-| `renderSettings` | Render | Accordion: View (look + material debug), Quality (tessellation), Debug (overlays), Shading — session viewport prefs via `SceneViewportPrefs` |
+| `renderSettings` | Render | Vertical icon tabs: View (look + material debug), Quality (tessellation), Debug (overlays), Shading — session viewport prefs via `SceneViewportPrefs` |
 | `viewport` | Viewport | `SceneViewport3D`, map inset, optional `FocusedBodyView` |
 
 Default layout (`defaultSceneEditorLayout()`): horizontal split — left column
@@ -101,7 +101,9 @@ Dev playground: `/dev/subdivide` (`fe/src/routes/dev/subdivide/+page.svelte`).
 | `fe/src/lib/planet/components/scene-editor/RenderSettingsPanel.svelte` | Render settings zone |
 | `fe/src/lib/planet/components/scene-editor/ViewportZone.svelte` | Viewport zone (3D + map + focused body) |
 | `fe/src/lib/planet/components/controls/Range.svelte` | Slider row + numeric pill (planet/scene variants) |
-| `fe/src/lib/planet/components/scene-editor/EditorAccordionSection.svelte` | Super-section accordion (scene styling) |
+| `fe/src/lib/planet/components/scene-editor/EditorVerticalTabs.svelte` | Super-section vertical icon tab rail + content pane |
+| `fe/src/lib/planet/components/scene-editor/EditorTabIcon.svelte` | Inline SVG icon for tab buttons |
+| `fe/src/lib/planet/components/scene-editor/editorTabIcons.ts` | Icon path registry (section id → SVG) |
 | `fe/src/lib/planet/components/scene-editor/EditorSubsection.svelte` | `<details>` subsection wrapper |
 | `fe/src/lib/planet/components/scene-editor/propertiesSections.ts` | Properties super-section registry |
 | `fe/src/routes/scene/[...path]/+page.svelte` | Route page wrapping `SceneEditorShell` |
@@ -116,15 +118,16 @@ camera, and body data follow routing and session rules in
 
 ## Panel collapse (parity with `/planet`)
 
-Collapse behavior matches `/planet` (accordion super-sections + independent
-`<details>` subsections) while keeping scene-editor colors.
+Super-sections use a **vertical icon tab rail** on the left (one active tab at a
+time; section titles appear as native `title` tooltips on hover). Inner blocks
+remain independent `<details>` subsections while keeping scene-editor colors.
 
 ### Properties (`PropertiesPanel`)
 
-Fixed header: breadcrumb + node name. Below, one **super-section** accordion is
-open at a time (`openSuperSection`; clicking a section header switches to it,
-does not close the open section). Super-sections are pruned by node kind via
-`visiblePropsSections()` in `propertiesSections.ts`:
+Fixed header: breadcrumb + node name. Below, a left **icon tab rail** switches
+the active super-section (`openSuperSection`; clicking a tab selects it, does not
+deselect). Super-sections are pruned by node kind via `visiblePropsSections()` in
+`propertiesSections.ts` (each entry includes an `icon` id from `editorTabIcons.ts`):
 
 | Super-section | When visible | Subsections |
 |---------------|--------------|-------------|
@@ -146,8 +149,8 @@ expanded. Collapse state is session-only (`collapsedIds` in the panel).
 
 ### Render (`RenderSettingsPanel`)
 
-Super-sections: **View** (default), **Quality**, **Debug**, **Shading**. Each
-contains `<details>` subsections (multiple may stay open).
+Super-section icon tabs: **View** (default), **Quality**, **Debug**, **Shading**.
+Each tab pane contains `<details>` subsections (multiple may stay open).
 
 | Super-section | Subsections | State owner |
 |---------------|-------------|-------------|
@@ -166,5 +169,5 @@ through `SceneEditorShell` → `RenderSettingsPanel` / `ViewportZone` →
 [body-vs-viewport-state.md](body-vs-viewport-state.md) for session vs document
 ownership.
 
-Shared primitives: `EditorAccordionSection.svelte`, `EditorSubsection.svelte` in
-`scene-editor/`.
+Shared primitives: `EditorVerticalTabs.svelte`, `EditorTabIcon.svelte`,
+`editorTabIcons.ts`, `EditorSubsection.svelte` in `scene-editor/`.

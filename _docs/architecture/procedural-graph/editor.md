@@ -1,0 +1,135 @@
+# Graph editor
+
+**Status:** architecture · **Scope:** `packages/graph-editor` (reusable Svelte
+components), `apps/graph-editor` (standalone app). Part of the
+[Procedural Graph System](./README.md).
+
+A first-class but **separate** package (`graph-editor`) that edits the Typed
+Graph IR — it is *not* a planet editor and does **not** own the graph model. Two
+delivery modes from one component set:
+
+- **Standalone app** (`apps/graph-editor`) for editor development, primitive
+  testing, graph-compilation debugging, WGSL inspection, validation, profiling —
+  no planet renderer required.
+- **Embeddable library** used inside the main app: `<GraphEditor bind:graph />`
+  next to `<PlanetViewport {graph} />`; the renderer reacts to graph changes, no
+  duplicate editor.
+
+Exported Svelte components are generic: `GraphEditor`, `GraphCanvas`,
+`NodePalette`, `InspectorPanel`, `PortView`, `ConnectionLayer`, `OutputPanel`,
+`MiniMap`, `Toolbar`, `ValidationPanel`, plus the code surfaces `MarkupView`
+(Svelte) and `CodeView` (WGSL primitive source). Responsibilities: visualization,
+node/edge editing, typed-connection validation, inspector, serialization,
+import/export, auto-layout, selection, undo/redo, clipboard, shortcuts. It must
+contain **no** Virtual-Planet-specific rendering logic.
+
+Everything is **schema-driven** (see
+[schema-and-primitives.md](./schema-and-primitives.md)): the palette, node
+appearance, ports, inspector widgets, tooltips, and context menus are generated
+from registered primitive schemas — adding a primitive automatically exposes
+editable properties; no handwritten inspectors. This **extends the repo's existing
+schema-driven node editor** — the `/scene/[...path]` kind-schema forms (see
+[driven-fields-editor.md](../../specs/driven-fields-editor.md)) already render
+inspectors from a node's schema — rather than introducing a parallel editor model. The editor never emits WGSL
+directly; it always goes Editor → Graph IR → Compiler → WGSL, guaranteeing every
+authoring method produces identical code. Although Svelte is first, the same model
+later supports `@virtual-planet/react-editor` / `vue-editor` with no
+IR/compiler/format changes.
+
+Both the standalone app and the embedded use edit the **same** app-agnostic
+document store, so a graph (including a shared surface/tessellation document) saved
+in one is opened and edited in the other — see
+[collaboration-and-mcp.md](./collaboration-and-mcp.md) and
+[runtime-and-tessellation.md](./runtime-and-tessellation.md).
+
+## Multi-level synchronized editing
+
+The editor exposes the **same graph at three levels at once**, and an edit at any
+level propagates to the others:
+
+1. **Visual graph** — nodes, ports, edges (`GraphCanvas`).
+2. **Graph markup (Svelte)** — the declarative `<PlanetGraph>…</PlanetGraph>`
+   document describing the *same* instances and wiring (`MarkupView`).
+3. **Primitive code (WGSL + YAML frontmatter)** — the definition of a node *type*
+   (`CodeView`; see [schema-and-primitives.md](./schema-and-primitives.md)).
+
+**The Typed Graph IR stays canonical; every view is a projection of it.** An edit
+in any view produces an IR patch (or, for primitive code, a primitive-schema
+change); the other views re-derive from the patched IR. This is the same
+patch-based model used for multi-client sessions
+([collaboration-and-mcp.md](./collaboration-and-mcp.md)), applied here to multiple
+*views of one client*.
+
+Two kinds of "code" edit **different documents**, which keeps the model sane:
+
+- **Graph markup ↔ visual graph** edits the *graph document* (instances). A
+  **bidirectional, lossless** round-trip over the declarative subset: visual edits
+  regenerate markup; markup edits reparse to IR and update the canvas.
+- **Primitive code** edits a *primitive-type document* (self-describing WGSL).
+  Saving re-runs the AST + YAML loader, re-registers the primitive, and **ripples
+  to every graph using it** — ports, inspector, and node appearance update live,
+  and a graph that referenced a now-removed output surfaces an error in the
+  `ValidationPanel` rather than silently breaking.
+
+### Document format: IR-native, Svelte-as-export
+
+**Decision: the canonical, saved document is the serialized Graph IR (JSON).**
+Svelte is an **export format** (and an optional, *constrained* import format) — not
+the native file. React/Vue/MCP/visual all sit on the IR as equal projections; none
+is privileged as "the file."
+
+This is what bounds the whole problem. Because the IR is authoritative, Svelte
+markup only has to represent the **declarative subset** that maps 1:1 to the IR;
+there is no arbitrary authored Svelte the system is obligated to preserve. Bounding
+that subset deliberately (a small declarative grammar — `<PlanetGraph>` +
+field/consumer components) is the enabling constraint: it makes the AST parse
+tractable and safe and keeps the round-trip lossless. Logic outside the subset is
+not stored in the document at all.
+
+### Runtime Svelte compilation — only where actually needed
+
+With Svelte demoted to a projection, the runtime cost drops sharply. Three tiers:
+
+- **Export — IR→Svelte printer (no compiler).** Generating markup from the IR is
+  pure printing; needs nothing from `svelte/compiler`. Always available.
+- **Constrained import — small parser (compiler optional).** An editable
+  `MarkupView` parses the bounded declarative grammar back to IR. A purpose-built
+  parser suffices; `svelte/compiler`'s `parse` may be used for convenience but is
+  not required. No authored code executes — bounded and safe.
+- **Live document — compile-and-run (optional, deferred).** *Only* if we later want
+  reactive markup (`{mountainScale}`, runes, `bind:graph`) reflected live does
+  `svelte/compiler` become a true runtime dependency, with in-browser compile +
+  **evaluation** of authored code. Accept the costs then: bundle weight, a security
+  surface (run it in a Worker/iframe sandbox), and that arbitrary imperative Svelte
+  is not losslessly representable as IR. This is a nice-to-have, not core.
+
+So `svelte/compiler` as a hard runtime dependency is confined to the optional
+live-document mode; the IR-native core and multi-level editing work without it.
+
+### Bounded Svelte import: conversion & player
+
+The constrained importer earns its keep in two roles beyond live editing — both
+staying on the safe **bounded-Svelte → parse → IR** path, so neither needs the
+runtime Svelte compiler:
+
+- **Transformation into native format.** A one-shot converter ingests bounded
+  declarative Svelte and emits the canonical Graph IR (JSON) — for onboarding
+  hand-written documents, importing from other tooling, or migrating
+  `.planet.svelte`-style authoring into the native store.
+- **Player component.** A `Player` renders a graph from IR through the normal
+  runtime (`runtime-cpu` / `runtime-webgpu`). Pointed at *exported* bounded Svelte,
+  it parses → IR → renders, which **verifies the export round-trips**: the player's
+  output should match the source graph's. The same component doubles as the
+  embeddable "run this graph" surface for sharing / WebGPUToy.
+
+So import is a **conversion + verification** tool, not a live-editing obligation;
+the only path that executes authored Svelte is the optional live-document mode
+above.
+
+### Keeping text views stable
+
+Because text views are regenerated from the IR, the IR→markup and IR→WGSL printers
+must be **deterministic and stable** (sorted output, fixed formatting) so a small
+IR change yields a small text diff — not a whole-document churn that destroys cursor
+position and review diffs. Prefer source-mapped, node-scoped regeneration over
+reprinting the entire document on every edit.
