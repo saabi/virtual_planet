@@ -19,3 +19,5 @@ export * from './consumers/vegetationPreview.js';
 export * from './vegetationTypes.js';
 export * from './vegetationBuffer.js';
 export * from './surfaceMesh.js';
+export * from './frameGraph/types.js';
+export * from './frameGraph/order.js';
