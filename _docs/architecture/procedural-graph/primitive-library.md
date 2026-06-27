@@ -59,9 +59,15 @@ pipeline node families (geometry/buffer/stage/target) from
 |----|--------|-------|
 | `color.srgbToLinear` `color.linearToSrgb` | ✅ | (Use.GPU) |
 | `color.hsv2rgb` | ✅ | |
+| `color.xyzToLab` `color.labToXyz` `color.xyzToLuv` `color.luvToXyz` | 📋 | from colorlab ([M-colorlab-harvest](./briefs/M-colorlab-harvest.md)) |
+| `color.lsrgbToOklab` `color.oklabToLsrgb` `color.oklabToOklch` | 📋 | OKLab/OKLCH (colorlab) |
+| `color.srgbToXyz` `color.xyzToSrgb` `color.chromaticAdapt` `color.simulateCvd` | 📋 | colorlab |
 | `color.rgb2hsv` `color.hsl2rgb` | 💭 LHF | |
 | `color.tonemap` (ACES/Reinhard) | 💭 | |
 | `color.palette` (cosine palette generator) | 💭 LHF | generalize effect.cosinePalette |
+
+> Colour space conversions share the `vec3 → vec3` **contract** → a **swap family** in the
+> editor (node-model-design-notes §C).
 
 ---
 
@@ -93,6 +99,17 @@ pipeline node families (geometry/buffer/stage/target) from
 | `veg.coverageMask` | 💭 | continuous grass coverage (turn 30) |
 | `veg.suppressionMask` | 💭 | tree↔grass exclusion |
 
+### Collections & control-flow · `group: Fields` (node-model-design-notes §A)
+> For typed lists (e.g. N lights into `material.pbrLighting`). `list<T>` ports unroll when
+> statically wired, loop when fed a runtime `buffer.storage`.
+
+| id | status | notes |
+|----|--------|-------|
+| `list<T>` port kind | 📋 | multi-input collection; unroll (static) / loop (runtime) |
+| `flow.forEach` | 💭 | run a body subgraph per element (Grasshopper Repeat Zone) |
+| `flow.reduce` | 💭 | fold a list via a binary op (lighting = reduce-sum over lights) |
+| `flow.map` | 💭 | map a body subgraph over a list → list |
+
 ---
 
 ## Group: Inputs — host / runtime / resource (bound, not authored math)
@@ -118,21 +135,34 @@ pipeline node families (geometry/buffer/stage/target) from
 
 ---
 
-## Group: Geometry — emit vertices & faces  *(NEW — pipeline node family, 📋)*
+## Group: Geometry — sources & emit vertices & faces  *(NEW — pipeline node family, 📋)*
 
 > Generate geometry on the GPU. Outputs are **resource** edges (`geometry`/`vertexBuffer`/
-> `indexBuffer`). Different tessellators = compositions over a plane grid (pipeline-as-graph).
+> `indexBuffer`). **Elemental sources** (cube/plane/grid) + composable **transforms** below
+> (decomposition per [node-model-design-notes §B](./node-model-design-notes.md)) — e.g.
+> cube-sphere = `geometry.cube` + `transform.spherify`, not a monolithic node.
 
 | id | status | notes |
 |----|--------|-------|
 | `geometry.fullscreenPlane` | 📋 | 2-triangle fullscreen quad (replaces S0's hidden vertex WGSL) |
-| `geometry.grid` | 📋 | parametric `res×res` plane grid (instanceable) |
-| `geometry.cubeSphere` | 📋 | 6-face inflated sphere mesh (composition of grid + cubeFaceDir) |
-| `geometry.tessellate` | 📋 | compute-shader mesh-gen over a surface mapping → vertex/index buffers ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |
+| `geometry.plane` | 📋 | parametric `res×res` plane grid (instanceable) |
+| `geometry.cube` | 📋 | six cube faces — a raw vertex list (spherify separately) |
+| `geometry.tessellate` | 📋 | compute mesh-gen over a surface mapping → vertex/index buffers ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |
 | `geometry.emitVertices` | 💭 | low-level: write vertex attributes to a buffer |
 | `geometry.emitIndices` / `geometry.emitFaces` | 💭 | low-level: write index/face buffer |
 | `geometry.instancedPatch` | 💭 | per-instance patch grid (planet Mode-A: scheduler-fed) |
 | `geometry.point` `geometry.line` | 💭 | debug/primitive topologies |
+
+### Geometry transforms · `group: Geometry` (per-vertex; run in the vertex stage)
+> Operate on **any** vertex list (plane/cube/grid/mesh) — value→value ops on `position`/
+> `normal`, so they reuse field-primitive machinery (node-model-design-notes §B).
+
+| id | status | notes |
+|----|--------|-------|
+| `transform.spherify` | 📋 | normalize positions onto the unit sphere (cube→sphere) |
+| `transform.displace` | 📋 | offset along normal by a field (terrain height) |
+| `transform.translate` `transform.rotate` `transform.scale` | 💭 LHF | affine |
+| `transform.twist` `transform.bend` | 💭 | deformers |
 
 ---
 

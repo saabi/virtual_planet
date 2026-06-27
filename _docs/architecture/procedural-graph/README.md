@@ -36,6 +36,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [pipeline-as-graph.md](./pipeline-as-graph.md) | **ADR:** the graph IS the full WebGPU pipeline — geometry/buffer/stage/target **nodes** + resource ports; ShaderToy-equivalent in capability | `graph`, `compiler`, `runtime-webgpu`, `graph-editor` |
 | [pipeline-realignment-report.md](./pipeline-realignment-report.md) | **Report:** what the repo (as built) needs to reach pipeline-as-graph — R1–R5, additive not a rewrite | all |
 | [primitive-library.md](./primitive-library.md) | **Catalogue:** every node built/planned/discussed — fields, domain, inputs, + geometry/buffer/stage/target families; low-hanging fruit | `graph`, `procedural-wgsl` |
+| [node-model-design-notes.md](./node-model-design-notes.md) | **Design:** collections/loops (lights→PBR), elemental geometry + transforms, node-swap UX (Blender math vs perf) | `graph`, `compiler`, `graph-editor` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
 | [briefs/](./briefs/README.md) | Routable per-milestone contract briefs (serialized; M1 ready) | per-milestone |
 
