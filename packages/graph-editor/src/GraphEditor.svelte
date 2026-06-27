@@ -9,6 +9,7 @@
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
 	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
 	import VegetationPreviewPanel from './VegetationPreviewPanel.svelte';
+	import EffectPreviewPanel from './EffectPreviewPanel.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -51,7 +52,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let previewMode = $state<'cpu' | 'gpu' | 'mesh' | 'vegetation'>('cpu');
+	let previewMode = $state<'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect'>('cpu');
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -110,7 +111,7 @@
 		(chrome: {
 			version: 1;
 			layout: LayoutDocument;
-			previewMode: 'cpu' | 'gpu' | 'mesh' | 'vegetation';
+			previewMode: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect';
 		}) => {
 			saveEditorChrome(chrome);
 		},
@@ -125,7 +126,7 @@
 		scheduleChromeSave(event.layout);
 	}
 
-	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh' | 'vegetation') {
+	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect') {
 		previewMode = mode;
 		scheduleChromeSave();
 	}
@@ -398,6 +399,15 @@
 			<button
 				type="button"
 				role="tab"
+				aria-selected={previewMode === 'effect'}
+				class:active={previewMode === 'effect'}
+				onclick={() => setPreviewMode('effect')}
+			>
+				Effect
+			</button>
+			<button
+				type="button"
+				role="tab"
 				aria-selected={previewMode === 'vegetation'}
 				class:active={previewMode === 'vegetation'}
 				onclick={() => setPreviewMode('vegetation')}
@@ -411,6 +421,8 @@
 			<GpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
 		{:else if previewMode === 'mesh'}
 			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} />
+		{:else if previewMode === 'effect'}
+			<EffectPreviewPanel />
 		{:else}
 			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} />
 		{/if}

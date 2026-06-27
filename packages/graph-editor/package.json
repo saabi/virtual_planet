@@ -31,6 +31,7 @@
 		"./CodeView.svelte": "./src/CodeView.svelte",
 		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte",
 		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte",
+		"./EffectPreviewPanel.svelte": "./src/EffectPreviewPanel.svelte",
 		"./MeshPreviewPanel.svelte": "./src/MeshPreviewPanel.svelte"
 	},
 	"scripts": {

@@ -17,6 +17,12 @@ import { NOISE_SIMPLEX_MODULE } from './noise/simplex.js';
 import { NOISE_WORLEY_MODULE } from './noise/worley.js';
 import { PROCEDURAL_METRIC_POSITION_MODULE } from './procedural/metricPosition.js';
 import { PROCEDURAL_UV_MODULE } from './procedural/uv.js';
+import { EFFECT_COSINE_PALETTE_MODULE } from './effect/index.js';
+import {
+	HOST_FRAG_COORD_MODULE,
+	HOST_IRESOLUTION_MODULE,
+	HOST_ITIME_MODULE
+} from './host/index.js';
 import { SURFACE_CUBE_SPHERE_MODULE } from './surface/cubeSphere.js';
 import { SURFACE_PLANE_MODULE } from './surface/plane.js';
 import {
@@ -62,6 +68,10 @@ function copyModule(mod: {
 export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[PROCEDURAL_UV_MODULE.id]: copyModule(PROCEDURAL_UV_MODULE),
 	[PROCEDURAL_METRIC_POSITION_MODULE.id]: copyModule(PROCEDURAL_METRIC_POSITION_MODULE),
+	[HOST_FRAG_COORD_MODULE.id]: copyModule(HOST_FRAG_COORD_MODULE),
+	[HOST_IRESOLUTION_MODULE.id]: copyModule(HOST_IRESOLUTION_MODULE),
+	[HOST_ITIME_MODULE.id]: copyModule(HOST_ITIME_MODULE),
+	[EFFECT_COSINE_PALETTE_MODULE.id]: copyModule(EFFECT_COSINE_PALETTE_MODULE),
 	[NOISE_PERLIN3D_MODULE.id]: copyModule(NOISE_PERLIN3D_MODULE),
 	[NOISE_SIMPLEX_MODULE.id]: copyModule(NOISE_SIMPLEX_MODULE),
 	[NOISE_WORLEY_MODULE.id]: copyModule(NOISE_WORLEY_MODULE),
@@ -120,6 +130,10 @@ export {
 	NOISE_WORLEY_MODULE,
 	PROCEDURAL_METRIC_POSITION_MODULE,
 	PROCEDURAL_UV_MODULE,
+	EFFECT_COSINE_PALETTE_MODULE,
+	HOST_FRAG_COORD_MODULE,
+	HOST_IRESOLUTION_MODULE,
+	HOST_ITIME_MODULE,
 	COLOR_HSV_TO_RGB_MODULE,
 	COLOR_LINEAR_TO_SRGB_MODULE,
 	COLOR_SRGB_TO_LINEAR_MODULE,
@@ -163,6 +177,14 @@ export { NOISE_SIMPLEX_SOURCE } from './noise/simplex.js';
 export { NOISE_WORLEY_SOURCE } from './noise/worley.js';
 export { PROCEDURAL_METRIC_POSITION_SOURCE } from './procedural/metricPosition.js';
 export { PROCEDURAL_UV_SOURCE } from './procedural/uv.js';
+export {
+	EFFECT_COSINE_PALETTE_SOURCE
+} from './effect/index.js';
+export {
+	HOST_FRAG_COORD_SOURCE,
+	HOST_IRESOLUTION_SOURCE,
+	HOST_ITIME_SOURCE
+} from './host/index.js';
 export { SURFACE_CUBE_SPHERE_SOURCE } from './surface/cubeSphere.js';
 export { SURFACE_PLANE_SOURCE } from './surface/plane.js';
 export {

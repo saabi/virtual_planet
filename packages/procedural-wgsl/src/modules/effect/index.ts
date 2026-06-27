@@ -1,0 +1,1 @@
+export { EFFECT_COSINE_PALETTE_MODULE, EFFECT_COSINE_PALETTE_SOURCE } from './cosinePalette.js';

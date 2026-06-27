@@ -27,6 +27,11 @@ export interface EmittedGraphEval {
 
 export interface EmitGraphEvalOptions {
 	positionExpr?: string;
+	/** When true, host.* primitives read ShaderToy uniforms instead of procedural UV. */
+	shaderToy?: boolean;
+	fragCoordExpr?: string;
+	iResolutionExpr?: string;
+	iTimeExpr?: string;
 }
 
 function sanitizeId(id: string): string {
@@ -168,6 +173,14 @@ export function emitGraphScalarEval(
 	return emitGraphEval(doc, output, 'f32', 'emitGraphScalarEval requires scalar f32 output', opts);
 }
 
+export function emitGraphVec4Eval(
+	doc: GraphDocument,
+	output: PortRef,
+	opts?: EmitGraphEvalOptions
+): EmittedGraphEval {
+	return emitGraphEval(doc, output, 'vec4f', 'emitGraphVec4Eval requires vec4f output', opts);
+}
+
 export function emitGraphVec3Eval(
 	doc: GraphDocument,
 	output: PortRef,
@@ -214,6 +227,37 @@ function emitGraphEval(
 				throw new Error('procedural.uv missing output port');
 			}
 			body.push(`let ${portVar(node.id, uvPort.id)} = vec2<f32>(u, v);`);
+			continue;
+		}
+
+		if (opts?.shaderToy && node.primitive === 'host.fragCoord') {
+			const outPort = node.outputs[0];
+			if (!outPort) {
+				throw new Error('host.fragCoord missing output port');
+			}
+			body.push(
+				`let ${portVar(node.id, outPort.id)} = ${opts.fragCoordExpr ?? 'position.xy'};`
+			);
+			continue;
+		}
+
+		if (opts?.shaderToy && node.primitive === 'host.iResolution') {
+			const outPort = node.outputs[0];
+			if (!outPort) {
+				throw new Error('host.iResolution missing output port');
+			}
+			body.push(
+				`let ${portVar(node.id, outPort.id)} = ${opts.iResolutionExpr ?? 'u.iResolution'};`
+			);
+			continue;
+		}
+
+		if (opts?.shaderToy && node.primitive === 'host.iTime') {
+			const outPort = node.outputs[0];
+			if (!outPort) {
+				throw new Error('host.iTime missing output port');
+			}
+			body.push(`let ${portVar(node.id, outPort.id)}: f32 = ${opts.iTimeExpr ?? 'u.iTime'};`);
 			continue;
 		}
 

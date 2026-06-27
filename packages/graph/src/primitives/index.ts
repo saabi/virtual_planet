@@ -19,3 +19,5 @@ import './surfaces/index.js';
 import './terrain/index.js';
 import './color/index.js';
 import './sdf/index.js';
+import './effect/index.js';
+import './host/index.js';
