@@ -4,9 +4,9 @@
 components), `apps/graph-editor` (standalone app). Part of the
 [Procedural Graph System](./README.md).
 
-> **Scope ADR:** The graph editor does **not** own scene-tree editing. See
-> [editor-and-scene-integration.md](./editor-and-scene-integration.md) for how
-> field graphs and the scene tree integrate in host apps.
+> **Scope ADR:** Parameter inspectors use the shared form schema policy in
+> [parameter-and-form-schema.md](./parameter-and-form-schema.md). Scene-tree
+> scope: [editor-and-scene-integration.md](./editor-and-scene-integration.md).
 
 A first-class but **separate** package (`graph-editor`) that edits the Typed
 Graph IR — it is *not* a planet editor and does **not** own the graph model. Two

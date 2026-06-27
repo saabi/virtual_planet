@@ -11,8 +11,9 @@ The plan is **design-complete, not implementation-spec-complete.** Each mileston
 **test gate**, which is what makes verification-driven delegation viable — but the
 docs intentionally do not pin public **types, signatures, and file layout** (except
 where a design ADR like
-[wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) or
-[editor-and-scene-integration.md](./editor-and-scene-integration.md) already locks
+[wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md),
+[editor-and-scene-integration.md](./editor-and-scene-integration.md), or
+[parameter-and-form-schema.md](./parameter-and-form-schema.md) already locks
 policy). A
 delegate handed a milestone cold would re-invent those and drift.
 

@@ -140,7 +140,8 @@ interface WgslFnSignature {
 
 Merge with parsed YAML → complete primitive schema equivalent to `definePrimitive`.
 **Signature-derived types are authoritative for port wiring; YAML is authoritative
-for editor/domain metadata.**
+for editor/domain metadata** (widgets, sections — consumed by the shared form
+generator per [parameter-and-form-schema.md](./parameter-and-form-schema.md)).
 
 Prefer a **small in-repo signature extractor** (scoped grammar or careful scanning)
 over coupling primitive registration to `@use-gpu/shader`'s provisional Lezer
@@ -248,7 +249,7 @@ updated with explicit rationale and milestone plan changes.
 |-----|--------------|
 | [graph-and-compiler.md](./graph-and-compiler.md) | Stream overview; linker + loader summaries — defers here for parse/AST policy |
 | [schema-and-primitives.md](./schema-and-primitives.md) | Self-describing WGSL format; signature + YAML merge |
-| [implementation-plan.md](./implementation-plan.md) | M3 (loader), M5 (codegen), M6 (linker) milestones |
+| [parameter-and-form-schema.md](./parameter-and-form-schema.md) | Param UI, M3 YAML widgets, M9 inspector |
 | [briefs/M5-codegen.md](./briefs/M5-codegen.md) | Pinned M5 contract (text codegen, no parse) |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Contract-first workflow; design ADRs inform brief authorship |
 

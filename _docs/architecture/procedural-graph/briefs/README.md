@@ -18,7 +18,8 @@ runs what.
   API** beyond the brief.
 - **Design ADRs.** Policy that spans milestones (e.g.
   [wgsl-parsing-and-codegen.md](../wgsl-parsing-and-codegen.md),
-  [editor-and-scene-integration.md](../editor-and-scene-integration.md)) outrank
+  [editor-and-scene-integration.md](../editor-and-scene-integration.md),
+  [parameter-and-form-schema.md](../parameter-and-form-schema.md)) outrank
   stream docs when they conflict; update the ADR before changing dependent briefs.
 
 ## Index

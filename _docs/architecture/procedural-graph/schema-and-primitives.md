@@ -51,7 +51,8 @@ and compiler discover them automatically.
 **Guiding principle.** *Procedural primitives are defined exactly once.* The
 schema is the single source of truth from which every UI, graph node, declarative
 component, validation rule, serialization format, doc page, compiler description,
-and WGSL pipeline is derived.
+and WGSL pipeline is derived. Parameter UI and GPU packing policy:
+[parameter-and-form-schema.md](./parameter-and-form-schema.md).
 
 ## Primitive library
 
