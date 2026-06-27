@@ -21,15 +21,16 @@ active brief in [briefs/](./briefs/README.md). Then
 | M5 — WGSL gen + module resolver | ✅ | 12/12 (compiler pkg) | `1c8a486` |
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
 | M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
+| M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
 
 (M3 — self-describing WGSL loader: not started; parallel track, unblocked.)
 
 ## Current front (single serialized task)
 
-- **Active:** implement the pinned M8 resource-input contract.
-- **Parallel-ready:** M3 (self-describing WGSL loader) remains unblocked, but execution
-  stays serialized until the synchronization workflow is documented.
-- Stage B (compiler core) and M7 (camera frustum + pointer ray) are complete.
+- **Active:** pin the M3 self-describing WGSL loader contract before implementation.
+- M7/M8 complete the generic CPU/runtime prerequisites for M9; M3 is the remaining
+  compiler-side prerequisite before editor integration.
+- Execution stays serialized until the synchronization workflow is documented.
 
 ## Resume protocol (any agent)
 
