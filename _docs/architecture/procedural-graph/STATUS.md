@@ -37,12 +37,16 @@ active brief in [briefs/](./briefs/README.md). Then
 | M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `cfa2c29` |
 | M9d.2 — zone-aware pane menus | ✅ | graph-editor 42/42 | `7ae1929` |
 | M11.3 — cube-sphere mesh preview | ✅ | runtime-webgpu 10/10 (2 skip); graph-editor 42/42; fe check | `7c4d8b5` |
+| Standard graph primitive expansion (streams A/B) | ✅ | graph 31/31 | `0a06cb4`, `8081af5` |
+| Procedural-WGSL library + runtime resolver (stream C) | ✅ | procedural-wgsl 5/5; runtime-webgpu 12/12 (2 skip) | `3536b81`, `7e82082` |
+| Graph editor app-shell sizing | ✅ | workspace check/test; fe build | `0e36836` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M12 — Vegetation consumer** per
-  [vegetation.md](./vegetation.md) and [implementation-plan.md](./implementation-plan.md).
+- **Active:** **M12.1 — deterministic CPU vegetation candidates** per
+  [briefs/M12-vegetation.md](./briefs/M12-vegetation.md).
 - M11 (tessellation primitives) is complete.
+- Parallel standard-library agents A, B, and C are all landed and integrated.
 
 ## Known deviations / tracked tech-debt
 
