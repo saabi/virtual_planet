@@ -50,6 +50,10 @@ active brief in [briefs/](./briefs/README.md). Then
 | · T2 primitive immutability + real WGSL + clone | ✅ | graph-editor 51/51 | `1ec544d` |
 | · T3 extract `@virtual-planet/editor-ui` (chrome + controls) | ✅ | editor-ui 3/3, fe 0 err | `3b54458` |
 | · T4 pass-graph executor — pure core | ✅ | runtime-webgpu frameGraph headless | `3fc520a` |
+| **Round 2** | ✅ | | |
+| · R2-T0 stage entry points (Opus) | ✅ | compiler 36/36 | `52334eb` |
+| · R2-T1 Use.GPU primitive harvest (SDF/colour/noise, license-clean) | ✅ | graph 57/57, procedural-wgsl 22/22 | `0b69570` |
+| · R2-T2 extract → `apps/graph-editor` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
 
 ## Current front
 
@@ -74,8 +78,8 @@ existing terrain renderer onto the shaping graph) stays **gated** behind
 
 | Item | Severity | State | Resolve by |
 |------|----------|-------|-----------|
-| Standalone editor is a scene-free **route** in `fe/` (`fe/src/routes/graph-editor`), not the `apps/graph-editor` workspace the editor ADR requires | low | Accepted interim — package + route verified scene-free, **guarded** by `packages/graph-editor/src/sceneFree.test.ts` | Extract `fe/src/routes/graph-editor` → `apps/graph-editor` **before M14/M16** (embedded editor / collaboration), ahead of M17 WebGPUToy |
-| M9d editor shell polish (code highlighting) | — | M9d.2 ✅; M9d.3 optional — [briefs/M9d-editor-shell-polish-proposal.md](./briefs/M9d-editor-shell-polish-proposal.md) | M9d.3 optional parallel |
+| ~~Standalone editor is a route in `fe/`, not `apps/graph-editor`~~ | — | ✅ **RESOLVED** (R2-T2 `2966e07`) — extracted to `apps/graph-editor` workspace; `fe/` route removed | done |
+| M9d editor shell polish (code highlighting) | — | M9d.2 ✅; M9d.3 ✅ (`ac77b2d`) | done |
 
 Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green
 (schema 18, graph 17, compiler 26, runtime-cpu 14, runtime-webgpu 5+1-skip,
