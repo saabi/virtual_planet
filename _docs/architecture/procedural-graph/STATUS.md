@@ -30,7 +30,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | Graph editor port sync + validation fix | ✅ | graph 17/17; graph-editor 32/32; runtime-cpu 14/14 | `ca493a4` |
 | M10.1 — runtime-webgpu foundation | ✅ | runtime-webgpu 4/4 | `ca493a4` |
 | M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
-| M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | *(this commit)* |
+| M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | `ceae0eb` |
 
 ## Current front (single serialized task)
 
