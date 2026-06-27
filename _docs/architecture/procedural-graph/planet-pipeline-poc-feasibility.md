@@ -5,7 +5,7 @@
 tessellation → vertex shading → fragment shading, as rendered today in `/scene` — as
 **one procedural graph**, as a proof of concept. Explicitly **out of scope:** multiple
 bodies, atmospheres, solar systems. Companion to
-[planet-shaping-pipeline-graph.md](../planet-shaping-pipeline-graph.md),
+[planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md),
 [runtime-and-tessellation.md](./runtime-and-tessellation.md),
 [design-vs-implementation-audit.md](./design-vs-implementation-audit.md).
 
@@ -164,7 +164,7 @@ dependency order:
 4. **Faithful shaping-kernel codegen.** Reproduce `sample_planet`/`surface_material`/
    `planet_surface_normal`/`terrain_sun_shadow`/`evaluate_pbr` as graph nodes →
    `procedural-wgsl` modules. The node set is already enumerated in
-   [planet-shaping-pipeline-graph.md](../planet-shaping-pipeline-graph.md) (BodyDirection,
+   [planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md) (BodyDirection,
    LayerGate, MacroDistortion, MacroVoronoi, DetailFbm, HeightRemap, FineTextureNoise,
    PolarTerm, BiomeMaterial, NormalEstimator, WorldNormal, SelfShadow, PbrLighting).
 5. **Coordinate-space-typed ports** are already in the IR (M1) and are *exactly* the guard
