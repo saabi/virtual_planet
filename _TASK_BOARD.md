@@ -38,7 +38,8 @@ PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`. Tabs; verbati
 - **Do NOT touch:** `packages/**` source (consume `@virtual-planet/graph-editor` as-is),
   other `fe/` routes.
 - **⚠ visual gate:** the standalone app loads + GPU preview renders; report.
-- **Status:** UNCLAIMED
+- **Status:** DONE `2966e07` — standalone `@virtual-planet/graph-editor-app` at `apps/graph-editor`;
+  fe route removed; check/build green; GPU preview verified on `npm run preview`.
 
 ---
 
