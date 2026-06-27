@@ -28,9 +28,14 @@ Example primitive definition (conceptual):
 ```ts
 const Perlin3D = definePrimitive({
   id: 'noise.perlin3d',
-  inputs:  { position: Field.vec3(), scale: Field.float({ default: 0.002 }) },
+  inputs:  { position: Field.vec3() },
   outputs: { value: Field.float() },
-  parameters: { octaves: Integer(5), persistence: Float(0.5), lacunarity: Float(2.0) },
+  parameters: Type.Object({
+    scale: quantity('1/m', { default: 0.002 }),
+    octaves: Type.Integer({ default: 5 }),
+    persistence: Type.Number({ default: 0.5 }),
+    lacunarity: Type.Number({ default: 2.0 }),
+  }),
   metadata: { category: 'Noise', color: '#5d8cff', icon: 'perlin', keywords: ['noise','fbm'] },
   wgsl: { module: 'noise.perlin3d', entry: 'perlin3d' },   // resolved by the compiler
 });
@@ -78,7 +83,7 @@ without engine changes.
 ```ts
 type NodePrimitive = {
   id: string;
-  inputs: Port[]; outputs: Port[]; params: ParamSchema[];
+  inputs: Port[]; outputs: Port[]; params: TSchema; // TypeBox object schema
   emitWGSL(ctx): WGSLExpr;          // or a WgslSourceRef — see graph-and-compiler.md
   evalCPU?(ctx): Value;
 };
@@ -128,7 +133,9 @@ deterministic: true
 
 inputs:
   position: { semantic: world-position, unit: m }
-  scale:    { unit: 1/m, widget: slider, min: 0.0001, max: 1.0, default: 0.002 }
+
+params:
+  scale: { unit: 1/m, widget: slider, min: 0.0001, max: 1.0, default: 0.002 }
 
 outputs:
   value: { range: [0, 1], semantic: scalar-field }

@@ -155,9 +155,11 @@ Target:
   `section` / `sections`) per [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md)
   — signatures supply mechanical types; YAML supplies UX metadata.
 
-Until convergence lands, adapters may translate `ParamSpec[]` → minimal
-`TSchema` for the form generator; **do not** add new primitives with only
-hand-written inspector fields.
+The active
+[M3 brief](./briefs/M3-self-describing-wgsl.md) pins this convergence as a
+one-time internal migration: `NodePrimitive.params` becomes a TypeBox object
+schema and the staging `ParamSpec[]` is removed. Do not add an adapter or retain
+both shapes after M3.
 
 ---
 
@@ -198,7 +200,7 @@ structs. Tags belong in this ADR, not in the WGSL ADR.
 
 | Milestone | This ADR requires |
 |-----------|-------------------|
-| **M3** | Loader merges YAML widgets/sections into primitive param schema; form generator consumes merged schema |
+| **M3** | Remove staging `ParamSpec[]`; loader merges YAML widgets/sections into a TypeBox primitive param object schema |
 | **M9** | `InspectorPanel` uses shared form generator; no handwritten per-primitive inspectors |
 | **M9b** | Primitive `CodeView` edits ripple through same schema to inspector |
 | **M13** | Planet shaping params expressed as graph primitives; retire or generate `paramEditorSchema` from schema |
@@ -254,6 +256,7 @@ Briefs for M9/M3/M13 must reference this ADR when defining public surfaces.
 | [schema-and-primitives.md](./schema-and-primitives.md) | SSOT vision; primitive registration |
 | [editor.md](./editor.md) | Inspector, schema-driven palette, section chrome |
 | [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | M3 YAML + signatures (not form layout) |
+| [briefs/M3-self-describing-wgsl.md](./briefs/M3-self-describing-wgsl.md) | Exact TypeBox convergence and YAML merge contract |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Host/runtime input class |
 | [planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md) | Scale tags, uniform contract |
 | [driven-fields-editor.md](../../specs/driven-fields-editor.md) | Scene field bindings (separate from scalar params) |
@@ -267,3 +270,4 @@ Briefs for M9/M3/M13 must reference this ADR when defining public surfaces.
 | Date | Change |
 |------|--------|
 | 2026-06-24 | Initial record: one schema SSOT, shared form generator, three param classes, ParamSpec→TypeBox convergence, no raw uniform UI |
+| 2026-06-27 | Pin convergence to M3: remove `ParamSpec[]`; TypeBox object schema is the graph-param SSOT before M9 |

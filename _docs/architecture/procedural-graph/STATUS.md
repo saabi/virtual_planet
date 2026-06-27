@@ -28,6 +28,13 @@ active brief in [briefs/](./briefs/README.md). Then
 ## Current front (single serialized task)
 
 - **Active:** implement the pinned M3 self-describing WGSL loader contract.
+- **M3/M9 read order:** this status →
+  [parameter-and-form-schema.md](./parameter-and-form-schema.md) → active brief →
+  `fe/src/lib/planet/components/SchemaForm.svelte` and
+  `packages/schema/src/schema.ts`.
+- The M3 brief was reconciled with the parameter/form ADR on 2026-06-27:
+  TypeBox param schemas replace `ParamSpec[]`; do not implement the earlier
+  `ParamSpec.metadata` staging shape.
 - M7/M8 complete the generic CPU/runtime prerequisites for M9; M3 is the remaining
   compiler-side prerequisite before editor integration.
 - Execution stays serialized until the synchronization workflow is documented.
@@ -50,6 +57,10 @@ active brief in [briefs/](./briefs/README.md). Then
      graph-editor scope vs scene tree (graph-editor edits **field graphs only**;
      scene integration is **host composition** via document refs; standalone app stays
      scene-free). Touches M9, M9b, body→graph linking.
+   - [parameter-and-form-schema.md](./parameter-and-form-schema.md) —
+     param SSOT, shared `SchemaForm` / inspector policy, three param classes
+     (graph node / host input / GPU packer), `ParamSpec`→TypeBox convergence.
+     Touches M3, M9, M9b, M13; do not extend `paramEditorSchema` for new work.
 
 ## If the architect (Opus / Claude) becomes unavailable — incl. out of credits mid-task
 

@@ -110,7 +110,7 @@ boilerplate → Haiku or the cheapest available.
 | M0 ✅ | Scaffold packages | Haiku | done — pure boilerplate |
 | **M1** ✅ | Graph IR types | **Opus** | The schema is the SSOT (`Port` data+space, `Node`, `Edge`, `GraphDocument`); shape errors propagate everywhere |
 | M2 ✅ | Primitives + evalCPU | Cursor | Opus pins `NodePrimitive`/`registerPrimitive`; each noise/math op is then repetitive |
-| M3 | Self-describing WGSL loader | Sonnet | Opus pins the merged-schema shape + YAML grammar |
+| **M3** | Self-describing WGSL loader | **Opus** (contract) → Sonnet | TypeBox param-schema convergence + merged signature/YAML shape are cross-package contracts |
 | **M4** ✅ | Dependency slicing | Opus (contract) → Cursor | Algorithmic core of the compiler; correctness-critical |
 | M5 ✅ | WGSL gen + module resolver | Cursor | Mechanical once the slice/resolver interfaces are pinned |
 | **M6** ✅ | ShaderLinker + tree-shake | Cursor | Text-based reachability/DCE per ADR; `8b19ece` |

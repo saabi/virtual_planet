@@ -142,6 +142,9 @@ Merge with parsed YAML → complete primitive schema equivalent to `definePrimit
 **Signature-derived types are authoritative for port wiring; YAML is authoritative
 for editor/domain metadata** (widgets, sections — consumed by the shared form
 generator per [parameter-and-form-schema.md](./parameter-and-form-schema.md)).
+The active M3 brief also classifies each signature argument as an edge/host input
+or authored node parameter; authored parameters merge into the primitive's TypeBox
+object schema, never a parallel inspector model.
 
 Prefer a **small in-repo signature extractor** (scoped grammar or careful scanning)
 over coupling primitive registration to `@use-gpu/shader`'s provisional Lezer
