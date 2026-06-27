@@ -17,6 +17,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | M0 — scaffold packages | ✅ | check green | `e6eb7a6` |
 | M1 — Graph IR | ✅ | 5/5 | `774ddfd` |
 | M2 — primitives + CPU eval | ✅ | 10/10 | `12be429` |
+| M3 — self-describing WGSL + TypeBox params | ✅ | schema 18/18; graph 13/13; compiler 26/26 | `eb09625` |
 | M4 — dependency slicing | ✅ | slice gate green | `44df2ce` |
 | M5 — WGSL gen + module resolver | ✅ | 12/12 (compiler pkg) | `1c8a486` |
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
@@ -27,16 +28,15 @@ active brief in [briefs/](./briefs/README.md). Then
 
 ## Current front (single serialized task)
 
-- **Active:** implement the pinned M3 self-describing WGSL loader contract.
+- **Active:** pin the M9 standalone-editor contract before implementation.
 - **M3/M9 read order:** this status →
   [parameter-and-form-schema.md](./parameter-and-form-schema.md) → active brief →
   `fe/src/lib/planet/components/SchemaForm.svelte` and
   `packages/schema/src/schema.ts`.
-- The M3 brief was reconciled with the parameter/form ADR on 2026-06-27:
-  TypeBox param schemas replace `ParamSpec[]`; do not implement the earlier
-  `ParamSpec.metadata` staging shape.
-- M7/M8 complete the generic CPU/runtime prerequisites for M9; M3 is the remaining
-  compiler-side prerequisite before editor integration.
+- M3/M7/M8 complete the compiler and CPU/runtime prerequisites for M9.
+- M9 must consume `NodePrimitive.params` through the shared TypeBox form path; do
+  not add handwritten primitive inspectors, extend `paramEditorSchema`, or expose
+  uniform-struct editing.
 - Execution stays serialized until the synchronization workflow is documented.
 
 ## Resume protocol (any agent)
