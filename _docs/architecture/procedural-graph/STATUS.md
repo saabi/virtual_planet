@@ -40,11 +40,12 @@ active brief in [briefs/](./briefs/README.md). Then
 | Standard graph primitive expansion (streams A/B) | ✅ | graph 31/31 | `0a06cb4`, `8081af5` |
 | Procedural-WGSL library + runtime resolver (stream C) | ✅ | procedural-wgsl 5/5; runtime-webgpu 12/12 (2 skip) | `3536b81`, `7e82082` |
 | Graph editor app-shell sizing | ✅ | workspace check/test; fe build | `0e36836` |
+| M12.1 — deterministic CPU vegetation candidates | ✅ | runtime-cpu 23/23; workspace green | `bf999aa` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M12.1 — deterministic CPU vegetation candidates** per
-  [briefs/M12-vegetation.md](./briefs/M12-vegetation.md).
+- **Active:** pin the **M12.2 GPU vegetation candidate compute** contract per the
+  handoff in [briefs/M12-vegetation.md](./briefs/M12-vegetation.md).
 - M11 (tessellation primitives) is complete.
 - Parallel standard-library agents A, B, and C are all landed and integrated.
 

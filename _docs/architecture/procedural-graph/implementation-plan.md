@@ -73,7 +73,7 @@ apps/
 |---|------|------------------|-----------|
 | **M10** | runtime-webgpu | buffers/pipelines/bind groups; consumer abstraction; mesh-generation compute primitive (→ vertex/index) | render a plane mapping primitive to a GPU mesh in the editor |
 | **M11** | Tessellation primitives | plane / cube-face / cube-sphere mapping primitives (compositions); scheduler consuming the CPU frustum service | cube-sphere mesh in editor; LOD scheduling stub culls off-frustum patches |
-| **M12** | Vegetation consumer | dual-frequency fields, peak detection, coverage-vs-instance, metric coords; CPU candidate-gen first, then WGSL compute via the `patches/` streaming budget | vitest: deterministic candidate set per cell; instanced render of peaks |
+| **M12** 🟡 | Vegetation consumer | M12.1 CPU metric-space peak candidates ✅ (`bf999aa`); next: separately pin WGSL compute via the `patches/` streaming budget, then instanced preview | runtime-cpu 23/23; GPU parity + visual gates pending |
 
 ### Stage E — Existing-renderer migration (adoption, gated)
 
