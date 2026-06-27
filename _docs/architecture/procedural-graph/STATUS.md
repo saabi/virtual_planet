@@ -31,7 +31,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | M10.1 — runtime-webgpu foundation | ✅ | runtime-webgpu 4/4 | `ca493a4` |
 | M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
 | M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | `ceae0eb` |
-| M10.3 — editor GPU preview pane | ✅ | graph-editor 37/37; fe check; manual `/graph-editor` GPU tab | *(this commit)* |
+| M10.3 — editor GPU preview pane | ✅ | graph-editor 37/37; fe check; manual `/graph-editor` GPU tab | `ae7a4cb` |
 
 ## Current front (single serialized task)
 
