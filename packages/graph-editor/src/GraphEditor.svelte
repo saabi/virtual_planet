@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
-	import { createPaneId, type LayoutDocument } from '@virtual-planet/subdivide';
+	import type { LayoutDocument } from '@virtual-planet/subdivide';
 	import type { GraphDocument } from '@virtual-planet/graph';
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
@@ -21,6 +21,8 @@
 	} from './documentStorage.js';
 	import { applyEditIntent } from './irAdapter.js';
 	import { defaultPreviewGraph, primaryPreviewOutput } from './defaultGraph.js';
+	import { defaultGraphEditorLayout } from './defaultLayout.js';
+	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
 	import {
 		copyNodeToClipboard,
@@ -47,6 +49,37 @@
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
 
+	function debounce<T extends (...args: never[]) => void>(
+		fn: T,
+		ms: number
+	): (...args: Parameters<T>) => void {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		return (...args: Parameters<T>) => {
+			clearTimeout(timer);
+			timer = setTimeout(() => fn(...args), ms);
+		};
+	}
+
+	const debouncedSaveChrome = debounce(
+		(chrome: { version: 1; layout: LayoutDocument; previewMode: 'cpu' | 'gpu' }) => {
+			saveEditorChrome(chrome);
+		},
+		300
+	);
+
+	function scheduleChromeSave(layoutDoc = layout) {
+		debouncedSaveChrome({ version: 1, layout: layoutDoc, previewMode });
+	}
+
+	function onLayoutChange(event: { layout: LayoutDocument }) {
+		scheduleChromeSave(event.layout);
+	}
+
+	function setPreviewMode(mode: 'cpu' | 'gpu') {
+		previewMode = mode;
+		scheduleChromeSave();
+	}
+
 	$effect(() => {
 		if (!selectedNodeId) return;
 		const node = graph.nodes.find((candidate) => candidate.id === selectedNodeId);
@@ -55,81 +88,7 @@
 		}
 	});
 
-	let layout = $state<LayoutDocument>({
-		root: {
-			type: 'group',
-			row: true,
-			pos: 0,
-			size: 1,
-			children: [
-				{
-					type: 'pane',
-					id: createPaneId(),
-					zone: 'palette',
-					pos: 0,
-					size: 0.16
-				},
-				{
-					type: 'group',
-					row: false,
-					pos: 0.16,
-					size: 0.58,
-					children: [
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'canvas',
-							pos: 0,
-							size: 0.62
-						},
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'preview',
-							pos: 0.62,
-							size: 0.2
-						},
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'code',
-							pos: 0.82,
-							size: 0.18
-						}
-					]
-				},
-				{
-					type: 'group',
-					row: false,
-					pos: 0.74,
-					size: 0.26,
-					children: [
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'inspector',
-							pos: 0,
-							size: 0.52
-						},
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'validation',
-							pos: 0.52,
-							size: 0.24
-						},
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'markup',
-							pos: 0.76,
-							size: 0.24
-						}
-					]
-				}
-			]
-		}
-	});
+	let layout = $state<LayoutDocument>(defaultGraphEditorLayout());
 
 	function updateGraph(next: GraphDocument, persist = true) {
 		graph = next;
@@ -142,6 +101,14 @@
 	}
 
 	onMount(() => {
+		const chrome = loadEditorChrome();
+		if (chrome) {
+			layout = chrome.layout;
+			if (chrome.previewMode) {
+				previewMode = chrome.previewMode;
+			}
+		}
+
 		const stored = loadGraphFromStorage();
 		if (stored) {
 			updateGraph(stored, false);
@@ -353,7 +320,7 @@
 				role="tab"
 				aria-selected={previewMode === 'cpu'}
 				class:active={previewMode === 'cpu'}
-				onclick={() => (previewMode = 'cpu')}
+				onclick={() => setPreviewMode('cpu')}
 			>
 				CPU
 			</button>
@@ -362,7 +329,7 @@
 				role="tab"
 				aria-selected={previewMode === 'gpu'}
 				class:active={previewMode === 'gpu'}
-				onclick={() => (previewMode = 'gpu')}
+				onclick={() => setPreviewMode('gpu')}
 			>
 				GPU
 			</button>
@@ -434,6 +401,7 @@
 	<div class="workspace">
 		<Subdivide
 			bind:layout
+			onlayoutchange={onLayoutChange}
 			zones={{ palette, canvas, preview, code, inspector, validation, markup }}
 			zoneLabels={{
 				palette: 'Palette',
