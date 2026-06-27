@@ -27,6 +27,8 @@
 	import { defaultPreviewGraph, primaryPreviewOutput } from './defaultGraph.js';
 	import { defaultGraphEditorLayout } from './defaultLayout.js';
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
+	import { inferPreviewBackend, isPreviewModeCompatible, type PreviewBackend } from './previewBackend.js';
+	import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
 	import {
 		copyNodeToClipboard,
@@ -52,7 +54,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let previewMode = $state<'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect'>('cpu');
+	let previewMode = $state<PreviewBackend>('cpu');
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -96,6 +98,17 @@
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
 
+	function syncPreviewModeForGraph(doc: GraphDocument, force = false) {
+		const inferred = inferPreviewBackend(doc);
+		if (force || !isPreviewModeCompatible(doc, previewMode)) {
+			if (previewMode === 'mesh' || previewMode === 'vegetation') {
+				if (force) previewMode = inferred;
+			} else {
+				previewMode = inferred;
+			}
+		}
+	}
+
 	function debounce<T extends (...args: never[]) => void>(
 		fn: T,
 		ms: number
@@ -111,7 +124,7 @@
 		(chrome: {
 			version: 1;
 			layout: LayoutDocument;
-			previewMode: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect';
+			previewMode: PreviewBackend;
 		}) => {
 			saveEditorChrome(chrome);
 		},
@@ -126,7 +139,7 @@
 		scheduleChromeSave(event.layout);
 	}
 
-	function setPreviewMode(mode: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect') {
+	function setPreviewMode(mode: PreviewBackend) {
 		previewMode = mode;
 		scheduleChromeSave();
 	}
@@ -145,6 +158,7 @@
 		graph = next;
 		markupParseError = null;
 		codeSaveError = null;
+		syncPreviewModeForGraph(next);
 		onchange?.(next);
 		if (persist) {
 			saveGraphToStorage(next);
@@ -172,6 +186,21 @@
 		clearSelection();
 		updateGraph(next);
 		storageMessage = 'New graph';
+	}
+
+	function loadSample(sampleId: string) {
+		const sample = getGraphSample(sampleId);
+		if (!sample) {
+			storageMessage = 'Unknown sample';
+			return;
+		}
+		clearGraphStorage();
+		clearSelection();
+		const next = sample.build();
+		updateGraph(next);
+		previewMode = inferPreviewBackend(next);
+		scheduleChromeSave();
+		storageMessage = sample.label;
 	}
 
 	function saveGraph() {
@@ -422,7 +451,7 @@
 		{:else if previewMode === 'mesh'}
 			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} />
 		{:else if previewMode === 'effect'}
-			<EffectPreviewPanel />
+			<EffectPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
 		{:else}
 			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} />
 		{/if}
@@ -473,6 +502,15 @@
 		<button type="button" onclick={loadGraph}>Load</button>
 		<button type="button" onclick={downloadGraph}>Download</button>
 		<button type="button" onclick={triggerUpload}>Upload</button>
+		<label class="sample-picker">
+			<span>Samples</span>
+			<select onchange={(event) => loadSample((event.currentTarget as HTMLSelectElement).value)}>
+				<option value="" selected disabled>Load sample…</option>
+				{#each GRAPH_SAMPLES as sample (sample.id)}
+					<option value={sample.id}>{sample.label}</option>
+				{/each}
+			</select>
+		</label>
 		<button
 			type="button"
 			disabled={!selectedNodeId && !selectedEdgeId}
@@ -550,6 +588,23 @@
 	.toolbar button:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	.sample-picker {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		margin-left: 4px;
+	}
+
+	.sample-picker select {
+		font-size: 11px;
+		padding: 4px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
 	}
 
 	.status {

@@ -1,25 +1,24 @@
 <script lang="ts">
+	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
 	import {
 		executeFullscreenFragment,
 		requestGpuDevice,
 		type ShaderToyHostInputs
 	} from '@virtual-planet/runtime-webgpu';
 
-	import { cosinePaletteEffectGraph, cosinePaletteEffectOutput } from './effectGraph.js';
-
 	interface Props {
+		graph: GraphDocument;
+		output: PortRef | null;
 		size?: number;
+		refreshEpoch?: number;
 	}
 
-	let { size = 256 }: Props = $props();
+	let { graph, output, size = 256, refreshEpoch = 0 }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
 	let pointer = $state<[number, number, number, number]>([0, 0, 0, 0]);
 	let startTime = performance.now();
-
-	const graph = cosinePaletteEffectGraph();
-	const output = cosinePaletteEffectOutput();
 
 	const webGpuAvailable =
 		typeof navigator !== 'undefined' && typeof navigator.gpu !== 'undefined';
@@ -43,10 +42,14 @@
 	}
 
 	$effect(() => {
-		if (!canvas || !webGpuAvailable) {
-			if (!webGpuAvailable) {
-				statusMessage = 'WebGPU is not available in this browser.';
-			}
+		void refreshEpoch;
+		void graph;
+		startTime = performance.now();
+
+		if (!canvas || !output) return;
+
+		if (!webGpuAvailable) {
+			statusMessage = 'WebGPU is not available in this browser.';
 			return;
 		}
 
@@ -63,7 +66,7 @@
 				statusMessage = null;
 
 				const render = async () => {
-					if (cancelled || !device || !canvas) return;
+					if (cancelled || !device || !canvas || !output) return;
 
 					const host: ShaderToyHostInputs = {
 						iTime: (performance.now() - startTime) / 1000,
@@ -118,16 +121,20 @@
 <div
 	class="preview"
 	role="img"
-	aria-label="ShaderToy cosine palette effect preview"
+	aria-label="ShaderToy fragment effect preview"
 	onpointermove={onPointerMove}
 	onpointerdown={onPointerDown}
 	onpointerup={onPointerUp}
 	onpointerleave={onPointerUp}
 >
 	<h2 class="title">Effect preview</h2>
-	<canvas bind:this={canvas} width={size} height={size} class="effect-canvas"></canvas>
-	{#if statusMessage}
-		<p class="status">{statusMessage}</p>
+	{#if output}
+		<canvas bind:this={canvas} width={size} height={size} class="effect-canvas"></canvas>
+		{#if statusMessage}
+			<p class="status">{statusMessage}</p>
+		{/if}
+	{:else}
+		<p class="empty">Wire a vec4 image output with a fragment consumer.</p>
 	{/if}
 </div>
 
@@ -156,7 +163,8 @@
 		touch-action: none;
 	}
 
-	.status {
+	.status,
+	.empty {
 		margin: 0;
 		font-size: 11px;
 		opacity: 0.7;
