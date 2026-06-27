@@ -5,6 +5,8 @@ node_modules
 # Frontend build and tooling
 fe/build
 fe/.svelte-kit
+apps/graph-editor/build
+apps/graph-editor/.svelte-kit
 fe/.env
 fe/.env.*
 !fe/.env.example
