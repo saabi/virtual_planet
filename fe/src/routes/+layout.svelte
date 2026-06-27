@@ -34,6 +34,8 @@
 	}
 
 	.app-main {
+		display: flex;
+		flex-direction: column;
 		position: relative;
 		flex: 1;
 		min-height: 0;
