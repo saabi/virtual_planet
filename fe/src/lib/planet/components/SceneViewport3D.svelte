@@ -488,6 +488,11 @@
 						shoreWidth: viewportPrefs?.materialOverrides.waterShoreWidth ?? 0.25,
 						waterDebug: sceneWaterDebugToGpu(materialDebug),
 						shadows: viewportPrefs?.materialOverrides.shadows ?? true,
+						waterTerrainShadows:
+							viewportPrefs?.materialOverrides.waterTerrainShadows ?? true,
+						waterEclipseShadows:
+							viewportPrefs?.materialOverrides.waterEclipseShadows ?? true,
+						waterFoamShadows: viewportPrefs?.materialOverrides.waterFoamShadows ?? true,
 						shadowSoftness: viewportPrefs?.materialOverrides.shadowSoftness ?? 0.5,
 						shadowSteps: viewportPrefs?.materialOverrides.shadowSteps ?? 16,
 						shadowFill: viewportPrefs?.materialOverrides.shadowFill ?? 0.15

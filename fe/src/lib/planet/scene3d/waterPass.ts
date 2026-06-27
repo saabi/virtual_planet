@@ -48,6 +48,9 @@ export interface WaterRecordOptions {
 	waterDebug?: number;
 	/** Terrain self-shadow on the ocean: enable + the shared softness/steps/fill knobs. */
 	shadows?: boolean;
+	waterTerrainShadows?: boolean;
+	waterEclipseShadows?: boolean;
+	waterFoamShadows?: boolean;
 	shadowSoftness?: number;
 	shadowSteps?: number;
 	shadowFill?: number;
@@ -55,7 +58,7 @@ export interface WaterRecordOptions {
 
 const INSTANCE_FLOATS = 16;
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
-const UNIFORM_SIZE = 272;
+const UNIFORM_SIZE = 288;
 /** Per-body shadow caster: PlanetParams (128) + rotation vec4 (16) + center vec4 (16). */
 const CASTER_STRIDE = PLANET_PARAMS_BYTE_SIZE + 32;
 const MAX_CASTERS = 16;
@@ -322,7 +325,13 @@ export class WaterPass {
 		f32[64] = options.shadowSoftness ?? 0.5;
 		f32[65] = options.shadowSteps ?? 16;
 		f32[66] = options.shadowFill ?? 0.15;
-		f32[67] = options.shadows === false ? 0 : 1;
+		const shadowsEnabled = options.shadows !== false;
+		f32[67] = shadowsEnabled && options.waterTerrainShadows !== false ? 1 : 0;
+		// waterShadowToggles vec4: terrain relief, body/eclipse, foam follows shadows, reserved.
+		f32[68] = shadowsEnabled && options.waterTerrainShadows !== false ? 1 : 0;
+		f32[69] = shadowsEnabled && options.waterEclipseShadows !== false ? 1 : 0;
+		f32[70] = shadowsEnabled && options.waterFoamShadows !== false ? 1 : 0;
+		f32[71] = 0;
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 
 		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);

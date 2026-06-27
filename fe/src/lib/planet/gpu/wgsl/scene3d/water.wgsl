@@ -27,6 +27,8 @@ struct Uniforms {
 	invViewProj : mat4x4<f32>,
 	// x = shadow softness, y = shadow steps, z = shadow fill, w = terrain-shadow enabled.
 	shadowParams : vec4<f32>,
+	// x = terrain relief shadows, y = body/eclipse shadows, z = foam follows shadows.
+	waterShadowToggles : vec4<f32>,
 };
 
 // Per-ocean-body terrain-shadow caster: the body's full PlanetParams plus its world
@@ -242,18 +244,20 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let r = reflect(-l, n);
 	let ndl = max(dot(n, l), 0.0);
 	let ndv = max(dot(n, v), 0.0);
-	let eclipse_vis = body_eclipse_visibility(in.worldPos, eclipse);
+	let body_eclipse_vis = body_eclipse_visibility(in.worldPos, eclipse);
+	let eclipse_vis = mix(1.0, body_eclipse_vis, step(0.5, u.waterShadowToggles.y));
 	// Terrain self-shadow: march the receiver body's analytic relief from this water point
 	// toward the sun (same function the land uses), so coastal terrain shadows the sea and
 	// the shadow stays continuous across the shoreline. Folded in with the same shadow-fill
 	// floor as land, then combined with the body eclipse.
 	var terrain_shadow = 1.0;
-	if (u.shadowParams.w > 0.5) {
+	if (u.shadowParams.w > 0.5 && u.waterShadowToggles.x > 0.5) {
 		let caster = casters[in.caster_idx];
 		let local_pos = in.worldPos - caster.center.xyz;
 		terrain_shadow = terrain_sun_shadow(local_pos, l, caster.params, 0.0, caster.rotation, u.shadowParams.x, u.shadowParams.y);
 	}
 	let sun_vis = mix(clamp(u.shadowParams.z, 0.0, 1.0), 1.0, terrain_shadow) * eclipse_vis;
+	let foam_vis = mix(1.0, sun_vis, step(0.5, u.waterShadowToggles.z));
 	let rough = clamp(0.045 / max(u.waterGloss, 0.1), 0.012, 0.35);
 	let glint = pow(max(dot(r, v), 0.0), mix(24.0, 420.0, 1.0 - rough));
 	let fresnel = pow(1.0 - ndv, 5.0);
@@ -276,7 +280,7 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * sun_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
 	// Foam is sunlit whitewater — dim it in shadow (the shadow-fill floor keeps it visible).
-	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05) * sun_vis;
+	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05) * foam_vis;
 	let specular = u.lightColor.rgb * u.lightColor.w * glint * sun_vis * u.glintStrength * (0.08 + 1.4 * fresnel);
 	let sky_refl = water_sky_reflection(n, v, rough) * eclipse_vis;
 	let sky_weight = fresnel * max(u.skyReflectionStrength, 0.0) * (0.35 + 0.65 * grazing);
@@ -287,10 +291,29 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	return mix(transmitted, surface, surface_mix);
 }
 
-fn refracted_uv(uv : vec2f, wave_n : vec3f, thickness : f32) -> vec2f {
+fn project_uv_from_rel(p : vec3f) -> vec2f {
+	let clip = u.viewProj * vec4f(p, 1.0);
+	let ndc = clip.xy / clip.w;
+	return vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
+}
+
+fn refracted_uv(in : VSOut, uv : vec2f, shell_n : vec3f, wave_n : vec3f, column_meters : f32, thickness : f32) -> vec2f {
 	let shallow = 1.0 - thickness;
-	let offset = wave_n.xz * u.refractionStrength * (0.012 + 0.045 * shallow);
+	let probe_meters = clamp(max(column_meters * 0.08, 50.0), 50.0, 2500.0);
+	let base_uv = project_uv_from_rel(in.worldPos + shell_n * probe_meters);
+	let wave_uv = project_uv_from_rel(in.worldPos + wave_n * probe_meters);
+	let raw_offset = (wave_uv - base_uv) * u.refractionStrength * (0.25 + shallow * 0.75);
+	let max_offset = 0.035;
+	let offset_len = length(raw_offset);
+	let offset = select(raw_offset, raw_offset * (max_offset / max(offset_len, 1e-5)), offset_len > max_offset);
 	return clamp(uv + offset, vec2f(0.001), vec2f(0.999));
+}
+
+fn scene_depth_at_uv(uv : vec2f) -> f32 {
+	let size = textureDimensions(scene_depth);
+	let max_xy = vec2f(vec2<u32>(max(size.x, 1u), max(size.y, 1u))) - vec2f(1.0);
+	let texel = vec2<i32>(clamp(floor(uv * vec2f(size)), vec2f(0.0), max_xy));
+	return textureLoad(scene_depth, texel, 0);
 }
 
 fn is_camera_facing_shell(in : VSOut) -> bool {
@@ -315,10 +338,18 @@ fn fs_water(in : VSOut) -> @location(0) vec4<f32> {
 	let uv = (vec2f(f32(texel.x), f32(texel.y)) + vec2f(0.5)) / vec2f(size);
 	let column_meters = water_column_meters(in, uv, scene_d, depth_gap);
 	let thickness = water_thickness(column_meters);
-	let wave = wave_state(in, normalize(in.normal));
-	let sample_uv = refracted_uv(uv, wave.normal, thickness);
-	let background = textureSampleLevel(scene_color, scene_sampler, sample_uv, 0.0).rgb;
-	var rgb = shade_water(in, column_meters, background);
+	let shell_n = normalize(in.normal);
+	let wave = wave_state(in, shell_n);
+	let sample_uv = refracted_uv(in, uv, shell_n, wave.normal, column_meters, thickness);
+	let refracted_depth = scene_depth_at_uv(sample_uv);
+	let refracted_gap = refracted_depth - water_d;
+	let refracted_valid = refracted_depth < 0.999999 && refracted_gap >= -2.0e-5;
+	let shading_uv = select(uv, sample_uv, refracted_valid);
+	let shading_depth = select(scene_d, refracted_depth, refracted_valid);
+	let shading_gap = select(depth_gap, refracted_gap, refracted_valid);
+	let shading_column_meters = water_column_meters(in, shading_uv, shading_depth, shading_gap);
+	let background = textureSampleLevel(scene_color, scene_sampler, shading_uv, 0.0).rgb;
+	var rgb = shade_water(in, shading_column_meters, background);
 	if (u.waterDebug == 1u) {
 		rgb = vec3f(0.1, 0.85, 1.0);
 	} else if (u.waterDebug == 2u) {

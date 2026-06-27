@@ -77,6 +77,12 @@ export interface MaterialOverrides {
 	waterTurbidityStrength: number;
 	waterFoamStrength: number;
 	waterShoreWidth: number;
+	/** Apply receiver terrain relief/self-shadow to water volume and surface lighting. */
+	waterTerrainShadows: boolean;
+	/** Apply body/eclipse occluder shadows to water volume and surface lighting. */
+	waterEclipseShadows: boolean;
+	/** Dim foam by the active water shadow terms. */
+	waterFoamShadows: boolean;
 	materialDebug: MaterialDebugMode;
 	fogDensity: number;
 	/** Terrain self-shadows for the directional sun. */
@@ -108,6 +114,9 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	waterTurbidityStrength: 0.45,
 	waterFoamStrength: 0.35,
 	waterShoreWidth: 0.25,
+	waterTerrainShadows: true,
+	waterEclipseShadows: true,
+	waterFoamShadows: true,
 	materialDebug: 'off',
 	fogDensity: 0.8,
 	shadows: true,

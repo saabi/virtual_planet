@@ -119,6 +119,9 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void m.waterTurbidityStrength;
 	void m.waterFoamStrength;
 	void m.waterShoreWidth;
+	void m.waterTerrainShadows;
+	void m.waterEclipseShadows;
+	void m.waterFoamShadows;
 	void m.fogDensity;
 	void p.atmosphereIntegrateSteps;
 	void p.lod.sphereAboveRadiusPx;
