@@ -1,0 +1,18 @@
+{
+	"name": "@virtual-planet/runtime-cpu",
+	"version": "0.0.0",
+	"private": true,
+	"description": "CPU runtime: camera frustum, pointer/picking, resource sampling, CPU primitive evaluation.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9"
+	}
+}
