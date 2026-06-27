@@ -30,6 +30,7 @@ runs what.
 | [M4-slicing.md](./M4-slicing.md) | M4 — Dependency slicing | ✅ landed (`44df2ce`) | Cursor (done) |
 | [M5-codegen.md](./M5-codegen.md) | M5 — WGSL gen + module resolver | ✅ landed (`1c8a486`) | Cursor (done) |
 | [M6-linker.md](./M6-linker.md) | M6 — ShaderLinker + tree-shake | ✅ landed (`8b19ece`) | Cursor (done) |
+| [M7-cpu-runtime.md](./M7-cpu-runtime.md) | M7 — CPU runtime services | ✅ landed (`a579686`, 4/4 green) | Codex (done) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 Live status + resume entry point: [../STATUS.md](../STATUS.md).

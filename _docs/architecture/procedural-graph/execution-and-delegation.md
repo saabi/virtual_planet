@@ -113,7 +113,7 @@ boilerplate → Haiku or the cheapest available.
 | **M4** ✅ | Dependency slicing | Opus (contract) → Cursor | Algorithmic core of the compiler; correctness-critical |
 | M5 ✅ | WGSL gen + module resolver | Cursor | Mechanical once the slice/resolver interfaces are pinned |
 | **M6** ✅ | ShaderLinker + tree-shake | Cursor | Text-based reachability/DCE per ADR; `8b19ece` |
-| M7 | CPU runtime services | Sonnet | Standard math (frustum planes, pointer ray) with crisp tests |
+| M7 ✅ | CPU runtime services | Sonnet | Standard math (frustum planes, pointer ray); `a579686` |
 | M8 | Resource inputs | Sonnet | Opus pins resource port types (CPU/GPU views) |
 | M9 | Standalone editor | Sonnet | ⚠ visual gate; Opus pins the IR↔view binding |
 | **M9b** | Multi-level editing | **Opus** (+ Sonnet for views) | Round-trip losslessness + bounded declarative grammar are subtle |

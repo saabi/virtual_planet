@@ -20,13 +20,16 @@ active brief in [briefs/](./briefs/README.md). Then
 | M4 — dependency slicing | ✅ | slice gate green | `44df2ce` |
 | M5 — WGSL gen + module resolver | ✅ | 12/12 (compiler pkg) | `1c8a486` |
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
+| M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
 
 (M3 — self-describing WGSL loader: not started; parallel track, unblocked.)
 
 ## Current front (single serialized task)
 
-- **Active:** pin M7 contract (CPU runtime services) — executor: **Opus**, then Cursor.
-- **Next after M7:** M8 (resource inputs) or M3 (self-describing loader); Stage B (compiler core) is complete.
+- **Active:** pin M8 resource-input contracts before implementation.
+- **Parallel-ready:** M3 (self-describing WGSL loader) remains unblocked, but execution
+  stays serialized until the synchronization workflow is documented.
+- Stage B (compiler core) and M7 (camera frustum + pointer ray) are complete.
 
 ## Resume protocol (any agent)
 

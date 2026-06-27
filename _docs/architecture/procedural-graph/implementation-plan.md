@@ -61,7 +61,7 @@ apps/
 
 | # | Goal | Key deliverables | Test gate |
 |---|------|------------------|-----------|
-| **M7** | CPU runtime services | `runtime-cpu`: camera frustum (planes from view-proj), pointer→world ray, time | vitest: frustum planes & ray from known matrices |
+| **M7** ✅ | CPU runtime services | `runtime-cpu`: camera frustum (planes from view-proj), pointer→world ray | vitest: frustum planes & ray from known matrices — **4/4 green, `a579686`** |
 | **M8** | Resource inputs | image/mesh/audio typed ports with CPU views (pixel array, attributes, FFT bands) | vitest: sample a pixel; read a mesh attribute; FFT band from a sample buffer |
 | **M9** | Standalone editor | `apps/graph-editor` + `graph-editor` components (schema-driven palette/inspector, space-typed `PortView`, `ValidationPanel`); `subdivide` panes (+ ported scene-editor section chrome); **graph canvas via `@xyflow/svelte` behind a swappable adapter** (IR stays canonical); plane mapping primitive + CPU preview | manual/Playwright: connect ports (invalid rejected live), edit a param, see a CPU-evaluated field on a plane |
 | **M9b** | Multi-level editing | `MarkupView` + `CodeView`; **canonical save = Graph IR JSON**; IR→Svelte **printer** (export, no compiler) + constrained-subset parser (editable import); primitive-code edits re-register & ripple; stable deterministic printers. *Optional/deferred:* sandboxed compile-and-run "live document" (the only mode needing `svelte/compiler` at runtime) | vitest: IR→markup→IR round-trip is identity on the declarative subset; `Player` renders exported markup (parse→IR→render) to the same output as the source IR; editing a primitive's WGSL updates its ports & flags broken edges |
