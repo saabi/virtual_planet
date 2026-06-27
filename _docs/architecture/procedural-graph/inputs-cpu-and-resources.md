@@ -147,6 +147,69 @@ carry an optional **write-target ref** and **channel→target reads**, so the ho
 resolve per-target/per-channel resolution and the pass order. The pass-graph *executor*
 itself is a follow-on runtime milestone, separate from the compile driver.
 
+## Inter-target dependencies = a frame graph (implications)
+
+When targets read other targets, the pass graph **is a frame graph / render graph** (the
+standard real-time pattern). This is **not ShaderToy-specific** — the existing planet
+renderer already is one: `TerrainPass` writes color+depth targets, `AtmospherePass`
+samples them. So the same model unifies ShaderToy multi-buffer effects *and* the planet's
+terrain→atmosphere→composite chain. Two implications are obvious (resolution access;
+dependency-ordered scheduling). The non-obvious ones, roughly in priority order:
+
+1. **Cycles are only legal across frames.** A→B→A *within* one frame is unsatisfiable
+   (a value needed before it exists) → **validation error**. A target reading itself or a
+   downstream target is legal **only** as an explicit *previous-frame* read, resolved by
+   **ping-pong / double buffering** (write frame N while reading N−1). The scheduler must
+   detect cycles, reject intra-frame ones, and allocate two physical textures for
+   feedback ones.
+2. **Read-write hazards / usage flags.** WebGPU forbids a texture bound as **render
+   attachment and sampled in the same pass** — so "read my own output" *requires*
+   ping-pong, and every target's `GPUTextureUsage` (RENDER_ATTACHMENT | TEXTURE_BINDING)
+   must be declared from the dependency graph up front. The scheduler owns the
+   usage/transition bookkeeping.
+3. **The display is a reader.** "Which buffer the preview shows" is an **edge in the
+   graph** (a present/blit pass reads target X). So selecting a different display buffer
+   changes an output edge, *keeps that buffer alive* (even if nothing else reads it), and
+   never changes the computation. Intermediate buffers must survive if displayed.
+4. **Resource lifetime → aliasing & memory.** The DAG gives each target a lifetime (first
+   write → last read); non-overlapping lifetimes can **alias one GPU allocation**
+   (transient-resource pooling — the core frame-graph optimization). **Persistent** targets
+   (feedback/history, displayed buffers) must be excluded from aliasing. Optimization, not
+   PoC — but the model enables it.
+5. **Sampler/format/resolution-mismatch correctness.** Mixed-resolution reads are the
+   *point*, so each channel read carries a **sampler** (filter/wrap) and needs the source's
+   resolution (`iChannelResolution`) for texel math; **format** compatibility
+   (rgba8/rgba16f/r32f, color vs depth vs data) must validate, and mip/filter/texel-center
+   offsets matter.
+6. **Cross-stage targets.** Dependencies aren't fragment→fragment only: a **compute** pass
+   may write a buffer a **vertex** consumer reads (e.g. the existing patch-cull compute →
+   vertex draw, or a heightfield compute → vertex displacement). The frame graph spans
+   compute/vertex/fragment uniformly via the consumer-stage model.
+7. **Invalidation / recompile scope.** Editing a node dirties only its **downstream
+   sub-DAG** — both for shader recompilation and for which passes re-execute. Live-edit
+   performance depends on scoping to the affected passes, not re-running everything.
+8. **Purity & caching.** A pass that is a pure function of unchanged inputs can be
+   **skipped/cached** between frames; passes depending on **time / feedback / live
+   resources** cannot. The scheduler needs each pass's purity flag (ties to the
+   determinism question below).
+9. **Iterative / conditional passes.** Some passes run **N times** (mip pyramids, blur
+   ping-pong, iterative solvers) or **conditionally** (enable flag) → the graph isn't
+   purely static; target allocation for a mip chain is dynamic.
+10. **Resize.** Screen-relative targets reallocate on viewport resize → re-derive
+    resolutions and re-bind; the executor handles resize as a first-class event.
+11. **Authoring-time validation.** The pass graph has its **own** validation rules
+    (distinct from the field-graph's type/space checks): intra-frame cycles, dangling
+    target refs, format/resolution/usage incompatibility, read-write-same-pass hazards —
+    surfaced in the editor's `ValidationPanel` like field-graph errors.
+
+**Architectural placement (unchanged):** the field graph declares *what each field is*;
+the **frame graph** (targets + their read/write edges + scheduling) is a **runtime
+composition** layer, same role as tessellation scheduling — authored/declared on
+consumers, executed by the runtime. Adopt frame-graph vocabulary (transient vs persistent
+targets, lifetimes, barriers) rather than reinventing it. The **pass-graph executor** is
+its own runtime milestone; the planet's terrain→atmosphere chain is a ready-made,
+already-working test case for it.
+
 ## Host-input binding contexts (the ShaderToy uniform set, generalized)
 
 `iResolution` is not special — it just exposed that host inputs bind from **different

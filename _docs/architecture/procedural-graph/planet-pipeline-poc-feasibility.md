@@ -74,6 +74,15 @@ A subtle but important distinction the audit surfaced:
 | **A. Vertex-shader tessellation** | Instanced plane grid, positions computed + displaced in `vs_main`; no vertex/index buffers stored | **The planet renderer (today)** | A **vertex** consumer that reads the patch-instance buffer |
 | **B. Compute mesh-generation** | A compute pass evaluates a surface graph over a uv grid → vertex/index storage buffers | Cases needing a real mesh (collision, export, CPU preview) | A **mesh-gen/compute** consumer ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |
 
+**The planet is already a frame graph.** `TerrainPass` writes color+depth targets;
+`AtmospherePass` samples them; then composite. That is exactly the "render targets read
+other render targets" model (see
+[inputs-cpu-and-resources.md → inter-target dependencies](./inputs-cpu-and-resources.md#inter-target-dependencies--a-frame-graph-implications))
+— so the pass-graph layer the ShaderToy multi-buffer case needs is the *same* layer the
+planet's terrain→atmosphere→composite chain needs. The planet PoC's later steps therefore
+also exercise the frame-graph executor, and the existing terrain→atmosphere chain is a
+ready-made test case for it.
+
 **The PoC must use Mode A** — it is what `/scene` does, needs no mesh storage, and is the
 efficient path for a displaced sphere. (My earlier `M-mesh-gen-consumer` brief assumed
 Mode B; that consumer is still valid for the editor's cube-sphere *preview* and for
