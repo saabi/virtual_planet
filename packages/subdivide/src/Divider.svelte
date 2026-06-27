@@ -27,6 +27,12 @@
 		return `top: ${y * 100}%; left: ${(x + position * w) * 100}%; width: 0; height: ${h * 100}%`;
 	});
 
+	const ariaValueNow = $derived(Math.round((divider.position ?? 0.5) * 100));
+
+	const resizeLabel = $derived(
+		divider.type === 'horizontal' ? 'Resize horizontal pane split' : 'Resize vertical pane split'
+	);
+
 	function handleMousedown(event: MouseEvent) {
 		event.preventDefault();
 		event.stopPropagation();
@@ -37,9 +43,14 @@
 <div
 	class="divider {divider.type}"
 	{style}
-	onmousedown={handleMousedown}
-	role="separator"
+	role="slider"
+	tabindex="0"
+	aria-label={resizeLabel}
 	aria-orientation={divider.type === 'horizontal' ? 'horizontal' : 'vertical'}
+	aria-valuemin={0}
+	aria-valuemax={100}
+	aria-valuenow={ariaValueNow}
+	onmousedown={handleMousedown}
 ></div>
 
 <style>

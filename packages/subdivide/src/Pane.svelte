@@ -139,6 +139,9 @@
 	<div
 		bind:this={innerEl}
 		class="inner"
+		role="tabpanel"
+		tabindex="0"
+		aria-label={zoneLabels[frame.zone] ?? frame.zone}
 		style:cursor
 		onmousedown={handleInnerMousedown}
 		onmousemove={handleInnerMousemove}

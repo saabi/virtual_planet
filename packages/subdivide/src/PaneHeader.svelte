@@ -11,13 +11,22 @@
 <script lang="ts">
 	let { paneId, zone, availableZones, zoneLabels, onzonechange }: Props = $props();
 
-	const menuId = `subdivide-menu-${paneId}`;
+	let menuOpen = $state(false);
+
+	const triggerId = $derived(`subdivide-menu-${paneId}-trigger`);
+	const menuListId = $derived(`subdivide-menu-${paneId}-list`);
+	const paneTypeLabel = $derived(zoneLabels[zone] ?? zone);
+
+	function toggleMenu(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		menuOpen = !menuOpen;
+	}
 
 	function selectZone(next: string, event: MouseEvent) {
 		event.preventDefault();
 		event.stopPropagation();
-		const input = document.getElementById(menuId) as HTMLInputElement | null;
-		if (input) input.checked = false;
+		menuOpen = false;
 		if (next !== zone) onzonechange?.(next);
 	}
 
@@ -26,14 +35,32 @@
 	}
 </script>
 
-<div class="pane-header" onmousedown={stopBubble}>
-	<input type="checkbox" id={menuId} class="menu-opener" />
-	<label class="menu-trigger" for={menuId} aria-label="Change pane type" title="Change pane type"></label>
-	<ul class="menu">
+<div
+	class="pane-header"
+	class:menu-open={menuOpen}
+	role="toolbar"
+	tabindex="-1"
+	aria-label="Pane controls"
+	onmousedown={stopBubble}
+>
+	<button
+		type="button"
+		id={triggerId}
+		class="menu-trigger"
+		aria-label="Change pane type"
+		aria-haspopup="menu"
+		aria-expanded={menuOpen}
+		aria-controls={menuListId}
+		title={`Change pane type (${paneTypeLabel})`}
+		onclick={toggleMenu}
+	></button>
+	<ul id={menuListId} class="menu" role="menu" aria-labelledby={triggerId}>
 		{#each availableZones as z (z)}
-			<li>
+			<li role="none">
 				<button
 					type="button"
+					role="menuitemradio"
+					aria-checked={z === zone}
 					class:selected={z === zone}
 					onclick={(event) => selectZone(z, event)}
 				>
@@ -55,19 +82,17 @@
 		pointer-events: none;
 	}
 
-	.menu-opener {
-		display: none;
-	}
-
 	.menu-trigger {
 		position: absolute;
 		top: 0;
 		left: 0;
 		width: 0;
 		height: 0;
+		padding: 0;
 		border-style: solid;
 		border-width: 22px 22px 0 0;
 		border-color: var(--subdivide-menu-color, #4a6fa5) transparent transparent transparent;
+		background: transparent;
 		cursor: pointer;
 		pointer-events: auto;
 		opacity: 0.85;
@@ -93,7 +118,7 @@
 		pointer-events: auto;
 	}
 
-	.menu-opener:checked ~ .menu {
+	.pane-header.menu-open .menu {
 		display: block;
 	}
 
