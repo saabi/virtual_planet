@@ -47,15 +47,15 @@ apps/
 | **M0** ✅ | Scaffold packages | `graph`, `compiler`, `procedural-wgsl`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `mcp-server` as workspaces with `check`/`test` stubs | `npm install` (root) links all; `npm run check -w …` green on stubs |
 | **M1** ✅ | Graph IR on TypeBox | `GraphDocument`/`GraphNode`/`GraphEdge`/`Port` (data type **+ coordinate-space tag**), field types, validation + serialization in `packages/graph` | vitest: build a 2-node graph, round-trip serialize; **reject** a type-mismatched edge and a space-mismatched edge — **5/5 green** |
 | **M2** ✅ | Primitives + CPU eval | `registerPrimitive`, `NodePrimitive` (schema, `evalCPU?`, `WgslSourceRef`); noise + math primitives with CPU evaluators | vitest: `evalCPU` determinism (perlin), `remap`/`clamp`/`smoothstep` numerics — **10/10 green** |
-| **M3** | Self-describing WGSL | YAML-frontmatter + WGSL signature parse → merged primitive schema (loader in `compiler`) | vitest: load a `.wgsl` with frontmatter; assert merged schema == hand-written `definePrimitive` |
+| **M3** | Self-describing WGSL | YAML-frontmatter + WGSL **signature** read → merged primitive schema (loader in `compiler`); see [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | vitest: load a `.wgsl` with frontmatter; assert merged schema == hand-written `definePrimitive` |
 
 ### Stage B — Compiler & linker
 
 | # | Goal | Key deliverables | Test gate |
 |---|------|------------------|-----------|
-| **M4** | Dependency slicing + multi-output | backward slice from requested outputs → minimal sub-graph per consumer | vitest: request a subset; assert minimal node set; unrelated branch excluded |
-| **M5** | WGSL gen + module resolver | `WgslModuleResolver` (stable IDs → sources; generalizes `vite-wgsl` resolution); emit reusable `fn …` per slice | vitest: compile a slice to a WGSL string; only needed functions/imports present |
-| **M6** | ShaderLinker + WGSL tree-shake | minimal `ShaderLinker` (start from `vite-wgsl`'s recursive inliner, typed + dependency-ordered) | vitest: dead helper removed; **optional** real compile via `wgslCompile.test.ts` when a device exists |
+| **M4** ✅ | Dependency slicing + multi-output | backward slice from requested outputs → minimal sub-graph per consumer | vitest: request a subset; assert minimal node set; unrelated branch excluded — **green, committed `44df2ce`** |
+| **M5** ✅ | WGSL gen + module resolver | `WgslModuleResolver` (stable IDs → sources; generalizes `vite-wgsl` resolution); emit reusable `fn …` per slice | vitest: compile a slice to a WGSL string; only needed functions/imports present — **green, `1c8a486`** |
+| **M6** ✅ | ShaderLinker + WGSL tree-shake | text-based `ShaderLinker` / `textLinker` (reachability, DCE, callee-first emit) | vitest: dead helper removed; callees before callers — **green, `8b19ece`** |
 
 ### Stage C — CPU runtime + standalone editor (first usable product)
 

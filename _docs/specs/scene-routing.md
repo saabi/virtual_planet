@@ -6,7 +6,10 @@ registry, plus a model refinement (orbit-as-node). **Supersedes** the ad-hoc
 `/system` route. Related: [solar-system-model.md](solar-system-model.md),
 [solar-system-scene.md](solar-system-scene.md),
 [scene-editor-layout.md](scene-editor-layout.md) (resizable pane layout for the
-scene editor shell).
+scene editor shell). **Graph editor boundary:**
+[../architecture/procedural-graph/editor-and-scene-integration.md](../architecture/procedural-graph/editor-and-scene-integration.md)
+(scene tree stays here; field graphs integrate via host composition, not inside
+`graph-editor`).
 
 ## Decision
 

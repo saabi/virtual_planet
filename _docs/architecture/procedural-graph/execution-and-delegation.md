@@ -9,7 +9,11 @@ companion to [implementation-plan.md](./implementation-plan.md). Part of the
 The plan is **design-complete, not implementation-spec-complete.** Each milestone
 ([implementation-plan.md](./implementation-plan.md)) has a concrete goal and a
 **test gate**, which is what makes verification-driven delegation viable — but the
-docs intentionally do not pin public **types, signatures, and file layout**. A
+docs intentionally do not pin public **types, signatures, and file layout** (except
+where a design ADR like
+[wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) or
+[editor-and-scene-integration.md](./editor-and-scene-integration.md) already locks
+policy). A
 delegate handed a milestone cold would re-invent those and drift.
 
 So milestones are not "hand off and walk away" yet — they are **one thin contract
@@ -45,6 +49,22 @@ a brief, implemented a milestone, or reviewed one — is state explicitly:
 This keeps a single moving front without a central scheduler. Routable per-milestone
 **briefs** (contract + gate + doc links, ready to hand to any pool agent) live in
 [`briefs/`](./briefs/README.md).
+
+## Continuity & resumption (agent-independent)
+
+All build state lives in the repo, not in any agent's context: **briefs are specs,
+test gates are acceptance, git commits are the per-stage ledger, handoffs name the
+next step**, and [STATUS.md](./STATUS.md) is the single resume entry point (kept
+current at each task boundary).
+
+This makes the build **resumable by any capable agent at any point** — including
+mid-task and including a change of architect. If the current architect (Opus/Claude)
+stops — e.g. runs out of credits mid-contract — a top-tier agent (Codex 5.5, etc.)
+reads `STATUS.md`, picks up the in-flight brief or implementation from the working
+tree, and continues. Requirement: Sonnet-class-or-better; no conversation history is
+needed, because there is no hidden state in any single agent's session. To stay
+resumable, **commit per stage** (Cursor already does) and **keep `STATUS.md`
+current**.
 
 ## Roles & agent pool
 
@@ -90,9 +110,9 @@ boilerplate → Haiku or the cheapest available.
 | **M1** ✅ | Graph IR types | **Opus** | The schema is the SSOT (`Port` data+space, `Node`, `Edge`, `GraphDocument`); shape errors propagate everywhere |
 | M2 ✅ | Primitives + evalCPU | Cursor | Opus pins `NodePrimitive`/`registerPrimitive`; each noise/math op is then repetitive |
 | M3 | Self-describing WGSL loader | Sonnet | Opus pins the merged-schema shape + YAML grammar |
-| **M4** | Dependency slicing | **Opus** | Algorithmic core of the compiler; correctness-critical |
-| M5 | WGSL gen + module resolver | Sonnet | Mechanical once the slice/resolver interfaces are pinned |
-| **M6** | ShaderLinker + tree-shake | **Opus** | Ordering/dedup/dead-code correctness |
+| **M4** ✅ | Dependency slicing | Opus (contract) → Cursor | Algorithmic core of the compiler; correctness-critical |
+| M5 ✅ | WGSL gen + module resolver | Cursor | Mechanical once the slice/resolver interfaces are pinned |
+| **M6** ✅ | ShaderLinker + tree-shake | Cursor | Text-based reachability/DCE per ADR; `8b19ece` |
 | M7 | CPU runtime services | Sonnet | Standard math (frustum planes, pointer ray) with crisp tests |
 | M8 | Resource inputs | Sonnet | Opus pins resource port types (CPU/GPU views) |
 | M9 | Standalone editor | Sonnet | ⚠ visual gate; Opus pins the IR↔view binding |

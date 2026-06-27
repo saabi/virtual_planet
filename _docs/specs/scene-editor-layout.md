@@ -6,7 +6,9 @@ persistence, `@virtual-planet/subdivide`). **Related:**
 type-dispatched editor),
 [body-vs-viewport-state.md](body-vs-viewport-state.md) (viewport/camera state is
 session-scoped, not saved with body data — the layout pane is view chrome, not
-scene document data).
+scene document data). **Procedural graph pane:** when a body is selected, the host
+may embed `<GraphEditor />` in a zone per
+[../architecture/procedural-graph/editor-and-scene-integration.md](../architecture/procedural-graph/editor-and-scene-integration.md).
 
 ## Decision
 

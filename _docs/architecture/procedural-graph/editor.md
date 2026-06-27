@@ -4,6 +4,10 @@
 components), `apps/graph-editor` (standalone app). Part of the
 [Procedural Graph System](./README.md).
 
+> **Scope ADR:** The graph editor does **not** own scene-tree editing. See
+> [editor-and-scene-integration.md](./editor-and-scene-integration.md) for how
+> field graphs and the scene tree integrate in host apps.
+
 A first-class but **separate** package (`graph-editor`) that edits the Typed
 Graph IR — it is *not* a planet editor and does **not** own the graph model. Two
 delivery modes from one component set:
@@ -71,7 +75,7 @@ Two kinds of "code" edit **different documents**, which keeps the model sane:
   **bidirectional, lossless** round-trip over the declarative subset: visual edits
   regenerate markup; markup edits reparse to IR and update the canvas.
 - **Primitive code** edits a *primitive-type document* (self-describing WGSL).
-  Saving re-runs the AST + YAML loader, re-registers the primitive, and **ripples
+  Saving re-runs the signature + YAML loader, re-registers the primitive, and **ripples
   to every graph using it** — ports, inspector, and node appearance update live,
   and a graph that referenced a now-removed output surfaces an error in the
   `ValidationPanel` rather than silently breaking.

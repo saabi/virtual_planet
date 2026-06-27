@@ -88,15 +88,17 @@ Reusable modules live in `packages/procedural-wgsl/` (`noise/`, `terrain/`,
 `vegetation/`, `atmosphere/`, `math/`, `utilities/`) and export functions, not
 shaders. This is the procedural standard library.
 
-**Primitive loader (AST + YAML merge).** A WGSL module can also *carry its own
-primitive schema* (see
+**Primitive loader (signature inference + YAML merge).** A WGSL module can also
+*carry its own primitive schema* (see
 [schema-and-primitives.md → Self-describing WGSL primitives](./schema-and-primitives.md#self-describing-wgsl-primitives)).
 When loading such a module the compiler:
 
-1. parses the WGSL AST — function name, params, WGSL types, return type, dependencies;
+1. reads function **signatures** from the WGSL source — name, params, WGSL types,
+   return type, `use` dependencies (not a full semantic AST; see
+   [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md));
 2. extracts the YAML frontmatter block comment — category, units, widgets, ranges,
    docs, defaults;
-3. merges them into a complete primitive schema (AST ⇒ mechanical types/ports,
+3. merges them into a complete primitive schema (signatures ⇒ mechanical types/ports,
    YAML ⇒ editor/domain semantics) and registers it.
 
 So module resolution by stable ID and self-describing WGSL primitives are two
@@ -115,7 +117,8 @@ emitting an ordered WGSL include list plus `sampleShape()` / `sampleMaterial()` 
 `sampleNormal()` wrappers. Use.GPU's `@use-gpu/shader` (`linkBundle`, WGSL
 loaders/imports) is a strong reference and *may* be reused behind the internal
 interface to accelerate development — but the compiler must never depend on a
-specific linker.
+specific linker. Parse trees from such adapters stay internal; see
+[wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md).
 
 ```ts
 interface ShaderLinker { link(entry: WGSLFunction, deps: WGSLModule[]): string }

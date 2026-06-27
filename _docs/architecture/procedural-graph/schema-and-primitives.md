@@ -96,18 +96,20 @@ WGSL source as the authoritative definition. This is the ergonomic path for
 no TypeScript wrapper required, automatic registration, and MCP publishing for
 free.
 
-**Dual approach: AST inference + annotation.** Two sources combine into one
-primitive schema:
+**Dual approach: signature inference + annotation.** Two sources combine into one
+primitive schema (policy:
+[wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md)):
 
-- **AST ⇒ mechanical types & wiring.** Parsing the WGSL function signature yields
-  input/output names, WGSL types, the return type, and module dependencies. This
-  is everything the type system and port wiring need.
-- **Annotation ⇒ semantics & UX.** The AST cannot know units, ranges, widget
+- **Signatures ⇒ mechanical types & wiring.** Reading the WGSL function signature
+  yields input/output names, WGSL types, the return type, and module dependencies.
+  This is everything the type system and port wiring need — not a full WGSL semantic
+  AST.
+- **Annotation ⇒ semantics & UX.** Signatures cannot know units, ranges, widget
   preferences, category, documentation, intent, safe defaults, or **inspector
   grouping** (sections / super-sections). The author supplies these in a YAML
   frontmatter block comment.
 
-The two are merged into the complete primitive schema. AST-derived types are
+The two are merged into the complete primitive schema. Signature-derived types are
 authoritative for wiring; YAML fills in editor/domain meaning.
 
 **Format — YAML frontmatter in a block comment** (recommended over line-style
@@ -150,11 +152,11 @@ Because grouping lives in the same single-source schema, the visual node, inspec
 declarative component, and MCP all present the same structure — no separately
 authored layout.
 
-**Authoring flow.** Write the function → parse signature & dependencies →
-type-check WGSL types → draft an initial node schema from the AST → prompt the
-author for any missing semantic metadata → save as a reusable graph node. From a
-single self-documenting file, the editor gets the node palette entry, property
-inspector, connection validation, UI components, and MCP API publishing — see
-[editor.md](./editor.md) and
-[collaboration-and-mcp.md](./collaboration-and-mcp.md). The AST+YAML loader/merge
-step is described in [graph-and-compiler.md](./graph-and-compiler.md).
+**Authoring flow.** Write the function → read signature & dependencies →
+validate WGSL (compile check) → draft an initial node schema from the signature →
+prompt the author for any missing semantic metadata → save as a reusable graph node.
+From a single self-documenting file, the editor gets the node palette entry,
+property inspector, connection validation, UI components, and MCP API publishing —
+see [editor.md](./editor.md) and
+[collaboration-and-mcp.md](./collaboration-and-mcp.md). The signature+YAML
+loader/merge step is described in [graph-and-compiler.md](./graph-and-compiler.md).

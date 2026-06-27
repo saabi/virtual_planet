@@ -16,8 +16,10 @@ runs what.
 - **Gate = done.** The task is complete when the brief's tests are green and
   `npm run check` / `npm test` pass for the touched package, with **no new public
   API** beyond the brief.
-- **Handoff required.** Every brief (and every executed task) ends with a
-  `## Handoff` naming the next task id · recommended executor · one-line why.
+- **Design ADRs.** Policy that spans milestones (e.g.
+  [wgsl-parsing-and-codegen.md](../wgsl-parsing-and-codegen.md),
+  [editor-and-scene-integration.md](../editor-and-scene-integration.md)) outrank
+  stream docs when they conflict; update the ADR before changing dependent briefs.
 
 ## Index
 
@@ -25,6 +27,9 @@ runs what.
 |-------|-----------|--------|----------------------|
 | [M1-graph-ir.md](./M1-graph-ir.md) | M1 — Graph IR | ✅ landed (5/5 green) | Sonnet (done) |
 | [M2-primitives.md](./M2-primitives.md) | M2 — Primitive registration | ✅ landed (10/10 green) | Cursor (done) |
-| [M4-slicing.md](./M4-slicing.md) | M4 — Dependency slicing | ✅ contract ready | Cursor (contract by Opus) |
+| [M4-slicing.md](./M4-slicing.md) | M4 — Dependency slicing | ✅ landed (`44df2ce`) | Cursor (done) |
+| [M5-codegen.md](./M5-codegen.md) | M5 — WGSL gen + module resolver | ✅ landed (`1c8a486`) | Cursor (done) |
+| [M6-linker.md](./M6-linker.md) | M6 — ShaderLinker + tree-shake | ✅ landed (`8b19ece`) | Cursor (done) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
+Live status + resume entry point: [../STATUS.md](../STATUS.md).

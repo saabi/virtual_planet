@@ -21,10 +21,12 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 |-----|--------|------------------|
 | [schema-and-primitives.md](./schema-and-primitives.md) | Schema as single source of truth; primitive library | `schema`, `graph`, `procedural-wgsl` |
 | [graph-and-compiler.md](./graph-and-compiler.md) | Typed graph/ports; dependency slicing, WGSL gen, module resolver, linker, tree shaking | `graph`, `compiler` |
+| [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | **ADR:** no owned WGSL AST; codegen as text; signature inference; linker/Use.GPU policy | `compiler`, `procedural-wgsl` |
 | [runtime-and-tessellation.md](./runtime-and-tessellation.md) | Consumers, WebGPU pipelines, shared/graph-described surfaces | `runtime-webgpu` |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Generic inputs, CPU runtime services, image/mesh/audio resources, tessellation-as-primitives | `graph`, `runtime-webgpu`, `runtime-cpu` |
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
+| [editor-and-scene-integration.md](./editor-and-scene-integration.md) | **ADR:** graph editor vs scene tree; host composition, no package fusion | `graph-editor`, `fe/` scene |
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
@@ -215,8 +217,9 @@ engine.
 2. **Primitive registration** — `registerPrimitive` + the primitive library
    (noise/math first, then tessellation/mesh-gen primitives), each with schema,
    optional CPU evaluator, and a `WgslSourceRef`; plus the self-describing WGSL path
-   (AST inference + YAML frontmatter loader) so user-authored functions register
-   themselves. → [schema-and-primitives.md](./schema-and-primitives.md)
+   (signature inference + YAML frontmatter loader) so user-authored functions register
+   themselves. → [schema-and-primitives.md](./schema-and-primitives.md),
+   [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md)
 3. **Graph compiler** — dependency slicing, multi-output compilation, WGSL
    function generation, WGSL module resolver (`packages/procedural-wgsl`).
    → [graph-and-compiler.md](./graph-and-compiler.md)
