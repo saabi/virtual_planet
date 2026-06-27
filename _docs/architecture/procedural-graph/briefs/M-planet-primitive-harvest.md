@@ -51,6 +51,12 @@ heightRemap`, matching `kernel.wgsl`.)
    of truth, the primitive is WGSL-only (no evalCPU) — that is allowed.
 3. Preserve the **scale-behavior tags** (`freq`/`ratioR`/`pure`/`R_ref`/`flag`/`length`)
    from `planet-shaping-pipeline-graph.md` on the params (param ADR).
+4. **Categorize for the palette.** Every primitive declares `category` **and** a `group`
+   super-category in its frontmatter, per the taxonomy in
+   [editor.md → palette categorization](../editor.md#ui-implementation-sveltekit-app):
+   terrain/relief nodes → `category: Terrain, group: Domain`; biome/material → `Material,
+   Domain`; pbr/shadow → `Material, Domain` (or `Effects` for lighting). The palette
+   self-organizes from these — do not hand-author a palette list.
 
 ## Constraint: do not regress the live renderer
 

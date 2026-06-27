@@ -127,7 +127,7 @@ introspection (`fields()`, `fieldKind()`, `annotationsOf()`), shared across:
 | Phase | Location | Notes |
 |-------|----------|-------|
 | **Now** | `fe/src/lib/planet/components/SchemaForm.svelte` | Scene editor prior art |
-| **M9** | Extract to **`packages/graph-editor`** (or **`packages/schema-ui`** if `fe/` and graph-editor both import it) | Graph editor owns inspector; `fe/` re-exports or imports |
+| **M9** | Shared chrome (collapsible `Section`/`VerticalTabs`) → **`@virtual-planet/editor-ui`** (decided — both `fe/` and graph-editor import it; see [M-editor-ui-extraction](./briefs/M-editor-ui-extraction.md)). `SchemaForm`/`ParamForm` live there or in a thin `schema-ui` on top | Graph editor owns inspector; `fe/` imports the shared chrome |
 | **Never** | `packages/graph`, `packages/compiler` | No Svelte in IR/compiler packages |
 
 Enhance the generator incrementally (log slider, sections, labels from

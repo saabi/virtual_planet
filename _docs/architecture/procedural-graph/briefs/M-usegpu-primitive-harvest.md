@@ -48,7 +48,12 @@ duplicates.
    primitive via the M3 loader. Provide `evalCPU` where cheap (SDFs, colour, easing are
    trivial to mirror; noise optional).
 2. Adapt GLSL→WGSL if the upstream is GLSL; keep semantics identical.
-3. Categorize in the palette (`category` frontmatter) — `SDF`, `Colour`, `Noise`, etc.
+3. **Categorize for the palette.** Every ported primitive declares `category` **and** a
+   `group` super-category per the taxonomy in
+   [editor.md → palette categorization](../editor.md#ui-implementation-sveltekit-app):
+   SDFs → `category: SDF, group: Geometry`; colour → `Colour, Effects`; noise → `Noise,
+   Fields`; easing/hash → `Math, Fields`. The palette self-organizes from frontmatter — no
+   hand-authored list.
 
 ## Gate
 

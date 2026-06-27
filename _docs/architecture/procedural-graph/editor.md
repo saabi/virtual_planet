@@ -159,6 +159,34 @@ working reference for shell + panel chrome and may be ported as needed:
 `EditorParamSection` / `EditorSubsection` sections, `EditorVerticalTabs`, and
 `layoutStorage.ts` for persisting the pane layout.
 
+**Shared chrome lives in `@virtual-planet/editor-ui`.** The collapsible `Section` /
+`Subsection` and `VerticalTabs` are extracted from `fe/` into a shared, scene-free package
+([briefs/M-editor-ui-extraction.md](./briefs/M-editor-ui-extraction.md)) so the graph
+editor (and `fe/`) both consume them — they can't be imported from `fe/`. Used across the
+graph editor wherever grouping helps:
+
+- **NodePalette** — primitives grouped into collapsible **categories** (and two-level
+  **super-categories**), the main UX win as the library grows (harvested planet + Use.GPU
+  primitives add dozens).
+- **InspectorPanel** — schema-driven param **sections / super-sections** (param ADR;
+  grouping declared in primitive frontmatter).
+- **OutputPanel / consumers** — group outputs by stage; **ValidationPanel** — group issues.
+
+**Primitive category taxonomy** (two levels: `group` → `category`, both from frontmatter):
+
+| Group | Categories |
+|-------|------------|
+| Fields | Noise, Math, Shaping |
+| Geometry | Surface, SDF, Tessellation |
+| Domain | Terrain, Vegetation, Material |
+| Effects | ShaderToy, Colour, PostFX |
+| Inputs | Host, Resource |
+| User | (cloned / user primitives) |
+
+`category` already exists in primitive metadata; harvesting tasks add an optional `group`
+(super-category) and assign every primitive a category so the palette self-organizes — no
+hand-maintained palette list (schema is the single source).
+
 **Preview panel = viewer + transport + interaction surface.** Once the graph drives
 multiple render targets (a pass graph), the preview is not "the output" but a *viewer*
 over the targets: it **selects which output buffer to display** (with a per-buffer
