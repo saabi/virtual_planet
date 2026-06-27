@@ -57,7 +57,9 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 }
 
 function buildGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
-	return `fn graph_eval_${outputName}() -> vec4f {
+	// `position` is the fragment's @builtin(position) (host.fragCoord emits `position.xy`);
+	// it must be a parameter so the body resolves it. Uniform `u` is module-scope (binding).
+	return `fn graph_eval_${outputName}(position: vec4f) -> vec4f {
 ${body.map((line) => `\t${line}`).join('\n')}
 \treturn ${resultExpr};
 }`;
@@ -98,7 +100,7 @@ export async function assembleFullscreenFragmentModuleAsync(
 				}
 			],
 			outputFns: { [outputName]: `graph_eval_${outputName}` },
-			callArgs: []
+			callArgs: ['position']
 		}
 	);
 

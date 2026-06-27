@@ -128,10 +128,13 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 		expect(code).toContain('@fragment');
 		expect(code).toContain('fn fs_main');
 		expect(code).toContain('fn cosine_palette(');
-		expect(code).toContain('graph_eval_image');
 		expect(code).toContain('position.xy');
 		expect(code).toContain('u.iResolution');
 		expect(code).toContain('u.iTime');
+		// Scope guard (regression): the eval fn must take `position` and the entry must
+		// pass it — `position.xy` in the body is otherwise out of scope (invalid WGSL).
+		expect(code).toContain('fn graph_eval_image(position: vec4f)');
+		expect(code).toContain('graph_eval_image(position)');
 	});
 });
 
