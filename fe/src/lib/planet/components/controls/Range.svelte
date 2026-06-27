@@ -22,7 +22,7 @@
 		variant = 'planet',
 		onvalue
 	}: Props = $props();
-	const inputId = id ?? label;
+	let inputId = $derived(id ?? label);
 
 	/** Round to 3 significant figures for display (drops float noise like 3.82000003). */
 	function format(n: number): number {
@@ -91,6 +91,7 @@
 		min-width: 0;
 		max-width: 140px;
 		-webkit-appearance: none;
+		appearance: none;
 		background: transparent;
 	}
 
@@ -104,6 +105,7 @@
 
 	.range-input::-webkit-slider-runnable-track {
 		-webkit-appearance: none;
+		appearance: none;
 		height: 4px;
 		cursor: pointer;
 		background: #3a4258;
@@ -112,6 +114,7 @@
 
 	.range-input::-webkit-slider-thumb {
 		-webkit-appearance: none;
+		appearance: none;
 		margin-top: -4px;
 		width: 10px;
 		height: 12px;

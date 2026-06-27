@@ -7,7 +7,7 @@
 	}
 
 	let { id, label, checked = $bindable(), disabled = false }: Props = $props();
-	const inputId = id ?? label;
+	let inputId = $derived(id ?? label);
 </script>
 
 <li class="checkbox-row">
