@@ -181,8 +181,14 @@
 	}
 
 	.zone-content {
+		/* Grid constrains the (single) child panel to the pane box so it can't grow past
+		   it; the pane itself only clips. Child panels own their own scrolling. */
+		display: grid;
+		grid-template-rows: minmax(0, 1fr);
 		width: 100%;
 		height: 100%;
 		min-height: 0;
+		min-width: 0;
+		overflow: hidden;
 	}
 </style>
