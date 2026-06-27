@@ -42,11 +42,13 @@ active brief in [briefs/](./briefs/README.md). Then
 | Graph editor app-shell sizing | ✅ | workspace check/test; fe build | `0e36836` |
 | M12.1 — deterministic CPU vegetation candidates | ✅ | runtime-cpu 23/23; workspace green | `bf999aa` |
 | M12.2 — GPU vegetation candidate compute | ✅ | runtime-webgpu 14/14 (2 skip) | `2c75d96` |
+| M12.3 — editor vegetation preview | ✅ | graph-editor 48/48 | `2d01d44` |
 | M9d.3 — CodeMirror syntax highlighting | ✅ | graph-editor 45/45 | `ac77b2d` |
 
 ## Current front (single serialized task)
 
-- **Active:** pin the **M12.3 editor instance preview** contract per the handoff in [briefs/M12-vegetation.md](./briefs/M12-vegetation.md).
+- **Active:** pin the **M13 planet shaping graph** contract per the roadmap in [implementation-plan.md](./implementation-plan.md).
+- M12.3 (editor vegetation preview) is complete.
 - M12.2 (GPU vegetation compute) is complete.
 - M9d.3 (syntax highlighting) is complete.
 - M11 (tessellation primitives) is complete.

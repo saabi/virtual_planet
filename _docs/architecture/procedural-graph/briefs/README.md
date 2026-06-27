@@ -41,7 +41,7 @@ runs what.
 | [M11-tessellation.md](./M11-tessellation.md) | M11 — Tessellation primitives (phased) | ✅ landed (`7c4d8b5`) | Cursor (done) |
 | [M12-vegetation.md](./M12-vegetation.md) | M12 — vegetation consumer (phased) | ✅ M12.1 landed (`bf999aa`) | Codex (done) |
 | [M12.2-vegetation-gpu.md](./M12.2-vegetation-gpu.md) | M12.2 — GPU vegetation compute | ✅ landed (`2c75d96`) | Sonnet (done) |
-| [M12.3-vegetation-preview.md](./M12.3-vegetation-preview.md) | M12.3 — editor vegetation preview | 📌 pinned | Composer |
+| [M12.3-vegetation-preview.md](./M12.3-vegetation-preview.md) | M12.3 — editor vegetation preview | ✅ landed (`2d01d44`) | Composer (done) |
 | [M9d3-code-highlighting.md](./M9d3-code-highlighting.md) | M9d.3 — syntax highlighting (CodeMirror) | ✅ landed (`ac77b2d`) | Composer (done) |
 | [M9d-editor-shell-polish-proposal.md](./M9d-editor-shell-polish-proposal.md) | M9d — editor shell polish (proposal) | ✅ approved → split | Opus (signed off) |
 | [M9d1-layout-persistence.md](./M9d1-layout-persistence.md) | M9d.1 — editor layout persistence | ✅ landed (`4d8da96`, Opus-reviewed) | Composer (done) |
