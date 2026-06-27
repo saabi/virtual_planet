@@ -27,7 +27,7 @@
 | 1 | `procedural.metricPosition` graph primitive | `graph` | 1 | ✅ DONE — Cursor | `814a8a1` |
 | 2 | `emitGraphVec3Eval` + `positionExpr` codegen | `runtime-webgpu` | 2 (after 1+8) | ✅ DONE — Cursor | `0a93756` |
 | 3 | Vegetation buffer layout + types | `runtime-webgpu` | 1 | ✅ DONE — Cursor | `4b197bf` |
-| 4 | Vegetation compute consumer + parity | `runtime-webgpu` | 3 (after 2+3) | 🔵 CLAIMED — Cursor | — |
+| 4 | Vegetation compute consumer + parity | `runtime-webgpu` | 3 (after 2+3) | ✅ DONE — Cursor | `2c75d96` |
 | 5 | M9d.3 CodeMirror syntax highlighting | `graph-editor` + `subdivide` | 1 | ✅ DONE — Cursor | `ac77b2d` |
 | 6 | STATUS ledger update + line-ending fix | docs + 1 WGSL | 1 | ✅ DONE — Cursor | `ba516ee` |
 | 7 | MCP server scaffold tools | `mcp-server` | 1 | ✅ DONE — Cursor | `d0f2346` |
