@@ -9,6 +9,16 @@ export interface PrimitiveMetadata {
 	color?: string;
 	icon?: string;
 	keywords?: string[];
+	/**
+	 * Semantic role tag (e.g. 'positionTransform', 'colorSpace').
+	 * When set, `swapFamily()` groups by role instead of mechanical contract,
+	 * enabling swap families across differing port signatures.
+	 */
+	role?: string;
+	/** Short help text shown in tooltips (replaces aliases — see node-model-design-notes §C). */
+	help?: string;
+	/** Extended usage/example text shown in inspector panels. */
+	usage?: string;
 }
 
 export interface PortMetadata {

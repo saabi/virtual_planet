@@ -13,5 +13,6 @@ export * from './primitive.js';
 export * from './registry.js';
 export * from './ports.js';
 export * from './paramInputs.js';
+export * from './contract.js';
 
 import './primitives/index.js';

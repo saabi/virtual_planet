@@ -13,6 +13,7 @@ const min: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'math.min', entry: 'min' },
+	metadata: { help: 'SDF union — `min(a, b)` selects the closer surface.' },
 	evalCPU(ctx) {
 		const a = ctx.inputs.a as number;
 		const b = ctx.inputs.b as number;

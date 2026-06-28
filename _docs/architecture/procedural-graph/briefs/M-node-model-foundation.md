@@ -27,17 +27,21 @@ resource ports do **not** need a parallel `resource:` field or new validation �
 equality-based validation already gives geometry↔geometry ✓ / geometry↔f32 ✗ / cross-kind ✗.
 **Gate met:** graph 66/66; union extension broke no exhaustive switches across packages.
 
-## Slice 2 — Role / contract metadata + swap families + help (graph)
+## Slice 2 — Role / contract metadata + swap families + help (graph) — ✅ DONE
 
-- **Mechanical contract:** `contractOf(primitive): string` — a normalized hash of the port
-  signature (e.g. `bin:f32,f32->f32`). Derived, not authored.
-- **Role:** optional `role?: string` on primitive metadata (e.g. `'positionTransform'`,
+- **Mechanical contract:** `contractOf(primitive): string` — normalized port signature
+  (e.g. `f32,f32->f32`). Includes coordinate space when present (e.g. `vec3f@body_pos`).
+  Derived, not authored. **Implemented** in `contract.ts`.
+- **Role:** optional `role?: string` on `PrimitiveMetadata` (e.g. `'positionTransform'`,
   `'colorSpace'`). Authored where a *semantic* family matters.
 - **Swap families:** `swapFamily(primitive)` = role if set, else contract. `listSwapFamily(id)`
-  returns same-family primitives. **Gate:** `add`/`multiply`/`min`/`max` share a contract;
-  `swapFamily` groups them; a `role`-tagged set groups across differing signatures.
-- **Help/usage:** optional `help?` / `usage?` metadata (tooltips) — the **didactic** mechanism
-  that **replaces aliases** (e.g. `math.min` help: "SDF union"). No alias nodes.
+  returns same-family primitives.
+- **Help/usage:** optional `help?` / `usage?` on `PrimitiveMetadata` — the **didactic**
+  mechanism that **replaces aliases**. `math.min` help: "SDF union"; `math.max` help:
+  "SDF intersection". No alias nodes.
+- **Gate met:** graph 76/76; `add`/`multiply`/`min`/`max`/`subtract`/`divide` share contract
+  `f32,f32->f32`; `swapFamily` groups them; role-tagged test primitives group across differing
+  signatures; fe 0 errors.
 
 (Editor "Change operation ▸" + palette collapse + tooltips consume this —
 node-model-design-notes §C. The editor wiring is a later graph-editor task.)
