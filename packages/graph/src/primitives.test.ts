@@ -20,6 +20,15 @@ describe('@virtual-planet/graph primitives', () => {
 		expect(clamp({ inputs: { x: -1 }, params: { min: 0, max: 1 } }).value).toBe(0);
 	});
 
+	it('elemental binary atoms (subtract/divide/min/max)', () => {
+		const ev = (id: string, a: number, b: number) =>
+			getPrimitive(id)!.evalCPU!({ inputs: { a, b }, params: {} }).value;
+		expect(ev('math.subtract', 5, 2)).toBe(3);
+		expect(ev('math.divide', 6, 3)).toBe(2);
+		expect(ev('math.min', 5, 2)).toBe(2);
+		expect(ev('math.max', 5, 2)).toBe(5);
+	});
+
 	it('smoothstep is 0 / 0.5 / 1 at edges and midpoint', () => {
 		const ss = getPrimitive('math.smoothstep')!.evalCPU!;
 		const params = { edge0: 0, edge1: 1 };

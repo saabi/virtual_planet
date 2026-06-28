@@ -34,12 +34,12 @@ inline, zero cost — node-model-design-notes §E). A library node may be either
 ### Math / shaping · `group: Fields`
 | id | status | notes |
 |----|--------|-------|
-| `math.add` `math.multiply` `math.mix` `math.pow` | ✅ | |
-| `math.clamp` `math.smoothstep` `math.remap` | ✅ | |
-| `math.abs` `math.bias` `math.gain` | ✅ | |
-| `math.divide` | 💭 LHF | |
-| `math.min` `math.max` | 💭 LHF | |
-| `math.normalize` | 💭 LHF | vec normalize |
+| `math.add` `math.subtract` `math.multiply` `math.divide` | ✅ atomic | elemental binary ops |
+| `math.min` `math.max` | ✅ atomic | (added as decomposition atoms) |
+| `math.mix` `math.pow` `math.clamp` `math.smoothstep` | ✅ atomic | WGSL intrinsics |
+| `math.abs` `math.bias` `math.gain` | ✅ atomic | abs intrinsic; bias/gain = Schlick curves (keep atomic) |
+| `math.remap` | ✅ → **group** | = `subtract`/`divide`/`multiply`/`add` chain — **decompose to a group** when group infra lands (node-model-design-notes §E) |
+| `math.normalize` | 💭 LHF atomic | vec normalize (WGSL `normalize()`) — enables `spherify` group |
 | `math.invert` (1−x) | 💭 LHF | |
 | `math.threshold` | 💭 LHF | step at edge |
 | `math.bandpass` | 💭 LHF | |
@@ -50,8 +50,10 @@ inline, zero cost — node-model-design-notes §E). A library node may be either
 ### SDF · `group: Geometry` (value SDFs; feed masks/shading)
 | id | status | notes |
 |----|--------|-------|
-| `sdf.circle` `sdf.box` `sdf.segment` | ✅ | (Use.GPU) |
-| `sdf.opUnion` `sdf.opSubtract` `sdf.opIntersect` | ✅ | CSG |
+| `sdf.circle` `sdf.box` `sdf.segment` | ✅ atomic | (Use.GPU) |
+| `sdf.opUnion` | ✅ → **alias** | `= math.min` — role "sdf op" (decompose/alias when groups land) |
+| `sdf.opIntersect` | ✅ → **alias** | `= math.max` |
+| `sdf.opSubtract` | ✅ → **group** | `= max(a, -b)` (max + negate) |
 | `sdf.roundedBox` `sdf.hexagon` `sdf.triangle` | 💭 LHF | more 2D shapes |
 | `sdf.sphere` `sdf.box3d` `sdf.torus` | 💭 | 3D SDFs |
 | `sdf.opSmoothUnion` | 💭 LHF | smooth blend |
