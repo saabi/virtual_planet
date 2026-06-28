@@ -10,8 +10,10 @@ pipeline node families (geometry/buffer/stage/target) from
 
 **Legend:** ✅ built & registered · 📋 planned (pinned/next) · 💭 discussed (not yet pinned)
 · **LHF** = low-hanging fruit (a few hours each — mirrors an existing primitive pattern).
-**atomic** = WGSL + evalCPU · **group** = a saved subgraph over elemental nodes (compiles
-inline, zero cost — node-model-design-notes §E). A library node may be either.
+**atomic** = a leaf WGSL function + evalCPU · **group** = a composite — a generated WGSL
+function that *calls* other primitives' functions (+ inferred/frontmatter contract); the
+linker dedups + tree-shakes (near-zero overhead — node-model-design-notes §E). A library
+node may be either; both are "a function + a contract."
 
 ---
 
@@ -51,8 +53,7 @@ inline, zero cost — node-model-design-notes §E). A library node may be either
 | id | status | notes |
 |----|--------|-------|
 | `sdf.circle` `sdf.box` `sdf.segment` | ✅ atomic | (Use.GPU) |
-| `sdf.opUnion` | ✅ → **alias** | `= math.min` — role "sdf op" (decompose/alias when groups land) |
-| `sdf.opIntersect` | ✅ → **alias** | `= math.max` |
+| `sdf.opUnion` `sdf.opIntersect` | ✅ → **deprecate** | redundant with `math.min`/`max` — use those + **help tooltip** ("SDF union/intersection"). No alias node (node-model-design-notes §C). |
 | `sdf.opSubtract` | ✅ → **group** | `= max(a, -b)` (max + negate) |
 | `sdf.roundedBox` `sdf.hexagon` `sdf.triangle` | 💭 LHF | more 2D shapes |
 | `sdf.sphere` `sdf.box3d` `sdf.torus` | 💭 | 3D SDFs |

@@ -23,34 +23,42 @@ Build in **independent, separately-gated slices** (each green on its own).
 resource ports never cross-connect. **Gate:** accept a `geometry→geometry` edge, reject a
 `geometry→f32` edge; serialize round-trips a resource port.
 
-## Slice 2 — Role / contract metadata + swap families (graph)
+## Slice 2 — Role / contract metadata + swap families + help (graph)
 
 - **Mechanical contract:** `contractOf(primitive): string` — a normalized hash of the port
   signature (e.g. `bin:f32,f32->f32`). Derived, not authored.
 - **Role:** optional `role?: string` on primitive metadata (e.g. `'positionTransform'`,
-  `'sdfOp'`, `'colorSpace'`). Authored where a *semantic* family matters.
+  `'colorSpace'`). Authored where a *semantic* family matters.
 - **Swap families:** `swapFamily(primitive)` = role if set, else contract. `listSwapFamily(id)`
   returns same-family primitives. **Gate:** `add`/`multiply`/`min`/`max` share a contract;
   `swapFamily` groups them; a `role`-tagged set groups across differing signatures.
+- **Help/usage:** optional `help?` / `usage?` metadata (tooltips) — the **didactic** mechanism
+  that **replaces aliases** (e.g. `math.min` help: "SDF union"). No alias nodes.
 
-(This is what the editor's "Change operation ▸" + palette collapse consume —
+(Editor "Change operation ▸" + palette collapse + tooltips consume this —
 node-model-design-notes §C. The editor wiring is a later graph-editor task.)
 
-## Slice 3 — Node groups (graph IR + compiler)
+## Slice 3 — Node groups = self-describing **functions** (graph + compiler)
 
-A **group** is a node whose "primitive" is a **subgraph** with a declared interface
-(in/out ports = its contract). Serializable like any node.
+A **group is a primitive whose WGSL body calls other primitives** (node-model-design-notes
+§E) — **not** an inlined subgraph. It unifies with M3 self-describing primitives.
 
-- IR: a `GroupDefinition { id, interface: {inputs, outputs}, subgraph: GraphDocument,
-  role? }`; a node may reference a group id (built-in registry **or** a user-group store).
-- **Compiler inline-expansion:** before slicing/codegen, expand group nodes by inlining
-  their subgraph (rename inner node ids, wire interface ports to the call site). A group
-  compiles to **exactly** the WGSL of its inlined subgraph — **zero runtime cost**.
-- Built-in groups register like primitives; user groups are saved subgraphs (a "Save as
-  group" document, later in graph-editor).
-- **Gate:** a group `g.normalDisplace` = `{multiply(normal,height) → add(position,…)}`
-  expands + compiles to the same WGSL as the hand-wired subgraph; round-trip serialize; a
-  group is a valid swap-family member by its interface.
+- **Two forms, round-tripping:** JSON **subgraph** (canonical authoring; contract **inferred**
+  from exposed ports — unconnected inner inputs → group inputs, designated outputs → group
+  outputs) ↔ generated **WGSL function + frontmatter** (the compiled/portable form).
+- **Codegen = code-generate a function**, *not* inline-expand: emit
+  `fn group_x(…) -> … { … inner_fn(…) … }` whose deps are the inner primitives' modules. The
+  **existing linker** resolves the function deps + tree-shakes — **no new inline pass**.
+  Emitted once, called many times, deduped.
+- IR: a `GroupDefinition { id, interface, subgraph, role?, help? }`; a node references a
+  group id (built-in registry **or** a user-group store). `groupToFunction(def)` →
+  `{ wgsl, frontmatter }` is the code-gen step (reuses the M3 loader for the resulting
+  primitive).
+- **Gate:** `g.normalDisplace` = `{multiply(normal,height) → add(position,…)}` →
+  `groupToFunction` yields a `fn normalDisplace(...)` that calls `multiply`/`add`; the linker
+  resolves their modules; compiling a graph using it produces valid WGSL equivalent to the
+  hand-wired subgraph; contract inferred from the subgraph matches the function signature;
+  round-trip serialize.
 
 ## Slice 4 — `list<T>` ports + lowering (graph + compiler)
 
@@ -62,11 +70,12 @@ A `list<T>` input accepts **multiple edges** of `T` (static) **or** a runtime
 
 ## Decomposition follow-on (after Slice 3)
 
-With groups, refactor the audited decomposables to groups/aliases (parity-preserving):
-`math.remap → group`, `sdf.opUnion → alias(math.min)`, `sdf.opIntersect → alias(math.max)`,
-`sdf.opSubtract → group(max+negate)`. Keep `terrain.*` atomic (harvested at parity — do
-**not** decompose). The elemental atoms (`add/subtract/multiply/divide/min/max`) are
-**already added** ✅ as building blocks.
+With groups, refactor the audited decomposables (parity-preserving): `math.remap → group`,
+`sdf.opSubtract → group(max + negate)`. **No aliases** — `sdf.opUnion`/`opIntersect` are
+redundant with `math.min`/`max`; deprecate them in favour of `min`/`max` + **help tooltips**
+("SDF union/intersection"). Keep `terrain.*` atomic (harvested at parity — do **not**
+decompose). The elemental atoms (`add/subtract/multiply/divide/min/max`) are **already
+added** ✅ as building blocks.
 
 ## Out of scope
 

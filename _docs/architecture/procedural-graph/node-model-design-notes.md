@@ -127,6 +127,15 @@ the **same operation** (displace *is* add). That exposes two distinct notions:
 does not need to exist (it's `add`); `normalDisplace`/`spherify`/`twist` are one role-family
 (swappable), even when each is a **group** (§E).
 
+**No aliases — teach with tooltips instead.** A node like "SDF union" should *not* be an
+alias that secretly is `math.min` (aliases hide what's happening — anti-didactic). Keep the
+**elemental node visible** (`math.min`) and attach **`help` / `usage` metadata** (tooltips /
+help boxes) explaining cross-uses — "`min` = SDF union; `max` = SDF intersection." More
+honest and more educational than a masking node. (Add an optional `help`/`usage` field to
+primitive metadata; the editor renders it on hover/inspect.) So `sdf.opUnion`/`opIntersect`
+are redundant with `min`/`max` + help text; only `sdf.opSubtract` (`max(a,−b)`) is a real
+composite → a group.
+
 **Implementation:** primitive metadata carries a mechanical `contract` (derivable signature
 hash) **and** an optional `role` tag; the editor groups by `role` for swap + palette
 collapse, falling back to `contract`. Schema-driven, zero perf cost — the right answer for a
@@ -143,14 +152,38 @@ Your "displace = composition" + "group of nodes with the same contract" lead her
   groups / Grasshopper clusters / Houdini subnets.
 - **A group's interface IS its contract** (role + ports) → a group and an atomic node with
   the same role are **interchangeable** (swap families span both).
-- **"Primitive" unifies to: atomic OR group.** An atomic primitive = WGSL + evalCPU
-  (existing). A **group primitive** = a saved **subgraph** + interface. Both register the
-  same way, both appear in the palette, both compile — a group **inlines** to its subgraph's
-  WGSL (zero runtime cost; it is purely an authoring/view convenience).
-- **Built-in + user groups.** Built-in (hardcoded standard-library subgraphs:
+### A group IS a self-describing function (the contract question)
+
+**Recommendation: a group compiles to a generated WGSL *function* that calls its inner
+functions, plus a frontmatter contract — not an inlined subgraph.** This is the
+[M3 self-describing primitive](./schema-and-primitives.md#self-describing-wgsl-primitives)
+mechanism: a group is a primitive whose WGSL body happens to call *other* primitives. So
+**groups and primitives unify — both are "a function + a contract."**
+
+Two representations, round-tripping (IR-native model):
+
+- **JSON (canonical authoring):** a **subgraph**; its **contract is inferred** from exposed
+  ports — unconnected inner inputs → group inputs; designated inner outputs → group outputs.
+- **Code (compiled / portable / hand-authorable):** the editor **code-generates** that
+  subgraph into `fn group_x(…) -> … { … inner_fn(…) … }` + YAML frontmatter (the explicit
+  contract). Compiles and links exactly like any self-describing primitive.
+
+**Why function-emission over inline-expansion** (efficient / simple / functional):
+
+- **Reuses existing machinery** — the M3 loader + the **linker** already do "function calls
+  function," dependency resolution, and WGSL-level tree-shaking. **No new inline pass.**
+- **Efficient** — the group function is emitted **once**, called many times, deduped by the
+  linker; near-zero overhead (WGSL compilers inline small functions).
+- **Functional** — a real composable function: hand-author in code (frontmatter contract) or
+  build visually (inferred contract) — both land on the same function form.
+
+- **"Primitive" unifies to: leaf OR group** — both are a WGSL function + contract (+ optional
+  `evalCPU`). Both register the same way, both appear in the palette, both are swap-family
+  members by interface.
+- **Built-in + user groups.** Built-in (standard-library composite functions:
   `transform.normalDisplace` = multiply+add; `geometry.cubeSphere` = cube + normalize). User:
-  select nodes → **"Save as group"** → a reusable palette entry (stored like a
-  self-describing primitive — a subgraph document with declared in/out ports).
+  select nodes → **"Save as group"** → infer the contract → code-gen the function → a
+  reusable palette entry (stored as a subgraph document, compiled as a function).
 - **Generalizes `stage.*`** (pipeline-as-graph) — a stage node already "embeds a subgraph";
   a group is that pattern made general for any node.
 
