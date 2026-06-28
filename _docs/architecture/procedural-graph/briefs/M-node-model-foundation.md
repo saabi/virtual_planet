@@ -46,27 +46,21 @@ equality-based validation already gives geometry↔geometry ✓ / geometry↔f32
 (Editor "Change operation ▸" + palette collapse + tooltips consume this —
 node-model-design-notes §C. The editor wiring is a later graph-editor task.)
 
-## Slice 3 — Node groups = self-describing **functions** (graph + compiler)
+## Slice 3 — Node groups = self-describing **functions** (graph + compiler) — ✅ DONE
 
-A **group is a primitive whose WGSL body calls other primitives** (node-model-design-notes
-§E) — **not** an inlined subgraph. It unifies with M3 self-describing primitives.
-
-- **Two forms, round-tripping:** JSON **subgraph** (canonical authoring; contract **inferred**
-  from exposed ports — unconnected inner inputs → group inputs, designated outputs → group
-  outputs) ↔ generated **WGSL function + frontmatter** (the compiled/portable form).
-- **Codegen = code-generate a function**, *not* inline-expand: emit
-  `fn group_x(…) -> … { … inner_fn(…) … }` whose deps are the inner primitives' modules. The
-  **existing linker** resolves the function deps + tree-shakes — **no new inline pass**.
-  Emitted once, called many times, deduped.
-- IR: a `GroupDefinition { id, interface, subgraph, role?, help? }`; a node references a
-  group id (built-in registry **or** a user-group store). `groupToFunction(def)` →
-  `{ wgsl, frontmatter }` is the code-gen step (reuses the M3 loader for the resulting
-  primitive).
-- **Gate:** `g.normalDisplace` = `{multiply(normal,height) → add(position,…)}` →
-  `groupToFunction` yields a `fn normalDisplace(...)` that calls `multiply`/`add`; the linker
-  resolves their modules; compiling a graph using it produces valid WGSL equivalent to the
-  hand-wired subgraph; contract inferred from the subgraph matches the function signature;
-  round-trip serialize.
+- **Two forms, round-tripping:** JSON **subgraph** (subgraph description mapped to exposed ports)
+  ↔ generated **WGSL function + frontmatter** (the compiled form).
+- **Codegen = code-generate a function**, *not* inline-expand: emits
+  `fn group_x(…) -> … { … inner_fn(…) … }` calling its dependencies, which are declared in
+  frontmatter using `@use` annotations. The **existing linker** resolves function deps +
+  tree-shakes — **no new inline pass**.
+- **IR:** Added `GroupDefinition`, `GroupInterface` and input/output mappings to `@virtual-planet/graph`
+  `types.ts`. Implemented `groupToFunction(def)` in `@virtual-planet/compiler` `groupCodegen.ts`
+  to handle topological sort, inner variable assignments, argument bindings, and YAML frontmatter.
+- **Gate met:** `g.normalDisplace` compiled to a valid WGSL function calling `multiply`/`add` with
+  `// @use math.multiply` and `// @use math.add` directives; correctly parsed and loaded via
+  `loadWgslPrimitive`; successfully compiled and linked within a graph via `compileGraph` + `textLinker`.
+  All compiler/graph test packages green.
 
 ## Slice 4 — `list<T>` ports + lowering (graph + compiler)
 

@@ -81,3 +81,33 @@ export interface GraphDocument {
 	consumers: ProceduralConsumer[];
 	resources?: ResourceDependency[];
 }
+
+export interface GroupInputMapping {
+	name: string;
+	dataType: DataType;
+	space?: CoordinateSpace;
+	target: PortRef;
+}
+
+export interface GroupOutputMapping {
+	name: string;
+	dataType: DataType;
+	space?: CoordinateSpace;
+	target: PortRef;
+}
+
+export interface GroupInterface {
+	inputs: GroupInputMapping[];
+	outputs: GroupOutputMapping[];
+}
+
+export interface GroupDefinition {
+	id: string;
+	category: string;
+	subgraph: GraphDocument;
+	interface: GroupInterface;
+	role?: string;
+	help?: string;
+	usage?: string;
+}
+

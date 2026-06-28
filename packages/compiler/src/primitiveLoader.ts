@@ -75,6 +75,9 @@ const TOP_LEVEL_KEYS = new Set([
 	'color',
 	'icon',
 	'keywords',
+	'role',
+	'help',
+	'usage',
 	'sections',
 	'inputs',
 	'params',
@@ -521,6 +524,24 @@ function parsePrimitiveMetadata(doc: Record<string, unknown>): PrimitiveMetadata
 			throw new Error('Invalid keywords');
 		}
 		metadata.keywords = [...doc.keywords];
+	}
+	if (doc.role !== undefined) {
+		if (typeof doc.role !== 'string') {
+			throw new Error('Invalid role');
+		}
+		metadata.role = doc.role;
+	}
+	if (doc.help !== undefined) {
+		if (typeof doc.help !== 'string') {
+			throw new Error('Invalid help');
+		}
+		metadata.help = doc.help;
+	}
+	if (doc.usage !== undefined) {
+		if (typeof doc.usage !== 'string') {
+			throw new Error('Invalid usage');
+		}
+		metadata.usage = doc.usage;
 	}
 	return omitEmptyMetadata(metadata);
 }

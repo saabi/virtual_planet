@@ -12,3 +12,4 @@ export * from './linker.js';
 export * from './primitiveLoader.js';
 export * from './compileGraph.js';
 export * from './stageEntry.js';
+export * from './groupCodegen.js';
