@@ -16,17 +16,12 @@ export const SDF_OP_UNION_MODULE = {
 	source: SDF_OP_UNION_SOURCE
 } as const;
 
-/** WGSL module `sdf.opSubtract` — CSG subtraction (reauthored). */
-export const SDF_OP_SUBTRACT_SOURCE = `/*---
-id: sdf.opSubtract
-entry: opSubtract
-category: SDF
-group: Geometry
-source: reauthored
-sourceSymbol: opSubtract
----*/
+/** WGSL module `sdf.opSubtract` — CSG subtraction (decomposed to math.subtract and math.max). */
+export const SDF_OP_SUBTRACT_SOURCE = `// @use math.subtract
+// @use math.max
 fn opSubtract(a: f32, b: f32) -> f32 {
-	return max(a, -b);
+	let v_neg = subtract(0.0, b);
+	return max(a, v_neg);
 }`;
 
 export const SDF_OP_SUBTRACT_MODULE = {
