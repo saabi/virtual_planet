@@ -15,13 +15,17 @@ target nodes, swap UX, decomposition into groups, dynamic lights) needs. **Addit
 the existing value-port field graph + ~45 primitives + compiler are unchanged underneath.
 Build in **independent, separately-gated slices** (each green on its own).
 
-## Slice 1 — Resource ports (graph)
+## Slice 1 — Resource ports (graph) — ✅ DONE (`<this commit>`)
 
-`Port` carries a value `dataType` **or** a `resource: ResourcePortKind`
-(`vertexBuffer`/`indexBuffer`/`geometry`/`texture`/`renderTarget`/`bindGroup`/
-`storageBuffer`). `validateGraph` gains: resource↔resource edges match by kind; value and
-resource ports never cross-connect. **Gate:** accept a `geometry→geometry` edge, reject a
-`geometry→f32` edge; serialize round-trips a resource port.
+**Reality check (workflow caught the original over-design):** the IR **already** has
+`DataType = ValueDataType | ResourceDataType` (M8 added `image`/`mesh`/`audio`), and
+`compatibleDataTypes` already validates edges by equality (+ a `vec2f→vec3f` promotion). So
+resource ports do **not** need a parallel `resource:` field or new validation — just
+**extend the type union**. Done: added `PipelineResourceType`
+(`geometry`/`vertexBuffer`/`indexBuffer`/`renderTarget`/`bindGroup`/`storageBuffer`), kept
+`ResourceDataType` (external inputs) clean for `ResourceDependency`. The existing
+equality-based validation already gives geometry↔geometry ✓ / geometry↔f32 ✗ / cross-kind ✗.
+**Gate met:** graph 66/66; union extension broke no exhaustive switches across packages.
 
 ## Slice 2 — Role / contract metadata + swap families + help (graph)
 

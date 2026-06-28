@@ -58,6 +58,19 @@ function resourceGraph(toType: DataType): GraphDocument {
 	};
 }
 
+function pipelineEdge(fromType: DataType, toType: DataType): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			{ id: 'a', primitive: 'geometry.plane', inputs: [], outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: fromType }] },
+			{ id: 'b', primitive: 'stage.vertex', inputs: [{ id: 'in', name: 'in', direction: 'in', dataType: toType }], outputs: [{ id: 'o', name: 'o', direction: 'out', dataType: 'vec4f' }] },
+		],
+		edges: [{ id: 'e', from: { node: 'a', port: 'out' }, to: { node: 'b', port: 'in' } }],
+		outputs: [{ name: 'o', from: { node: 'b', port: 'o' } }],
+		consumers: [],
+	};
+}
+
 describe('@virtual-planet/graph IR', () => {
 	it('round-trips through serialize/deserialize', () => {
 		const doc = twoNodeGraph();
@@ -114,6 +127,16 @@ describe('@virtual-planet/graph IR', () => {
 
 	it('accepts matching resource ports', () => {
 		expect(validateGraph(resourceGraph('image')).ok).toBe(true);
+	});
+
+	it('handles pipeline resource ports (geometry/buffers/targets) by kind', () => {
+		// geometry → geometry edge is valid
+		const ok = validateGraph(pipelineEdge('geometry', 'geometry'));
+		expect(ok.ok).toBe(true);
+		// geometry → f32 (resource into value) rejected
+		expect(validateGraph(pipelineEdge('geometry', 'f32')).ok).toBe(false);
+		// renderTarget → geometry (cross-kind) rejected
+		expect(validateGraph(pipelineEdge('renderTarget', 'geometry')).ok).toBe(false);
 	});
 
 	it('rejects mismatched resource ports', () => {

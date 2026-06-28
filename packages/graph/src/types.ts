@@ -1,6 +1,15 @@
 export type ValueDataType = 'f32' | 'vec2f' | 'vec3f' | 'vec4f' | 'bool';
+/** External input resources (image/mesh/audio) — see `ResourceDependency`. */
 export type ResourceDataType = 'image' | 'mesh' | 'audio';
-export type DataType = ValueDataType | ResourceDataType;
+/** Internal pipeline resources (geometry/buffers/targets) — pipeline-as-graph.md. */
+export type PipelineResourceType =
+	| 'geometry'
+	| 'vertexBuffer'
+	| 'indexBuffer'
+	| 'renderTarget'
+	| 'bindGroup'
+	| 'storageBuffer';
+export type DataType = ValueDataType | ResourceDataType | PipelineResourceType;
 
 /** Coordinate space for spatial ports (see graph-and-compiler.md). 'none' = not spatial. */
 export type CoordinateSpace =
