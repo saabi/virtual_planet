@@ -2,7 +2,7 @@
 
 **Brief:** [`../briefs/M-noise-functions-harvest.md`](../briefs/M-noise-functions-harvest.md)
 **Assigned executor:** Cursor agent N1
-**State:** accepted — awaiting commit approval.
+**State:** DONE (`b0f9fd9`).
 
 ## Result
 
@@ -81,7 +81,7 @@ Source reference file `noise-functions.glsl` unchanged (already present with MIT
 | CPU f32 bitcast/u32 wrapping semantics | ✅ (Math.imul + f32(u32)/f32 denom) |
 | Loader-contract tests per self-describing module | ✅ |
 | No duplicate ids vs existing 3D noise family | ✅ |
-| No commit (delegated agent) | ✅ |
+| No commit (delegated agent) | N/A — committed at `b0f9fd9` per user override |
 
 ## Unresolved issues
 
@@ -104,4 +104,4 @@ API. Independent gates: graph 83/83, procedural-WGSL 56/56, both checks, diff-ch
 
 ## Commit record
 
-Not committed; awaiting human commit approval.
+`b0f9fd9` — M-noise-functions-harvest: add 2D noise primitives from noise-functions.glsl
