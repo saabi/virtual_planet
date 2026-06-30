@@ -4,6 +4,10 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	// Single shared dev server on 5173. strictPort makes a second `npm run dev`
+	// fail loudly (port in use) instead of silently spawning 5174, 5175, … —
+	// reuse the running one at http://localhost:5173 (see AGENTS.md §Dev server).
+	server: { port: 5173, strictPort: true },
 	plugins: [
 		sveltekit({
 			preprocess: vitePreprocess({ script: true }),

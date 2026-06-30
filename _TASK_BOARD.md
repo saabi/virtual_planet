@@ -25,7 +25,10 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-_(none — add tasks below as briefs are pinned.)_
+- **Swap menu closes on click-outside** — the node-swap menu only closes on Escape/select;
+  add a capture-phase `window` pointerdown listener that closes it on an outside click. Owns
+  `NodeSwapMenu.svelte`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-swap-menu-click-outside.md`  ·  Claimed by: UNCLAIMED
 
 ## Later — do NOT start now
 

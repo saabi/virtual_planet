@@ -68,6 +68,16 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 5. **Svelte 5 events** — use `onclick`, `onpointerdown`, etc. Never `on:click` / `on:pointerdown` (legacy); mixing syntaxes is a compile error.
 6. **Template typings** — `src/app.d.ts` augments `svelteHTML.HTMLAttributes` from `svelte/elements` so IDE analysis accepts Svelte 5 event attributes on native elements.
 
+## Dev server (shared, single instance)
+
+There is **one** long-running dev server for `apps/graph-editor` at
+**http://localhost:5173** — agents **share it**, do not launch your own. `vite.config.ts`
+pins `server: { port: 5173, strictPort: true }`, so a stray `npm run dev` now **fails** with
+"port in use" instead of silently spawning 5174/5175/… (the cause of the pile-up). If you
+need the editor running, use 5173; if it's down, start exactly one with `npm run dev` from
+`apps/graph-editor`. Don't kill servers in **other** repos (e.g. a `ferreyrapons.com.ar` vite
+on another port is unrelated — leave it). `npm run check`/`npm test` do not need a dev server.
+
 ## Committing & untracked artifacts
 
 Default ownership for committing — so nothing is left untracked:
