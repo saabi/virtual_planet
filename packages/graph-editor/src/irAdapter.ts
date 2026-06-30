@@ -185,12 +185,27 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			return { ...doc, nodes: [...doc.nodes, node] };
 		}
 		case 'remove-node': {
+			const removedOutputNames = doc.outputs
+				.filter((output) => output.from.node === intent.nodeId)
+				.map((output) => output.name);
+			const outputs = doc.outputs.filter((output) => output.from.node !== intent.nodeId);
+			const consumers =
+				removedOutputNames.length === 0
+					? doc.consumers
+					: doc.consumers
+							.map((consumer) => ({
+								...consumer,
+								outputs: consumer.outputs.filter((name) => !removedOutputNames.includes(name))
+							}))
+							.filter((consumer) => consumer.outputs.length > 0);
 			return {
 				...doc,
 				nodes: doc.nodes.filter((node) => node.id !== intent.nodeId),
 				edges: doc.edges.filter(
 					(edge) => edge.from.node !== intent.nodeId && edge.to.node !== intent.nodeId
-				)
+				),
+				outputs,
+				consumers
 			};
 		}
 		case 'duplicate-node': {

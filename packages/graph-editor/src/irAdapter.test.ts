@@ -7,6 +7,8 @@ import {
 	resetIdCounters,
 	validateConnection
 } from './irAdapter.js';
+import { cosinePaletteEffectGraph } from './graphBuilders.js';
+import { fullValidation } from './graphValidation.js';
 
 function emptyDoc(): GraphDocument {
 	return {
@@ -211,5 +213,22 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 		doc = applyEditIntent(doc, { kind: 'remove-edge', edgeId });
 		expect(doc.nodes).toHaveLength(2);
 		expect(doc.edges).toHaveLength(0);
+	});
+
+	it('removes stale doc.outputs and consumer refs when deleting the referenced node', () => {
+		let doc = cosinePaletteEffectGraph();
+		expect(doc.outputs).toHaveLength(1);
+		expect(doc.outputs[0]?.from.node).toBe('n_effect');
+
+		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: 'n_effect' });
+		expect(doc.outputs).toHaveLength(0);
+		expect(doc.consumers).toHaveLength(0);
+
+		const validation = fullValidation(doc);
+		expect(validation.ok).toBe(true);
+		expect(validation.issues.some((issue) => issue.kind === 'no-output-path')).toBe(false);
+		expect(validation.issues.some((issue) => issue.kind === 'dangling-node' && issue.node === 'n_plane')).toBe(
+			false
+		);
 	});
 });
