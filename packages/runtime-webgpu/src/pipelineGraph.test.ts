@@ -132,7 +132,7 @@ describe('@virtual-planet/runtime-webgpu pipeline graph', () => {
 	it('re-realizes geometry when the upstream source fingerprint changes', () => {
 		const executor = new PipelineGraphExecutor();
 		const base = pipelineGraph();
-		const changed = pipelineGraph({ segments: 4 });
+		const changed = pipelineGraph({ resU: 4, resV: 2 });
 		const basePlan = planPipelineGraph(base);
 		const changedPlan = planPipelineGraph(changed);
 		executor.cache.realizeGeometry(geometryCacheFingerprint(base, basePlan));

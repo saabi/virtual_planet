@@ -2,6 +2,7 @@ import { quantity, Type } from '@virtual-planet/schema';
 
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
+import { planeGridMeshPositions } from './planeGrid.js';
 
 function createPlaneParams(defaultResU = 16, defaultResV = 16) {
 	return Type.Object({
@@ -31,6 +32,11 @@ const plane: NodePrimitive = {
 	outputs: [{ name: 'mesh', dataType: 'geometry', metadata: { semantic: 'plane-grid' } }],
 	params: planeParams,
 	wgsl: { moduleId: 'geometry.plane', entry: 'planeGrid' },
+	evalCPU(ctx) {
+		const resU = typeof ctx.params.resU === 'number' ? ctx.params.resU : 16;
+		const resV = typeof ctx.params.resV === 'number' ? ctx.params.resV : 16;
+		return { mesh: planeGridMeshPositions(resU, resV) };
+	},
 	metadata: {
 		description: 'Parametric resU×resV plane grid geometry source.',
 		help: 'Generates a subdivided plane mesh grid. Instanceable (e.g. six faces for a cube). Use { resU: 2, resV: 2 } for a fixed 2-triangle fullscreen quad; legacy geometry.fullscreenPlane graphs resolve to this same plane-grid primitive.',

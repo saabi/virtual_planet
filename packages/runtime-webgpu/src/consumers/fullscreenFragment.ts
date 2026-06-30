@@ -4,6 +4,12 @@ import type { GraphDocument, PortRef, ProceduralConsumer } from '@virtual-planet
 import { alignTo, rgba8BufferByteLength } from '../buffers.js';
 import { emitGraphVec4Eval } from '../emitGraphEval.js';
 import { createStandardLibraryResolver } from '../moduleResolver.js';
+import { planPipelineGraph } from '../pipelineGraph.js';
+import {
+	assemblePipelineVertexWgsl,
+	planeGridVertexCount,
+	resolvePipelineGeometryResolution
+} from '../pipelineVertex.js';
 import {
 	packShaderToyUniforms,
 	SHADERTOY_UNIFORM_BYTE_LENGTH,
@@ -33,18 +39,30 @@ export interface FullscreenFragmentResult {
 	pixels: Uint8Array;
 }
 
-const FULLSCREEN_VERTEX_WGSL = `struct VSOut {
-	@builtin(position) position: vec4f,
-};
+export interface FullscreenFragmentAssembly {
+	code: string;
+	outputName: string;
+	vertexCount: number;
+}
 
-@vertex
-fn vs_main(@builtin(vertex_index) vid: u32) -> VSOut {
-	var out: VSOut;
-	let x = f32((vid << 1u) & 2u);
-	let y = f32(vid & 2u);
-	out.position = vec4f(x * 2.0 - 1.0, 1.0 - y * 2.0, 0.0, 1.0);
-	return out;
-}`;
+async function resolveVertexAssembly(
+	graph: GraphDocument,
+	resolver: WgslModuleResolver
+): Promise<{ vertexWgsl: string; vertexCount: number }> {
+	const planeModule = await resolver.resolve('geometry.plane');
+	let resU = 2;
+	let resV = 2;
+	try {
+		const plan = planPipelineGraph(graph);
+		({ resU, resV } = resolvePipelineGeometryResolution(graph, plan));
+	} catch {
+		// Minimal fragment-only graphs still draw via the default 2×2 plane grid.
+	}
+	return {
+		vertexWgsl: assemblePipelineVertexWgsl(resU, resV, planeModule.source),
+		vertexCount: planeGridVertexCount(resU, resV)
+	};
+}
 
 function findOutputName(doc: GraphDocument, output: PortRef): string {
 	const match = doc.outputs.find(
@@ -70,7 +88,7 @@ export async function assembleFullscreenFragmentModuleAsync(
 	output: PortRef,
 	resolver: WgslModuleResolver,
 	consumer: ProceduralConsumer = { type: 'image', id: 'image', stage: 'fragment', outputs: [] }
-): Promise<{ code: string; outputName: string }> {
+): Promise<FullscreenFragmentAssembly> {
 	const outputName = findOutputName(graph, output);
 	const consumerWithOutput: ProceduralConsumer = {
 		...consumer,
@@ -104,9 +122,10 @@ export async function assembleFullscreenFragmentModuleAsync(
 		}
 	);
 
-	const code = [SHADERTOY_UNIFORM_STRUCT_WGSL, FULLSCREEN_VERTEX_WGSL, stage.code].join('\n\n');
+	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
+	const code = [SHADERTOY_UNIFORM_STRUCT_WGSL, vertexWgsl, stage.code].join('\n\n');
 
-	return { code, outputName };
+	return { code, outputName, vertexCount };
 }
 
 async function createRenderPipeline(device: GPUDevice, shaderCode: string): Promise<GPURenderPipeline> {
@@ -133,7 +152,7 @@ export async function executeFullscreenFragment(
 	}
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
-	const { code } = await assembleFullscreenFragmentModuleAsync(graph, output, resolver);
+	const { code, vertexCount } = await assembleFullscreenFragmentModuleAsync(graph, output, resolver);
 	const pipeline = await createRenderPipeline(device, code);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
@@ -177,7 +196,7 @@ export async function executeFullscreenFragment(
 	});
 	pass.setPipeline(pipeline);
 	pass.setBindGroup(0, bindGroup);
-	pass.draw(3);
+	pass.draw(vertexCount);
 	pass.end();
 
 	const pixelBytes = rgba8BufferByteLength(width, height);

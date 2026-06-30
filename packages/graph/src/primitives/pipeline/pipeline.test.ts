@@ -4,6 +4,7 @@ import { Value } from '@virtual-planet/schema';
 import { getPrimitive } from '../../registry.js';
 import { fullscreenPlaneParams, planeParams } from './plane.js';
 import './index.js';
+import { planeGridPosition } from './planeGrid.js';
 
 describe('pipeline geometry primitives', () => {
 	it('geometry.plane params default and coerce resU/resV', () => {
@@ -26,5 +27,16 @@ describe('pipeline geometry primitives', () => {
 		expect(Value.Create(fullscreenPlaneParams)).toEqual({ resU: 2, resV: 2 });
 		expect(Value.Create(fullscreen.params)).toEqual({ resU: 2, resV: 2 });
 		expect(fullscreen.metadata?.help).toContain('geometry.plane');
+	});
+
+	it('geometry.plane evalCPU returns 2×2 grid corners', () => {
+		const plane = getPrimitive('geometry.plane')!;
+		const result = plane.evalCPU!({ inputs: {}, params: { resU: 2, resV: 2 } });
+		const mesh = result.mesh;
+		expect(Array.isArray(mesh)).toBe(true);
+		const positions = mesh as number[];
+		expect(positions).toHaveLength(18);
+		expect(positions.slice(0, 3)).toEqual(planeGridPosition(0, 2, 2));
+		expect(positions.slice(12, 15)).toEqual(planeGridPosition(4, 2, 2));
 	});
 });

@@ -76,7 +76,9 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'color.lsrgbToOklab': 'lsrgbToOklab',
 	'color.oklabToLsrgb': 'oklabToLsrgb',
 	'color.oklabToOklch': 'oklabToOklch',
-	'color.oklchToOklab': 'oklchToOklab'
+	'color.oklchToOklab': 'oklchToOklab',
+	'geometry.plane': 'planeGrid',
+	'stage.vertex': 'vertexStage'
 };
 
 function registeredWgslModuleIds(): string[] {
@@ -150,5 +152,17 @@ describe('@virtual-planet/procedural-wgsl', () => {
 	it('math.gain declares a dependency on math.bias', () => {
 		expect(STANDARD_LIBRARY_MODULES['math.gain']?.dependencies).toEqual(['math.bias']);
 		expect(STANDARD_LIBRARY_MODULES['math.gain']?.source).toContain('bias(');
+	});
+
+	it('stage.vertex declares a dependency on geometry.plane', () => {
+		expect(STANDARD_LIBRARY_MODULES['stage.vertex']?.dependencies).toEqual(['geometry.plane']);
+		expect(STANDARD_LIBRARY_MODULES['stage.vertex']?.source).toContain('plane_grid_position(');
+	});
+
+	it('no registered primitive WGSL module emits an empty function body', () => {
+		for (const moduleId of registeredWgslModuleIds()) {
+			const source = STANDARD_LIBRARY_MODULES[moduleId]?.source ?? '';
+			expect(source, moduleId).not.toMatch(/fn\s+\w+\([^)]*\)\s*\{\s*\}/);
+		}
 	});
 });

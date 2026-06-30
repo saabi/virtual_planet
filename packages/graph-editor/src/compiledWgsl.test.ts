@@ -33,11 +33,15 @@ function incompleteGraph(): GraphDocument {
 }
 
 describe('@virtual-planet/graph-editor compiledGraphWgsl', () => {
-	it('returns cosine palette fragment shader with entry and node functions', async () => {
+	it('returns cosine palette fragment shader with real geometry vertex grid and node functions', async () => {
 		const results = await compiledGraphWgsl(cosinePaletteEffectGraph());
 		expect(results).toHaveLength(1);
 		const compiled = results[0]!;
 		expect(compiled.diagnostic).toBeUndefined();
+		expect(compiled.code).toContain('fn plane_grid_position(');
+		expect(compiled.code).toContain('plane_grid_position(vid, 2u, 2u)');
+		expect(compiled.code).toContain('@vertex');
+		expect(compiled.code).toContain('fn vs_main');
 		expect(compiled.code).toContain('@fragment');
 		expect(compiled.code).toContain('fn fs_main');
 		expect(compiled.code).toContain('cosine_palette');

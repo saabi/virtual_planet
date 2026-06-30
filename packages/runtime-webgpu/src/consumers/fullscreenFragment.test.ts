@@ -112,19 +112,22 @@ describe('@virtual-planet/runtime-webgpu shadertoyUniforms', () => {
 });
 
 describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
-	it('includes vertex entry, fragment entry, uniform block, and cosine_palette call', async () => {
+	it('includes node-driven vertex grid, fragment entry, uniform block, and cosine_palette call', async () => {
 		const graph = cosinePaletteEffectGraph();
 		const output = cosinePaletteEffectOutput();
-		const { code } = await assembleFullscreenFragmentModuleAsync(
+		const { code, vertexCount } = await assembleFullscreenFragmentModuleAsync(
 			graph,
 			output,
 			createStandardLibraryResolver()
 		);
 
+		expect(vertexCount).toBe(6);
 		expect(code).toContain('struct ShaderToyUniforms');
 		expect(code).toContain('@group(0) @binding(0) var<uniform> u: ShaderToyUniforms;');
+		expect(code).toContain('fn plane_grid_position(');
 		expect(code).toContain('@vertex');
 		expect(code).toContain('fn vs_main');
+		expect(code).toContain('plane_grid_position(vid, 2u, 2u)');
 		expect(code).toContain('@fragment');
 		expect(code).toContain('fn fs_main');
 		expect(code).toContain('fn cosine_palette(');

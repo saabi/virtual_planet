@@ -21,5 +21,10 @@ export {
 	NOISE2D_CPU_PARITY
 } from './primitives/noise/parityFixtures.js';
 export { COLORLAB_CPU_PARITY } from './primitives/color/parityFixtures.js';
+export {
+	planeGridMeshPositions,
+	planeGridPosition,
+	planeGridVertexCount
+} from './primitives/pipeline/planeGrid.js';
 
 import './primitives/index.js';

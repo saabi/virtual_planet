@@ -36,7 +36,14 @@ describe('@virtual-planet/graph-editor primitiveSources', () => {
 		expect(source).not.toContain(STUB_MARKER);
 	});
 
-	it('shows structural notice for pipeline stage nodes instead of empty stubs', () => {
+	it('shows real geometry.plane grid WGSL with plane_grid_position', () => {
+		const source = getDefaultPrimitiveSource('geometry.plane');
+		expect(source).toContain('fn plane_grid_position(');
+		expect(source).toContain('fn planeGrid(');
+		expect(source).not.toContain(STUB_MARKER);
+	});
+
+	it('shows structural notice for pipeline fragment nodes instead of empty stubs', () => {
 		const source = getDefaultPrimitiveSource('stage.fragment');
 		expect(source).toContain(STRUCTURAL_NODE_NOTICE);
 		expect(source).not.toMatch(/fn\s+fragmentStage\([^)]*\)\s*\{\s*\}/);
