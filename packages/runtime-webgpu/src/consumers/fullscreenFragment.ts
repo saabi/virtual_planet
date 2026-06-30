@@ -2,7 +2,11 @@ import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@virt
 import type { GraphDocument, PortRef, ProceduralConsumer } from '@virtual-planet/graph';
 
 import { alignTo, rgba8BufferByteLength } from '../buffers.js';
-import { emitGraphVec4Eval } from '../emitGraphEval.js';
+import {
+	buildParamsStructWgsl,
+	emitGraphVec4Eval,
+	type GraphParamField
+} from '../emitGraphEval.js';
 import { createStandardLibraryResolver } from '../moduleResolver.js';
 import { planPipelineGraph } from '../pipelineGraph.js';
 import {
@@ -43,6 +47,27 @@ export interface FullscreenFragmentAssembly {
 	code: string;
 	outputName: string;
 	vertexCount: number;
+	params: GraphParamField[];
+}
+
+function packGraphParams(
+	width: number,
+	height: number,
+	fields: GraphParamField[],
+	doc: GraphDocument
+): Float32Array {
+	const values = [width, height];
+	for (const field of fields) {
+		const node = doc.nodes.find((candidate) => candidate.id === field.nodeId);
+		if (!node) {
+			values.push(field.defaultValue);
+			continue;
+		}
+		const params = node.params ?? {};
+		const value = params[field.paramName];
+		values.push(typeof value === 'number' ? value : field.defaultValue);
+	}
+	return new Float32Array(values);
 }
 
 async function resolveVertexAssembly(
@@ -115,6 +140,13 @@ export async function assembleFullscreenFragmentModuleAsync(
 					name: 'u',
 					kind: 'uniform',
 					wgslType: 'ShaderToyUniforms'
+				},
+				{
+					group: 0,
+					binding: 1,
+					name: 'params',
+					kind: 'uniform',
+					wgslType: 'GraphParams'
 				}
 			],
 			outputFns: { [outputName]: `graph_eval_${outputName}` },
@@ -122,10 +154,11 @@ export async function assembleFullscreenFragmentModuleAsync(
 		}
 	);
 
+	const paramsStruct = buildParamsStructWgsl(emitted.params);
 	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
-	const code = [SHADERTOY_UNIFORM_STRUCT_WGSL, vertexWgsl, stage.code].join('\n\n');
+	const code = [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code].join('\n\n');
 
-	return { code, outputName, vertexCount };
+	return { code, outputName, vertexCount, params: emitted.params };
 }
 
 async function createRenderPipeline(device: GPUDevice, shaderCode: string): Promise<GPURenderPipeline> {
@@ -152,7 +185,11 @@ export async function executeFullscreenFragment(
 	}
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
-	const { code, vertexCount } = await assembleFullscreenFragmentModuleAsync(graph, output, resolver);
+	const { code, vertexCount, params } = await assembleFullscreenFragmentModuleAsync(
+		graph,
+		output,
+		resolver
+	);
 	const pipeline = await createRenderPipeline(device, code);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
@@ -170,9 +207,26 @@ export async function executeFullscreenFragment(
 	});
 	device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
+	const graphParamsData = packGraphParams(width, height, params, graph);
+	const graphParamsBuffer = device.createBuffer({
+		label: 'fullscreen-fragment-graph-params',
+		size: alignTo(graphParamsData.byteLength, 16),
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	});
+	device.queue.writeBuffer(
+		graphParamsBuffer,
+		0,
+		graphParamsData.buffer,
+		graphParamsData.byteOffset,
+		graphParamsData.byteLength
+	);
+
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
-		entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
+		entries: [
+			{ binding: 0, resource: { buffer: uniformBuffer } },
+			{ binding: 1, resource: { buffer: graphParamsBuffer } }
+		]
 	});
 
 	const texture = device.createTexture({
@@ -224,6 +278,7 @@ export async function executeFullscreenFragment(
 	readbackBuffer.unmap();
 
 	uniformBuffer.destroy();
+	graphParamsBuffer.destroy();
 	texture.destroy();
 	readbackBuffer.destroy();
 

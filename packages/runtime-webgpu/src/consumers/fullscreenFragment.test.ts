@@ -28,7 +28,7 @@ function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): 
 	}));
 }
 
-function snapshotNode(id: string, primitiveId: string): Node {
+function snapshotNode(id: string, primitiveId: string, params?: Record<string, unknown>): Node {
 	const primitive = getPrimitive(primitiveId);
 	if (!primitive) {
 		throw new Error(`Unknown primitive: ${primitiveId}`);
@@ -36,6 +36,7 @@ function snapshotNode(id: string, primitiveId: string): Node {
 	return {
 		id,
 		primitive: primitiveId,
+		...(params !== undefined ? { params } : {}),
 		inputs: instantiatePorts(primitive.inputs, 'in'),
 		outputs: instantiatePorts(primitive.outputs, 'out')
 	};
@@ -89,6 +90,46 @@ function cosinePaletteEffectOutput(): PortRef {
 	return portRef('n_effect', 'effect.cosinePalette', 'out', 0);
 }
 
+function constantVec4FragmentGraph(): GraphDocument {
+	const constOut = portRef('n_const', 'constant.f32', 'out', 0);
+	const vec4In = (index: number) => portRef('n_vec4', 'vector.vec4f', 'in', index);
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_const', 'constant.f32', { value: 0.75 }),
+			snapshotNode('n_vec4', 'vector.vec4f')
+		],
+		edges: [
+			{ id: 'e_const_x', from: constOut, to: vec4In(0) },
+			{ id: 'e_const_y', from: constOut, to: vec4In(1) },
+			{ id: 'e_const_z', from: constOut, to: vec4In(2) },
+			{ id: 'e_const_w', from: constOut, to: vec4In(3) }
+		],
+		outputs: [{ name: 'image', from: portRef('n_vec4', 'vector.vec4f', 'out', 0) }],
+		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
+	};
+}
+
+function constantVec4FragmentOutput(): PortRef {
+	return portRef('n_vec4', 'vector.vec4f', 'out', 0);
+}
+
+async function validateWgslModule(code: string): Promise<string | null> {
+	if (!hasWebGPU) return null;
+	const adapter = await navigator.gpu.requestAdapter();
+	if (!adapter) return null;
+	const device = await adapter.requestDevice();
+	try {
+		const module = device.createShaderModule({ code });
+		const info = await module.getCompilationInfo();
+		const errors = info.messages.filter((message) => message.type === 'error');
+		if (errors.length === 0) return null;
+		return errors.map((message) => message.message).join('; ');
+	} finally {
+		device.destroy();
+	}
+}
+
 describe('@virtual-planet/runtime-webgpu shadertoyUniforms', () => {
 	it('packs iResolution and iTime at the expected offsets', () => {
 		const buffer = packShaderToyUniforms({
@@ -138,6 +179,29 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 		// pass it — `position.xy` in the body is otherwise out of scope (invalid WGSL).
 		expect(code).toContain('fn graph_eval_image(position: vec4f)');
 		expect(code).toContain('graph_eval_image(position)');
+		expect(code).toContain('struct GraphParams');
+		expect(code).toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
+	});
+
+	it('declares GraphParams for a constant.f32 param node and device-compiles', async () => {
+		const graph = constantVec4FragmentGraph();
+		const output = constantVec4FragmentOutput();
+		const { code, params } = await assembleFullscreenFragmentModuleAsync(
+			graph,
+			output,
+			createStandardLibraryResolver()
+		);
+
+		expect(params.some((field) => field.nodeId === 'n_const' && field.paramName === 'value')).toBe(
+			true
+		);
+		expect(code).toContain('struct GraphParams');
+		expect(code).toContain('p_n_const_value');
+		expect(code).toContain('params.p_n_const_value');
+		expect(code).toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
+
+		const wgslError = await validateWgslModule(code);
+		expect(wgslError).toBeNull();
 	});
 });
 
@@ -171,6 +235,29 @@ describe('@virtual-planet/runtime-webgpu executeFullscreenFragment', () => {
 			expect(actual[i]).toBeGreaterThanOrEqual(expected[i]! - 2);
 			expect(actual[i]).toBeLessThanOrEqual(expected[i]! + 2);
 		}
+
+		device.destroy();
+	});
+
+	it.skipIf(!hasWebGPU)('executes a constant.f32 fragment graph without pipeline errors', async () => {
+		const adapter = await navigator.gpu.requestAdapter();
+		expect(adapter).toBeTruthy();
+		const device = await adapter!.requestDevice();
+
+		const graph = constantVec4FragmentGraph();
+		const output = constantVec4FragmentOutput();
+
+		const result = await executeFullscreenFragment({
+			device,
+			graph,
+			output,
+			width: 32,
+			height: 32,
+			host: { iTime: 0, iFrame: 0, iMouse: [0, 0, 0, 0] }
+		});
+
+		expect(result.pixels.byteLength).toBe(32 * 32 * 4);
+		expect(result.pixels[0]).toBeGreaterThan(0);
 
 		device.destroy();
 	});
