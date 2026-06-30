@@ -67,7 +67,10 @@ runs what.
 | [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas) | ✅ landed (`ed9aabd`) + render fix (`0ba7e29`) | Cursor (done) |
 | [M-node-model-foundation.md](./M-node-model-foundation.md) | **Foundation (R1):** resource ports · role/contract swap families · node **groups** (subgraph nodes) · `list<T>` — built in slices | ✅ landed (`3641621`) | Opus/Gemini (done) |
 | [M-node-model-decomposition-fix.md](./M-node-model-decomposition-fix.md) | Correctly finish `math.remap` / `sdf.opSubtract` as group-backed decompositions | 🔄 active cleanup | Cursor |
-| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | ⚠ rebase contract after decomposition; Part 1 partly landed | Architect + agent |
+| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | ✅ landed (`5af0b80`); visual confirmed | agent (done) |
+| [M-compiled-wgsl-view.md](./M-compiled-wgsl-view.md) | **Tier 1:** final compiled-WGSL view — watch the whole graph's shader output | 📌 contract ready | Cursor |
+| [M-graph-validation-flagging.md](./M-graph-validation-flagging.md) | **Tier 1:** flag incomplete/invalid graphs (unconnected inputs, no consumer, unresolved) | 📌 contract ready | Cursor |
+| [M-editor-recompile-and-node-source.md](./M-editor-recompile-and-node-source.md) | **Tier 1:** reliable recompile on edit + real source for groups/pipeline nodes | 📌 contract ready | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
