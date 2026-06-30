@@ -23,11 +23,12 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Format-adaptive preview — list output buffers** — replace the hardcoded backend tab bar
-  with a list of the graph's output buffers, each tagged by family (geometry/image/data/
-  audio), routed to the matching existing panel, with a manual format picker when the family
-  can't be inferred. **After** output reconciliation (needs `outputSinkNodeIds`).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-buffer-list.md`  ·  Claimed by: UNCLAIMED
+- **Node palette — search + organize by section/contract/both** — the palette is a flat,
+  unsearchable list and the library has outgrown it. Add a top search bar + a mode switch
+  (Section = `category` · Contract = `swapFamily` · Both = nested) with collapsible groups
+  (reuse editor-ui `Section`/`Subsection`). Pure model + view; no graph-core change.
+  **Independent of the preview chain (owns `NodePalette.svelte` only) → safe in parallel.**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-node-palette-organization.md`  ·  Claimed by: UNCLAIMED
 
 ## Later — do NOT start now
 
@@ -46,3 +47,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
   - T-D 🔴 real geometry + vertex codegen (replaced pipeline stubs; no-stub guard) — `07f0ba5`
 - **Pipeline output reconciliation** — `target.display` as implicit sink; stale output cleanup on delete — `3a2b6bd`
 - **Pipeline consumer derivation** — derive implicit fragment image consumer + synthetic outputs for compile/preview when doc metadata is empty — `bbf649f`
+- **Format-adaptive preview buffer list** — enumerate graph output buffers by family; buffer selector replaces backend tabs — `c65912c`
