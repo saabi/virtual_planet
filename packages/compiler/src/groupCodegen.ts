@@ -1,5 +1,9 @@
 import {
 	getPrimitive,
+	canonicalDataType,
+	dataTypeToWgsl,
+	formatPortDefaultWgsl,
+	resolveInputPortDefault,
 	type DataType,
 	type GraphDocument,
 	type Node,
@@ -23,23 +27,6 @@ function sanitizeId(id: string): string {
 
 function portVar(nodeId: string, portId: string): string {
 	return `v_${sanitizeId(nodeId)}_${sanitizeId(portId)}`;
-}
-
-function wgslTypeFor(dataType: DataType): string {
-	switch (dataType) {
-		case 'f32':
-			return 'f32';
-		case 'bool':
-			return 'bool';
-		case 'vec2f':
-			return 'vec2<f32>';
-		case 'vec3f':
-			return 'vec3<f32>';
-		case 'vec4f':
-			return 'vec4<f32>';
-		default:
-			throw new Error(`Unsupported GPU data type: ${dataType}`);
-	}
 }
 
 function promoteExpr(expr: string, fromType: DataType, toType: DataType): string {
@@ -75,7 +62,7 @@ function groupParamDataType(schema: TSchema): ValueDataType {
 }
 
 function assertParamPortCompatible(paramType: ValueDataType, portType: DataType): void {
-	if (paramType === portType) return;
+	if (canonicalDataType(paramType) === canonicalDataType(portType)) return;
 	throw new Error(
 		`Incompatible group param type ${paramType} for input port data type ${portType}`
 	);
@@ -328,7 +315,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 					);
 
 					const innerType = inputPort.dataType.slice(5, -1) as DataType;
-					const wgslType = wgslTypeFor(innerType);
+					const wgslType = dataTypeToWgsl(innerType);
 
 					if (edges.length === 1) {
 						// Check if the upstream output dataType is 'storageBuffer'
@@ -400,16 +387,22 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						const expr = portVar(edge.from.node, edge.from.port);
 						argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
 					} else {
-						// Unconnected input: must map to a group input or param
-						const groupParamName = paramMappings.get(`${node.id}_${inputPort.id}`);
-						if (groupParamName) {
-							argValues.push(groupParamName);
+						const portDefault = resolveInputPortDefault(node, inputPort, primitive);
+						if (portDefault !== undefined) {
+							argValues.push(formatPortDefaultWgsl(portDefault, inputPort.dataType));
 						} else {
-							const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
-							if (!groupInputName) {
-								throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input or param`);
+							const groupParamName = paramMappings.get(`${node.id}_${inputPort.id}`);
+							if (groupParamName) {
+								argValues.push(groupParamName);
+							} else {
+								const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
+								if (!groupInputName) {
+									throw new Error(
+										`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input or param`
+									);
+								}
+								argValues.push(groupInputName);
 							}
-							argValues.push(groupInputName);
 						}
 					}
 				}
@@ -419,7 +412,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 		if (hasLoop) {
 			for (const outPort of node.outputs) {
 				const lhsVar = portVar(node.id, outPort.id);
-				const lhsType = wgslTypeFor(outPort.dataType);
+				const lhsType = dataTypeToWgsl(outPort.dataType);
 				bodyLines.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
 				bodyLines.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
 				bodyLines.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
@@ -429,7 +422,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 		} else {
 			for (const outPort of node.outputs) {
 				const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
-				const lhsType = wgslTypeFor(outPort.dataType);
+				const lhsType = dataTypeToWgsl(outPort.dataType);
 				bodyLines.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 			}
 		}
@@ -440,7 +433,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 
 	// 6. Generate function header & body
 	const entryFnName = def.id.split('.').pop() ?? 'group';
-	const inputArgs = def.interface.inputs.map((i) => `${i.name}: ${wgslTypeFor(i.dataType)}`);
+	const inputArgs = def.interface.inputs.map((i) => `${i.name}: ${dataTypeToWgsl(i.dataType)}`);
 	const paramFieldSchemas = def.params
 		? new Map(fields(def.params).map((field) => [field.key, field.schema]))
 		: new Map<string, TSchema>();
@@ -453,7 +446,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 	});
 	const argsStr = [...inputArgs, ...paramArgs].join(', ');
 	
-	const returnTypeStr = wgslTypeFor(groupOutputMapping.dataType);
+	const returnTypeStr = dataTypeToWgsl(groupOutputMapping.dataType);
 
 	const fnBody = bodyLines.map((line) => `\t${line}`).join('\n');
 	const returnVal = portVar(outputNodeId, outputPortId);

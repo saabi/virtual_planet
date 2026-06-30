@@ -1,6 +1,7 @@
 import type { TSchema } from '@virtual-planet/schema';
 
 import type { CoordinateSpace, DataType } from './types.js';
+import type { PortDefaultValue } from './dataType.js';
 
 export interface PrimitiveMetadata {
 	description?: string;
@@ -35,6 +36,8 @@ export interface PortSpec {
 	dataType: DataType;
 	space?: CoordinateSpace;
 	metadata?: PortMetadata;
+	/** Literal used when the input port has no incoming edge. */
+	default?: PortDefaultValue;
 }
 
 export interface WgslArgumentBinding {

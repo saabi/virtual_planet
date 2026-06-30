@@ -52,8 +52,8 @@ const vec2f: NodePrimitive = {
 	id: 'vector.vec2f',
 	category: 'vector',
 	inputs: [
-		{ name: 'x', dataType: 'f32' },
-		{ name: 'y', dataType: 'f32' }
+		{ name: 'x', dataType: 'f32', default: 0 },
+		{ name: 'y', dataType: 'f32', default: 0 }
 	],
 	outputs: [{ name: 'value', dataType: 'vec2f' }],
 	params: Type.Object({}),
@@ -68,9 +68,9 @@ const vec3f: NodePrimitive = {
 	id: 'vector.vec3f',
 	category: 'vector',
 	inputs: [
-		{ name: 'x', dataType: 'f32' },
-		{ name: 'y', dataType: 'f32' },
-		{ name: 'z', dataType: 'f32' }
+		{ name: 'x', dataType: 'f32', default: 0 },
+		{ name: 'y', dataType: 'f32', default: 0 },
+		{ name: 'z', dataType: 'f32', default: 0 }
 	],
 	outputs: [{ name: 'value', dataType: 'vec3f' }],
 	params: Type.Object({}),
@@ -85,10 +85,10 @@ const vec4f: NodePrimitive = {
 	id: 'vector.vec4f',
 	category: 'vector',
 	inputs: [
-		{ name: 'x', dataType: 'f32' },
-		{ name: 'y', dataType: 'f32' },
-		{ name: 'z', dataType: 'f32' },
-		{ name: 'w', dataType: 'f32' }
+		{ name: 'x', dataType: 'f32', default: 0 },
+		{ name: 'y', dataType: 'f32', default: 0 },
+		{ name: 'z', dataType: 'f32', default: 0 },
+		{ name: 'w', dataType: 'f32', default: 1 }
 	],
 	outputs: [{ name: 'value', dataType: 'vec4f' }],
 	params: Type.Object({}),

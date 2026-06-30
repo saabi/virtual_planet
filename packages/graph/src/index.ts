@@ -12,6 +12,8 @@ export * from './serialize.js';
 export * from './primitive.js';
 export * from './registry.js';
 export * from './ports.js';
+export * from './dataType.js';
+export * from './portDefaults.js';
 export * from './paramInputs.js';
 export * from './contract.js';
 export {

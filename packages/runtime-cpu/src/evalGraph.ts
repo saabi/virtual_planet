@@ -1,5 +1,6 @@
 import {
 	getPrimitive,
+	resolveInputPortDefault,
 	type CpuValue,
 	type DataType,
 	type GraphDocument,
@@ -98,7 +99,13 @@ function evaluateNode(
 		const edge = doc.edges.find(
 			(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
 		);
-		if (!edge) continue;
+		if (!edge) {
+			const portDefault = resolveInputPortDefault(node, inputPort, primitive);
+			if (portDefault !== undefined) {
+				inputs[inputPort.name] = portDefault as CpuValue;
+			}
+			continue;
+		}
 
 		if (RESOURCE_TYPES.has(inputPort.dataType)) {
 			const resolved = options?.resolveResource?.(edge.from);

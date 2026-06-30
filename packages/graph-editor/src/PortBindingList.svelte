@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PortBindingState } from './types.js';
+	import { formatDefaultLabel } from './portBindings.js';
 
 	interface Props {
 		bindings: PortBindingState[];
@@ -13,6 +14,8 @@
 				return `${binding.source.fromNode}.${binding.source.fromPort}`;
 			case 'host':
 				return `Host: ${binding.source.inputId}`;
+			case 'default':
+				return `Default: ${formatDefaultLabel(binding.source.value)}`;
 			case 'unconnected':
 				if (binding.dataType === 'image' || binding.dataType === 'mesh' || binding.dataType === 'audio') {
 					return 'Bind asset… (M14)';

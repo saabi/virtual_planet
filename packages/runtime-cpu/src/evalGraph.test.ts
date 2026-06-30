@@ -122,4 +122,42 @@ describe('@virtual-planet/runtime-cpu evalGraph', () => {
 			evaluateGraphOutput(doc, { node: 'n_remap', port: 'value' }, { procedural: { uv: [0.5, 0.5] } })
 		).toThrow(/type mismatch/i);
 	});
+
+	it('uses port defaults for unconnected vector.vec4f component inputs', () => {
+		const vec4 = getPrimitive('vector.vec4f')!;
+		const extractW = getPrimitive('vector.vec4f.w')!;
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_vec4',
+					primitive: 'vector.vec4f',
+					inputs: vec4.inputs.map((port) => ({
+						id: port.name,
+						name: port.name,
+						direction: 'in' as const,
+						dataType: port.dataType,
+						...(port.default !== undefined ? { default: port.default } : {})
+					})),
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec4f' }]
+				},
+				{
+					id: 'n_w',
+					primitive: 'vector.vec4f.w',
+					inputs: extractW.inputs.map((port) => ({
+						id: port.name,
+						name: port.name,
+						direction: 'in' as const,
+						dataType: port.dataType
+					})),
+					outputs: [{ id: 'w', name: 'w', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [{ id: 'e_vec_w', from: { node: 'n_vec4', port: 'value' }, to: { node: 'n_w', port: 'value' } }],
+			outputs: [{ name: 'alpha', from: { node: 'n_w', port: 'w' } }],
+			consumers: []
+		};
+
+		expect(evaluateGraphOutput(doc, { node: 'n_w', port: 'w' }, {})).toBe(1);
+	});
 });

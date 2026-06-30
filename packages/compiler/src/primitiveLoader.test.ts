@@ -282,9 +282,9 @@ outputs:
   value:
 ---*/
 fn bad(x: texture_2d<f32>) -> f32 { return 0.0; }`;
-		expect(() => loadWgslPrimitive({ moduleId: 'mod.bad', source })).toThrow(
-			/Unsupported WGSL port type/,
-		);
+   expect(() => loadWgslPrimitive({ moduleId: 'mod.bad', source })).toThrow(
+    /Unsupported data type/,
+   );
 	});
 
 	it('throws on malformed frontmatter and unknown keys', () => {
@@ -390,5 +390,25 @@ outputs:
 fn x() -> f32 { return 0.0; }`,
 			}),
 		).toThrow(/Invalid @use/);
+	});
+
+	it('accepts vec2f alias in WGSL signatures', () => {
+		const loaded = loadWgslPrimitive({
+			moduleId: 'test.vec2Alias',
+			source: `/*---
+id: test.vec2Alias
+category: Test
+inputs:
+  value:
+  scalar:
+outputs:
+  value:
+---*/
+fn scale(value: vec2f, scalar: f32) -> vec2f {
+	return value * scalar;
+}`
+		});
+		expect(loaded.primitive.inputs[0]?.dataType).toBe('vec2f');
+		expect(loaded.primitive.outputs[0]?.dataType).toBe('vec2f');
 	});
 });

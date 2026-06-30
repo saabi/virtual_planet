@@ -22,6 +22,7 @@ import type {
 	PrimitiveMetadata,
 	WgslArgumentBinding,
 } from '@virtual-planet/graph';
+import { canonicalDataType } from '@virtual-planet/graph';
 
 export interface WgslFnParameter {
 	name: string;
@@ -146,21 +147,7 @@ function normalizeWgslType(type: string): string {
 }
 
 function wgslTypeToDataType(type: string): DataType {
-	const normalized = normalizeWgslType(type);
-	switch (normalized) {
-		case 'f32':
-			return 'f32';
-		case 'bool':
-			return 'bool';
-		case 'vec2<f32>':
-			return 'vec2f';
-		case 'vec3<f32>':
-			return 'vec3f';
-		case 'vec4<f32>':
-			return 'vec4f';
-		default:
-			throw new Error(`Unsupported WGSL port type: ${type.trim()}`);
-	}
+	return canonicalDataType(type.trim());
 }
 
 function findBlockCommentEnd(source: string, start: number): number {

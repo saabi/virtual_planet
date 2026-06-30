@@ -62,7 +62,8 @@ function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): 
 		name: spec.name,
 		direction,
 		dataType: spec.dataType,
-		...(spec.space !== undefined ? { space: spec.space } : {})
+		...(spec.space !== undefined ? { space: spec.space } : {}),
+		...(spec.default !== undefined ? { default: spec.default } : {})
 	}));
 }
 

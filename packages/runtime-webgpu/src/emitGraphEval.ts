@@ -1,5 +1,8 @@
 import {
 	getPrimitive,
+	dataTypeToWgsl,
+	formatPortDefaultWgsl,
+	resolveInputPortDefault,
 	type DataType,
 	type GraphDocument,
 	type Node,
@@ -84,23 +87,6 @@ function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
 
 function findPort(node: Node, portId: string) {
 	return [...node.inputs, ...node.outputs].find((port) => port.id === portId);
-}
-
-function wgslTypeFor(dataType: DataType): string {
-	switch (dataType) {
-		case 'f32':
-			return 'f32';
-		case 'bool':
-			return 'bool';
-		case 'vec2f':
-			return 'vec2<f32>';
-		case 'vec3f':
-			return 'vec3<f32>';
-		case 'vec4f':
-			return 'vec4<f32>';
-		default:
-			throw new Error(`Unsupported GPU data type: ${dataType}`);
-	}
 }
 
 function promoteExpr(expr: string, fromType: DataType, toType: DataType): string {
@@ -297,7 +283,7 @@ function emitGraphEval(
 				);
 
 				const innerType = inputPort.dataType.slice(5, -1) as DataType;
-				const wgslType = wgslTypeFor(innerType);
+				const wgslType = dataTypeToWgsl(innerType);
 
 				if (edges.length === 1) {
 					// Check if the upstream output dataType is 'storageBuffer'
@@ -343,6 +329,11 @@ function emitGraphEval(
 					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
 				);
 				if (!edge) {
+					const portDefault = resolveInputPortDefault(node, inputPort, primitive);
+					if (portDefault !== undefined) {
+						argValues.push(formatPortDefaultWgsl(portDefault, inputPort.dataType));
+						continue;
+					}
 					throw new Error(`Missing edge for ${node.id}.${inputPort.id}`);
 				}
 
@@ -370,7 +361,7 @@ function emitGraphEval(
 			if (hasLoop) {
 				for (const outPort of valueOutputs) {
 					const lhsVar = portVar(node.id, outPort.id);
-					const lhsType = wgslTypeFor(outPort.dataType);
+					const lhsType = dataTypeToWgsl(outPort.dataType);
 					body.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
 					body.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
 					body.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
@@ -380,7 +371,7 @@ function emitGraphEval(
 			} else {
 				for (const outPort of valueOutputs) {
 					const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
-					const lhsType = wgslTypeFor(outPort.dataType);
+					const lhsType = dataTypeToWgsl(outPort.dataType);
 					body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 				}
 			}

@@ -1,5 +1,7 @@
 import type { TSchema } from '@virtual-planet/schema';
 
+import type { PortDefaultValue } from './dataType.js';
+
 export type ValueDataType = 'f32' | 'vec2f' | 'vec3f' | 'vec4f' | 'bool';
 /** External input resources (image/mesh/audio) — see `ResourceDependency`. */
 export type ResourceDataType = 'image' | 'mesh' | 'audio';
@@ -34,6 +36,8 @@ export interface Port {
 	direction: 'in' | 'out';
 	dataType: DataType;
 	space?: CoordinateSpace; // defaults to 'none'
+	/** Literal used when the input port has no incoming edge. */
+	default?: PortDefaultValue;
 }
 
 export interface Node {

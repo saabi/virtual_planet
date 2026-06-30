@@ -1,8 +1,9 @@
-import type { CoordinateSpace, DataType } from '@virtual-planet/graph';
+import type { CoordinateSpace, DataType, PortDefaultValue } from '@virtual-planet/graph';
 
 export type PortBindingSource =
 	| { kind: 'edge'; edgeId: string; fromNode: string; fromPort: string }
 	| { kind: 'host'; inputId: string }
+	| { kind: 'default'; value: PortDefaultValue }
 	| { kind: 'unconnected' };
 
 export interface PortBindingState {

@@ -1,7 +1,7 @@
 import { getPrimitive, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@virtual-planet/graph';
 import { Type } from '@virtual-planet/schema';
 import { describe, expect, it } from 'vitest';
-import { emitGraphScalarEval } from './emitGraphEval.js';
+import { emitGraphScalarEval, emitGraphVec4Eval } from './emitGraphEval.js';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
@@ -264,5 +264,18 @@ describe('@virtual-planet/runtime-webgpu emitGraphScalarEval', () => {
 		expect(body).toContain('arrayLength(&v_n_buf_buf)');
 		expect(body).toContain('for (var i_n_sum_vals: u32 = 0u;');
 		expect(body).toContain('listSum(v_n_buf_buf[i_n_sum_vals])');
+	});
+
+	it('emits port defaults for unconnected vector.vec4f component inputs', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [snapshotNode('n_vec4', 'vector.vec4f')],
+			edges: [],
+			outputs: [{ name: 'color', from: { node: 'n_vec4', port: 'value' } }],
+			consumers: []
+		};
+
+		const emitted = emitGraphVec4Eval(graph, { node: 'n_vec4', port: 'value' });
+		expect(emitted.body.join('\n')).toContain('makeVec4f(0.0, 0.0, 0.0, 1.0)');
 	});
 });
