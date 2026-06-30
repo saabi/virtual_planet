@@ -10,5 +10,42 @@
 
 - updating the code or the parameters for a node, or rewiring, is not always triggering a rerender of the preview.
 - the preview panel should list available outputs for the active shader
-- the primitives menu needs collapsible sections, perhaps use existing components
-- we still have sdf functions when they're simply aliases for other functions. This was discussed elsewhere, resolve with help tips.
+- the primitives menu needs collapsible sections, perhaps use existing components (the `category`→`group` taxonomy + `@virtual-planet/editor-ui` `Section`/`Subsection` already exist — wire them up). See `architecture/procedural-graph/editor.md`.
+- we still have sdf functions when they're simply aliases for other functions. This was discussed elsewhere, resolve with help tips. (`help`/`usage` metadata fields exist; the editor doesn't render them yet, and `sdf.opUnion`/`opIntersect` should be removed in favour of `math.min`/`max` + a help tip.) See `node-model-design-notes.md` §C.
+- **node-swap UX** not built: "Change operation ▸" should let you swap a node for another sharing its role/contract (preserving edges). The `role`/`contractOf`/`swapFamily` metadata landed (foundation Slice 2); the editor UI is pending. See `node-model-design-notes.md` §C.
+- **node groups UX** not built: "Save as group", zone framing, and collapse-to-node. The group *system* (`groupToFunction`/`buildGroupModule`) exists; the editor authoring/collapse UI does not. See `node-model-design-notes.md` §E.
+- **params-as-inputs not wireable in the editor**: promotable params (e.g. remap bounds) should appear as input ports and the form should show connected-vs-literal. Graph-core helpers exist (`paramInputPorts`/`resolveParamBindings`); the editor + codegen integration is pending (see Engine below). Brief: `M-params-as-inputs.md`.
+- **S0 pipeline render unconfirmed (visual)**: the pipeline nodes (`geometry.fullscreenPlane`→`buffer.persist`→`stage.vertex`/`fragment`→`target.display`) and the `pipelineGraph` runner landed headless-green, but "does the canvas show the pipeline and render the palette" needs a human eyeball. Brief: `M-pipeline-nodes-s0.md`.
+
+## Engine — compiler / runtime (not built)
+
+- **params-as-inputs follow-on**: codegen + `evalCPU` must use the wired upstream value when a promotable param is connected (graph-core `resolveParamBindings` exists; compiler/runtime-cpu/editor integration pending). `M-params-as-inputs.md`.
+- **frame-graph GPU executor**: multi-pass ordering, single-frame **feedback** (ping-pong), transient-pool allocation. Only the pure core (`buildPassOrder`/`validatePassGraph`/`resolveTargetSizes`, T4) is built. Needed for multibuffer + render-to-texture. `M-pass-graph-executor.md`.
+- **render targets beyond single-pass**: `iResolution` per write-target and `iChannelResolution` per read-target; the current runner is single-target. `inputs-cpu-and-resources.md`, `pipeline-as-graph.md`.
+- **graph-driven mesh-gen consumer**: `runtime-webgpu/surfaceMesh.ts::buildSurfaceMesh` is still hardcoded to `surface.plane`/`cubeSphere` (CPU loop), not a `geometry.tessellate` compute consumer. `M-mesh-gen-consumer.md` (note: planet uses Mode-A vertex displacement, not Mode-B compute mesh).
+- **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
+- **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
+
+## Standard library — node gaps
+
+- **geometry transforms**: `transform.spherify`/`displace`/`twist`/`bend`/affine, and decompose `geometry.cubeSphere` → `geometry.cube` + `transform.spherify` (more elemental, reusable on any vertex list). `node-model-design-notes.md` §B.
+- **colorlab harvest remainder**: OKLab/OKLCH, CVD simulation, chromatic adaptation, gamut mapping (slice A = D65 space conversions only). `M-colorlab-harvest.md`.
+- **vegetation as nodes**: `veg.densityField`/`peakDetect`/`prominence`/`coverageMask` — the algorithm lives in `runtime-cpu/vegetation.ts` but isn't exposed as graph nodes. `primitive-library.md`.
+- **terrain analysis primitives**: `slope`/`altitude`/`curvature`/`beachMask`/`ridgeMask`/`erosionApprox` (discussed turn 50; not built). `primitive-library.md`.
+- low-hanging-fruit math/sdf/colour/noise still listed in `primitive-library.md` (e.g. `math.normalize` — needed by `spherify`).
+
+## ShaderToy / PoC (not built)
+
+- **S0.5 Game of Life** multibuffer effect (depends on the frame-graph GPU executor + ping-pong feedback). `M-shadertoy-poc.md`.
+- **ShaderToy host inputs**: `iMouse` (normalized pointer), `iFrame`, `iChannel` textures — partial.
+- **Planet PoC P0–P5**: instance-input model → tessellator composition → shaping-kernel codegen at parity → route-parity with `/scene`. `planet-pipeline-poc-feasibility.md`.
+
+## Roadmap — not started (see `architecture/procedural-graph/implementation-plan.md`)
+
+- **M13** planet shaping migration — **GATED** behind `renderer-unification-plan.md` (do not start; the planet PoC proves the path without touching the live renderer).
+- **M14** document/session model · **M15** MCP build-out (scaffold only) · **M16** embedded editor + shared surfaces · **M17** WebGPUToy.
+
+## Process / verification
+
+- **Visual & GPU gates need a human eyeball** — headless green ≠ it renders. Several "green" agent claims have been green-but-wrong (invalid WGSL emitted; caught only by review + the `@use`↔`dependencies` guard). For any WGSL-emitting change, require `check` **and** `test` **and** WGSL validity (the `procedural-wgsl/use-deps.test.ts` guard, plus a device compile where available).
+- `tsconfig.tsbuildinfo` build artifacts (`packages/*/`) are untracked and should be gitignored.
