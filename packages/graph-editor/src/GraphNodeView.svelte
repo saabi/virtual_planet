@@ -9,12 +9,21 @@
 	const nodeData = $derived(data as FlowNodeData);
 </script>
 
-<div class="graph-node" class:selected>
+<div
+	class="graph-node"
+	class:selected
+	class:issue-error={nodeData.nodeIssue === 'error'}
+	class:issue-warning={nodeData.nodeIssue === 'warning'}
+>
 	<div class="label">{nodeData.label}</div>
 	<div class="ports">
 		<div class="inputs">
 			{#each nodeData.inputs as input (input.id)}
-				<div class="port in">
+				<div
+					class="port in"
+					class:issue-error={nodeData.inputIssues?.[input.id] === 'error'}
+					class:issue-warning={nodeData.inputIssues?.[input.id] === 'warning'}
+				>
 					<Handle
 						type="target"
 						position={Position.Left}
@@ -57,6 +66,24 @@
 	.graph-node.selected {
 		border-color: #5d8cff;
 		box-shadow: 0 0 0 1px rgba(93, 140, 255, 0.35);
+	}
+
+	.graph-node.issue-error {
+		border-color: #f1948a;
+		box-shadow: 0 0 0 1px rgba(241, 148, 138, 0.45);
+	}
+
+	.graph-node.issue-warning {
+		border-color: #f7dc6f;
+		box-shadow: 0 0 0 1px rgba(247, 220, 111, 0.35);
+	}
+
+	.port.issue-error {
+		color: #f1948a;
+	}
+
+	.port.issue-warning {
+		color: #f7dc6f;
 	}
 
 	.label {

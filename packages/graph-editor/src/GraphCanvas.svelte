@@ -19,6 +19,7 @@
 		type FlowEdgeData,
 		type FlowNodeData
 	} from './irAdapter.js';
+	import { buildValidationHighlightIndex, fullValidation } from './graphValidation.js';
 
 	interface Props {
 		graph: GraphDocument;
@@ -46,15 +47,37 @@
 	let edges = $state.raw<Edge<FlowEdgeData>[]>([]);
 
 	$effect(() => {
+		const highlights = buildValidationHighlightIndex(fullValidation(graph).issues);
 		const flow = graphToFlow(graph);
-		nodes = flow.nodes.map((node) => ({
-			...node,
-			type: 'graphNode',
-			selected: node.id === selectedNodeId
-		}));
+		nodes = flow.nodes.map((node) => {
+			let nodeIssue: 'error' | 'warning' | undefined;
+			if (highlights.nodeErrors.has(node.id)) nodeIssue = 'error';
+			else if (highlights.nodeWarnings.has(node.id)) nodeIssue = 'warning';
+
+			const inputIssues: Record<string, 'error' | 'warning'> = {};
+			for (const input of node.data.inputs) {
+				const severity = highlights.ports.get(`${node.id}:${input.id}`);
+				if (severity) inputIssues[input.id] = severity;
+			}
+
+			return {
+				...node,
+				type: 'graphNode',
+				selected: node.id === selectedNodeId,
+				data: {
+					...node.data,
+					nodeIssue,
+					inputIssues:
+						Object.keys(inputIssues).length > 0 ? inputIssues : undefined
+				}
+			};
+		});
 		edges = flow.edges.map((edge) => ({
 			...edge,
-			selected: edge.id === selectedEdgeId
+			selected: edge.id === selectedEdgeId,
+			...(highlights.edges.has(edge.id)
+				? { style: 'stroke: #f1948a; stroke-width: 2.5px;' }
+				: {})
 		}));
 	});
 

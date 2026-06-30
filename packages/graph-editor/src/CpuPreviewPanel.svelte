@@ -2,6 +2,8 @@
 	import { evaluateGraphOutput } from '@virtual-planet/runtime-cpu';
 	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
 
+	import { fullValidation, incompleteGraphMessage } from './graphValidation.js';
+
 	interface Props {
 		graph: GraphDocument;
 		output: PortRef | null;
@@ -11,11 +13,13 @@
 
 	let { graph, output, size = 64, refreshEpoch = 0 }: Props = $props();
 
+	const blockMessage = $derived(incompleteGraphMessage(fullValidation(graph)));
+
 	let canvas = $state<HTMLCanvasElement | null>(null);
 
 	$effect(() => {
 		void refreshEpoch;
-		if (!canvas || !output) return;
+		if (!canvas || !output || blockMessage) return;
 
 		const context = canvas.getContext('2d');
 		if (!context) return;
@@ -45,7 +49,9 @@
 
 <div class="preview">
 	<h2 class="title">CPU preview</h2>
-	{#if output}
+	{#if blockMessage}
+		<p class="blocked">{blockMessage}</p>
+	{:else if output}
 		<canvas bind:this={canvas} width={size} height={size} class="heatmap"></canvas>
 	{:else}
 		<p class="empty">Wire a scalar output to preview.</p>
@@ -76,9 +82,16 @@
 		border: 1px solid rgba(255, 255, 255, 0.12);
 	}
 
-	.empty {
+	.empty,
+	.blocked {
 		margin: 0;
 		font-size: 11px;
 		opacity: 0.6;
+	}
+
+	.blocked {
+		color: #f1948a;
+		opacity: 1;
+		align-self: flex-start;
 	}
 </style>

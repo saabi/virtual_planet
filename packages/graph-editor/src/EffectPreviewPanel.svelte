@@ -6,6 +6,8 @@
 		type ShaderToyHostInputs
 	} from '@virtual-planet/runtime-webgpu';
 
+	import { fullValidation, incompleteGraphMessage } from './graphValidation.js';
+
 	interface Props {
 		graph: GraphDocument;
 		output: PortRef | null;
@@ -14,6 +16,8 @@
 	}
 
 	let { graph, output, size = 256, refreshEpoch = 0 }: Props = $props();
+
+	const blockMessage = $derived(incompleteGraphMessage(fullValidation(graph)));
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
@@ -46,7 +50,7 @@
 		void graph;
 		startTime = performance.now();
 
-		if (!canvas || !output) return;
+		if (!canvas || !output || blockMessage) return;
 
 		if (!webGpuAvailable) {
 			statusMessage = 'WebGPU is not available in this browser.';
@@ -128,7 +132,9 @@
 	onpointerleave={onPointerUp}
 >
 	<h2 class="title">Effect preview</h2>
-	{#if output}
+	{#if blockMessage}
+		<p class="blocked">{blockMessage}</p>
+	{:else if output}
 		<canvas bind:this={canvas} width={size} height={size} class="effect-canvas"></canvas>
 		{#if statusMessage}
 			<p class="status">{statusMessage}</p>
@@ -164,10 +170,18 @@
 	}
 
 	.status,
-	.empty {
+	.empty,
+	.blocked {
 		margin: 0;
 		font-size: 11px;
 		opacity: 0.7;
 		text-align: center;
+	}
+
+	.blocked {
+		color: #f1948a;
+		opacity: 1;
+		align-self: flex-start;
+		text-align: left;
 	}
 </style>

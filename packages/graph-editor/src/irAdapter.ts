@@ -19,6 +19,8 @@ export interface FlowNodeData {
 	label: string;
 	inputs: Port[];
 	outputs: Port[];
+	nodeIssue?: 'error' | 'warning';
+	inputIssues?: Readonly<Record<string, 'error' | 'warning'>>;
 }
 
 export interface FlowEdgeData {

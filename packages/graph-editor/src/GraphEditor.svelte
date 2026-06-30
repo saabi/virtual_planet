@@ -3,7 +3,6 @@
 	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
 	import type { LayoutDocument } from '@virtual-planet/subdivide';
 	import type { GraphDocument } from '@virtual-planet/graph';
-	import { validateGraph } from '@virtual-planet/graph';
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
@@ -30,6 +29,7 @@
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
 	import { inferPreviewBackend, isPreviewModeCompatible, type PreviewBackend } from './previewBackend.js';
 	import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
+	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
 	import {
 		copyNodeToClipboard,
@@ -81,15 +81,15 @@
 				void markupViewActions?.copyMarkup();
 			},
 			copyValidationReport: () => {
-				const result = validateGraph(graph);
+				const result = fullValidation(graph);
 				const lines: string[] = [];
 				if (markupParseError) lines.push(`Markup: ${markupParseError}`);
 				if (codeSaveError) lines.push(`Code: ${codeSaveError}`);
-				if (result.ok) {
+				if (result.ok && result.issues.length === 0) {
 					lines.push('Graph is valid.');
 				} else {
 					for (const issue of result.issues) {
-						lines.push(String(issue.kind));
+						lines.push(formatValidationIssue(issue));
 					}
 				}
 				void navigator.clipboard.writeText(lines.join('\n'));
@@ -464,7 +464,18 @@
 {/snippet}
 
 {#snippet validation()}
-	<ValidationPanel {graph} markupError={markupParseError ?? codeSaveError} />
+	<ValidationPanel
+		{graph}
+		markupError={markupParseError ?? codeSaveError}
+		onfocusnode={(nodeId) => {
+			selectedNodeId = nodeId;
+			selectedEdgeId = null;
+		}}
+		onfocusedge={(edgeId) => {
+			selectedEdgeId = edgeId;
+			selectedNodeId = null;
+		}}
+	/>
 {/snippet}
 
 {#snippet markup()}

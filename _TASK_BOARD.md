@@ -35,7 +35,7 @@ These three touch **different graph-editor files** → safe in parallel (coordin
 - **Note:** call `validateGraphFull`; group issues by severity (`isWarning`); highlight
   offending nodes/ports/edges on the canvas; preview/compiled-view show "graph incomplete"
   not a crash.
-- **Status:** UNCLAIMED
+- **Status:** DONE b1761ae
 
 ## T-C — Reliable recompile + real source for groups/pipeline nodes  ·  Claimed by: Cursor (Agent C)
 
