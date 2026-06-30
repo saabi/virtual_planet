@@ -8,7 +8,7 @@ This is the stable entry point for task results. Each parallel task has its own 
 | Node-model decomposition fix | [`handoffs/M-node-model-decomposition-fix.md`](./handoffs/M-node-model-decomposition-fix.md) | Landed (`a29b4cc`) |
 | Noise-functions harvest | [`handoffs/M-noise-functions-harvest.md`](./handoffs/M-noise-functions-harvest.md) | Landed (`b0f9fd9`) |
 | Colorlab harvest, slice A | [`handoffs/M-colorlab-harvest-a.md`](./handoffs/M-colorlab-harvest-a.md) | Landed (`4cf03ea`) |
-| Pipeline nodes S0 | [`handoffs/M-pipeline-nodes-s0.md`](./handoffs/M-pipeline-nodes-s0.md) | Visual gate passed; commit pending |
+| Pipeline nodes S0 | [`handoffs/M-pipeline-nodes-s0.md`](./handoffs/M-pipeline-nodes-s0.md) | Landed (`5af0b80`) |
 
 Implementers update only their assigned handoff. Reviewers record acceptance, requested
 changes, and the final commit in the same file.

@@ -59,6 +59,7 @@ boundary.
 | · R2-T2 extract → `apps/graph-editor` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
 | · M-node-model-foundation (resource ports · list<T> · groups · role/contract) | ✅ | graph 76/76, compiler 37/37, workspace 333/333 | `3641621` |
 | · M-node-model-decomposition-fix | ✅ | graph 77/77; compiler 42/42; procedural-wgsl 35/35; workspace green | `a29b4cc` |
+| · M-pipeline-nodes-s0 | ✅ | graph 92/92; procedural-WGSL 91/91; runtime-webgpu 44/44; graph-editor 57/57; app check/build; visual gate | `5af0b80` |
 
 ## Current front
 
@@ -69,15 +70,14 @@ landed in `a29b4cc`. `math.remap` and `sdf.opSubtract` are generated from canoni
 with declared dependencies; generic group params preserve TypeBox-backed numeric/boolean
 contracts and validate mappings.
 
-**Current in-flight handoff:** [`M-pipeline-nodes-s0`](./handoffs/M-pipeline-nodes-s0.md)
-has an implementation ready to commit. It adds explicit S0 pipeline nodes (geometry
-source, persistent buffer, vertex stage, fragment stage, display target), rebuilds the
-ShaderToy cosine sample around `geometry.plane`, and adds a minimal runtime pipeline
-planner/executor. Automated graph/procedural-WGSL/runtime/editor gates are green; the
-browser visual gate passed with screenshot
-[`_docs/screenshots/cosine-palette.png`](../../screenshots/cosine-palette.png).
+**Latest boundary:** [`M-pipeline-nodes-s0`](./handoffs/M-pipeline-nodes-s0.md)
+landed in `5af0b80`. It adds explicit S0 pipeline nodes (geometry source, persistent
+buffer, vertex stage, fragment stage, display target), rebuilds the ShaderToy cosine
+sample around `geometry.plane`, and adds a minimal runtime pipeline planner/executor.
+Automated graph/procedural-WGSL/runtime/editor gates are green; the browser visual gate
+passed with screenshot [`_docs/screenshots/cosine-palette.png`](../../screenshots/cosine-palette.png).
 
-**Next:** commit **M-pipeline-nodes-s0**, then choose the next pipeline-graph slice.
+**Next:** choose the next pipeline-graph slice.
 
 **Background:** Stages A–D (the generic engine: IR → primitives → compiler → linker →
 CPU/GPU runtime → editor → tessellation → vegetation) are complete. **M13** (migrating the

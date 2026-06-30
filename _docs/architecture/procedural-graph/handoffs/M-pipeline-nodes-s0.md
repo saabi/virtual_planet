@@ -2,7 +2,7 @@
 
 **Brief:** [`../briefs/M-pipeline-nodes-s0.md`](../briefs/M-pipeline-nodes-s0.md)
 **Assigned executor:** Codex
-**State:** accepted; commit pending
+**State:** landed (`5af0b80`)
 
 ## Result
 
@@ -100,4 +100,4 @@ Accepted.
 
 ## Commit record
 
-Pending.
+`5af0b80` — M-pipeline-nodes-s0: expose ShaderToy pipeline nodes
