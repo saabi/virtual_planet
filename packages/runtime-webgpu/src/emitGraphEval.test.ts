@@ -133,6 +133,35 @@ describe('@virtual-planet/runtime-webgpu emitGraphScalarEval', () => {
 		]);
 	});
 
+	it('emits vector math nodes in scalar graph chains', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [
+				snapshotNode('n_x', 'constant.f32', { value: 3 }),
+				snapshotNode('n_y', 'constant.f32', { value: 4 }),
+				snapshotNode('n_z', 'constant.f32', { value: 0 }),
+				snapshotNode('n_vec', 'vector.vec3f'),
+				snapshotNode('n_norm', 'vector.normalize.vec3f'),
+				snapshotNode('n_extract', 'vector.vec3f.z')
+			],
+			edges: [
+				{ id: 'e_x', from: { node: 'n_x', port: 'value' }, to: { node: 'n_vec', port: 'x' } },
+				{ id: 'e_y', from: { node: 'n_y', port: 'value' }, to: { node: 'n_vec', port: 'y' } },
+				{ id: 'e_z', from: { node: 'n_z', port: 'value' }, to: { node: 'n_vec', port: 'z' } },
+				{ id: 'e_norm', from: { node: 'n_vec', port: 'value' }, to: { node: 'n_norm', port: 'value' } },
+				{ id: 'e_extract', from: { node: 'n_norm', port: 'value' }, to: { node: 'n_extract', port: 'value' } }
+			],
+			outputs: [{ name: 'z', from: { node: 'n_extract', port: 'z' } }],
+			consumers: []
+		};
+
+		const emitted = emitGraphScalarEval(graph, { node: 'n_extract', port: 'z' });
+		const body = emitted.body.join('\n');
+		expect(body).toContain('makeVec3f(v_n_x_value, v_n_y_value, v_n_z_value)');
+		expect(body).toContain('normalizeVec3f(v_n_vec_value)');
+		expect(body).toContain('vec3fZ(v_n_norm_value)');
+	});
+
 	it('lowers list<T> inputs fed multiple scalar edges via static unroll', () => {
 		try {
 			registerPrimitive({

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Value } from '@virtual-planet/schema';
 
 import { getPrimitive } from '../../registry.js';
-import { planeParams } from './plane.js';
+import { fullscreenPlaneParams, planeParams } from './plane.js';
 import './index.js';
 
 describe('pipeline geometry primitives', () => {
@@ -17,10 +17,14 @@ describe('pipeline geometry primitives', () => {
 		expect(coerced).toEqual({ resU: 32, resV: 8 });
 	});
 
-	it('geometry.fullscreenPlane and geometry.plane are distinct sources', () => {
+	it('geometry.fullscreenPlane is a 2x2 compatibility alias for geometry.plane', () => {
 		const fullscreen = getPrimitive('geometry.fullscreenPlane')!;
 		const plane = getPrimitive('geometry.plane')!;
 		expect(fullscreen.id).not.toBe(plane.id);
-		expect(fullscreen.params).not.toEqual(plane.params);
+		expect(fullscreen.outputs).toEqual(plane.outputs);
+		expect(fullscreen.wgsl).toEqual(plane.wgsl);
+		expect(Value.Create(fullscreenPlaneParams)).toEqual({ resU: 2, resV: 2 });
+		expect(Value.Create(fullscreen.params)).toEqual({ resU: 2, resV: 2 });
+		expect(fullscreen.metadata?.help).toContain('geometry.plane');
 	});
 });

@@ -3,12 +3,27 @@ import { quantity, Type } from '@virtual-planet/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const planeParams = Type.Object({
-	resU: quantity('none', { integer: true, min: 2, default: 16, description: 'Subdivisions along U' }),
-	resV: quantity('none', { integer: true, min: 2, default: 16, description: 'Subdivisions along V' })
-});
+function createPlaneParams(defaultResU = 16, defaultResV = 16) {
+	return Type.Object({
+		resU: quantity('none', {
+			integer: true,
+			min: 2,
+			default: defaultResU,
+			description: 'Subdivisions along U'
+		}),
+		resV: quantity('none', {
+			integer: true,
+			min: 2,
+			default: defaultResV,
+			description: 'Subdivisions along V'
+		})
+	});
+}
 
-/** Parametric resU×resV plane grid geometry source (instanceable). Not an alias of geometry.fullscreenPlane. */
+const planeParams = createPlaneParams();
+const fullscreenPlaneParams = createPlaneParams(2, 2);
+
+/** Parametric resU×resV plane grid geometry source (instanceable). */
 const plane: NodePrimitive = {
 	id: 'geometry.plane',
 	category: 'geometry/source',
@@ -18,7 +33,7 @@ const plane: NodePrimitive = {
 	wgsl: { moduleId: 'geometry.plane', entry: 'planeGrid' },
 	metadata: {
 		description: 'Parametric resU×resV plane grid geometry source.',
-		help: 'Generates a subdivided plane mesh grid. Instanceable (e.g. six faces for a cube). For a fixed 2-triangle fullscreen quad, use geometry.fullscreenPlane.',
+		help: 'Generates a subdivided plane mesh grid. Instanceable (e.g. six faces for a cube). Use { resU: 2, resV: 2 } for a fixed 2-triangle fullscreen quad; legacy geometry.fullscreenPlane graphs resolve to this same plane-grid primitive.',
 		keywords: ['instanceable', 'grid', 'tessellation'],
 		pure: true,
 		deterministic: true,
@@ -28,4 +43,4 @@ const plane: NodePrimitive = {
 
 registerPrimitive(plane);
 
-export { planeParams };
+export { fullscreenPlaneParams, planeParams };

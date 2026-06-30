@@ -3,6 +3,27 @@ import { quantity, Type } from '@virtual-planet/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
+type VectorType = 'vec2f' | 'vec3f' | 'vec4f';
+
+const VECTOR_SPECS = [
+	{ type: 'vec2f', size: 2 },
+	{ type: 'vec3f', size: 3 },
+	{ type: 'vec4f', size: 4 }
+] as const satisfies readonly { type: VectorType; size: number }[];
+
+function vectorValues(value: unknown, size: number): number[] {
+	const vector = Array.isArray(value) ? value : [];
+	return Array.from({ length: size }, (_, index) => Number(vector[index] ?? 0));
+}
+
+function dot(a: readonly number[], b: readonly number[]): number {
+	return a.reduce((sum, component, index) => sum + component * (b[index] ?? 0), 0);
+}
+
+function entrySuffix(inputType: VectorType): string {
+	return inputType.replace('v', 'V');
+}
+
 const constantF32: NodePrimitive = {
 	id: 'constant.f32',
 	category: 'constant',
@@ -110,6 +131,181 @@ function componentPrimitive(
 	};
 }
 
+function binaryVectorPrimitive(
+	operation: 'add' | 'sub',
+	inputType: VectorType,
+	size: number
+): NodePrimitive {
+	const id = `vector.${operation}.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [
+			{ name: 'a', dataType: inputType },
+			{ name: 'b', dataType: inputType }
+		],
+		outputs: [{ name: 'value', dataType: inputType }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `${operation}${entrySuffix(inputType)}` },
+		metadata: {
+			description: `${operation === 'add' ? 'Add' : 'Subtract'} ${inputType} values component-wise.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const a = vectorValues(ctx.inputs.a, size);
+			const b = vectorValues(ctx.inputs.b, size);
+			const value = a.map((component, index) =>
+				operation === 'add' ? component + b[index]! : component - b[index]!
+			);
+			return { value };
+		}
+	};
+}
+
+function scalarVectorPrimitive(
+	operation: 'mulScalar' | 'divScalar',
+	inputType: VectorType,
+	size: number
+): NodePrimitive {
+	const id = `vector.${operation}.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [
+			{ name: 'value', dataType: inputType },
+			{ name: 'scalar', dataType: 'f32' }
+		],
+		outputs: [{ name: 'value', dataType: inputType }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `${operation}${entrySuffix(inputType)}` },
+		metadata: {
+			description: `${operation === 'mulScalar' ? 'Multiply' : 'Divide'} ${inputType} by a scalar.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const value = vectorValues(ctx.inputs.value, size);
+			const scalar = Number(ctx.inputs.scalar ?? 0);
+			return {
+				value: value.map((component) =>
+					operation === 'mulScalar' ? component * scalar : component / scalar
+				)
+			};
+		}
+	};
+}
+
+function dotPrimitive(inputType: VectorType, size: number): NodePrimitive {
+	const id = `vector.dot.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [
+			{ name: 'a', dataType: inputType },
+			{ name: 'b', dataType: inputType }
+		],
+		outputs: [{ name: 'value', dataType: 'f32' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `dot${entrySuffix(inputType)}` },
+		metadata: {
+			description: `Dot product of two ${inputType} values.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			return { value: dot(vectorValues(ctx.inputs.a, size), vectorValues(ctx.inputs.b, size)) };
+		}
+	};
+}
+
+function lengthPrimitive(inputType: VectorType, size: number): NodePrimitive {
+	const id = `vector.length.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [{ name: 'value', dataType: inputType }],
+		outputs: [{ name: 'value', dataType: 'f32' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `length${entrySuffix(inputType)}` },
+		metadata: {
+			description: `Length of a ${inputType} value.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const value = vectorValues(ctx.inputs.value, size);
+			return { value: Math.sqrt(dot(value, value)) };
+		}
+	};
+}
+
+function normalizePrimitive(inputType: VectorType, size: number): NodePrimitive {
+	const id = `vector.normalize.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [{ name: 'value', dataType: inputType }],
+		outputs: [{ name: 'value', dataType: inputType }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `normalize${entrySuffix(inputType)}` },
+		metadata: {
+			description: `Normalize a ${inputType} value.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const value = vectorValues(ctx.inputs.value, size);
+			const magnitude = Math.sqrt(dot(value, value));
+			return { value: magnitude === 0 ? value.map(() => 0) : value.map((component) => component / magnitude) };
+		}
+	};
+}
+
+function mixPrimitive(inputType: VectorType, size: number): NodePrimitive {
+	const id = `vector.mix.${inputType}`;
+	return {
+		id,
+		category: 'vector',
+		inputs: [
+			{ name: 'a', dataType: inputType },
+			{ name: 'b', dataType: inputType },
+			{ name: 't', dataType: 'f32' }
+		],
+		outputs: [{ name: 'value', dataType: inputType }],
+		params: Type.Object({}),
+		wgsl: { moduleId: id, entry: `mix${entrySuffix(inputType)}` },
+		metadata: {
+			description: `Linearly interpolate between two ${inputType} values.`,
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const a = vectorValues(ctx.inputs.a, size);
+			const b = vectorValues(ctx.inputs.b, size);
+			const t = Number(ctx.inputs.t ?? 0);
+			return { value: a.map((component, index) => component * (1 - t) + b[index]! * t) };
+		}
+	};
+}
+
+function vectorMathPrimitives(): NodePrimitive[] {
+	const primitives: NodePrimitive[] = [];
+	for (const { type, size } of VECTOR_SPECS) {
+		primitives.push(
+			binaryVectorPrimitive('add', type, size),
+			binaryVectorPrimitive('sub', type, size),
+			scalarVectorPrimitive('mulScalar', type, size),
+			scalarVectorPrimitive('divScalar', type, size),
+			dotPrimitive(type, size),
+			lengthPrimitive(type, size),
+			normalizePrimitive(type, size),
+			mixPrimitive(type, size)
+		);
+	}
+	return primitives;
+}
+
 const primitives = [
 	constantF32,
 	vec2f,
@@ -123,7 +319,8 @@ const primitives = [
 	componentPrimitive('vector.vec4f.x', 'vec4f', 'x', 0),
 	componentPrimitive('vector.vec4f.y', 'vec4f', 'y', 1),
 	componentPrimitive('vector.vec4f.z', 'vec4f', 'z', 2),
-	componentPrimitive('vector.vec4f.w', 'vec4f', 'w', 3)
+	componentPrimitive('vector.vec4f.w', 'vec4f', 'w', 3),
+	...vectorMathPrimitives()
 ];
 
 for (const primitive of primitives) {
