@@ -16,16 +16,16 @@ These three touch **different graph-editor files** → safe in parallel (coordin
 
 ---
 
-## T-A — Final compiled-WGSL view  ·  Claimed by: UNCLAIMED
+## T-A — Final compiled-WGSL view  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-compiled-wgsl-view.md`
 - **Owns:** new `packages/graph-editor/src/compiledWgsl.ts` (+ test), `CompiledWgslPanel.svelte`;
   wire a new `compiled` zone in `GraphEditor.svelte`'s layout (coordinate with T3).
 - **Note:** reuse the runtime's existing assembly (`compileGraph`/`assembleStageEntry`/the
   pipeline assembly) — no new codegen. Show compile errors as text, never crash.
-- **Status:** UNCLAIMED
+- **Status:** DONE 63e2ea9
 
-## T-B — Flag incomplete/invalid graphs (editor surfacing)  ·  Claimed by: UNCLAIMED
+## T-B — Flag incomplete/invalid graphs (editor surfacing)  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-graph-validation-flagging.md`
   — **Part 1 (validation rules) is DONE (`9af09e0`)**; do **Part 2** (editor surfacing).
@@ -37,7 +37,7 @@ These three touch **different graph-editor files** → safe in parallel (coordin
   not a crash.
 - **Status:** UNCLAIMED
 
-## T-C — Reliable recompile + real source for groups/pipeline nodes  ·  Claimed by: UNCLAIMED
+## T-C — Reliable recompile + real source for groups/pipeline nodes  ·  Claimed by: Cursor (Agent C)
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-editor-recompile-and-node-source.md`
 - **Owns:** `packages/graph-editor/src/primitiveSources.ts`, the preview/recompile reactivity
