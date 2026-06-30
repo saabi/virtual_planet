@@ -25,13 +25,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Canonical data types + input-port defaults** — `vec2f` ≡ `vec2<f32>` desync breaks
-  connections (`mulScalarVec2f`); add one `canonicalDataType` enforced at every boundary +
-  consolidate the dup `wgslTypeFor`. Also add optional `default` to input ports (unconnected →
-  literal) and apply to vector components (x,y,z=0, w=1). One owner, two parts (shares
-  `emitGraphEval.ts`+`types.ts`). Owns graph/compiler/runtime-cpu/runtime-webgpu vector+type
-  files — **disjoint from node-swap**, parallel-safe.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-datatype-canonical-and-port-defaults.md`  ·  Claimed by: Cursor
+_(none — add tasks below as briefs are pinned.)_
 
 ## Later — do NOT start now
 
@@ -67,3 +61,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Palette collapsed by default** — opt-in `expandedByMode` per grouping mode; search still auto-expands — `f1de8b1`
 - **Fullscreen-fragment params binding** — declare and bind `GraphParams` in image consumer — `aa309e9`
 - **Node swap by contract** — title-click searchable swap menu + `replace-node-primitive` edit intent — `cf23086`
+- **Canonical data types + port defaults** — `canonicalDataType`/`dataTypeToWgsl` + unconnected input defaults (vector vec4f w=1) — `1f1bee4`
