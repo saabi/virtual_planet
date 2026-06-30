@@ -186,19 +186,22 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 	it('declares GraphParams for a constant.f32 param node and device-compiles', async () => {
 		const graph = constantVec4FragmentGraph();
 		const output = constantVec4FragmentOutput();
-		const { code, params } = await assembleFullscreenFragmentModuleAsync(
+		const { code, params, usesShaderToyHost } = await assembleFullscreenFragmentModuleAsync(
 			graph,
 			output,
 			createStandardLibraryResolver()
 		);
 
+		expect(usesShaderToyHost).toBe(false);
 		expect(params.some((field) => field.nodeId === 'n_const' && field.paramName === 'value')).toBe(
 			true
 		);
 		expect(code).toContain('struct GraphParams');
 		expect(code).toContain('p_n_const_value');
 		expect(code).toContain('params.p_n_const_value');
-		expect(code).toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
+		expect(code).not.toContain('ShaderToyUniforms');
+		expect(code).toContain('@group(0) @binding(0) var<uniform> params: GraphParams;');
+		expect(code).not.toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
 
 		const wgslError = await validateWgslModule(code);
 		expect(wgslError).toBeNull();

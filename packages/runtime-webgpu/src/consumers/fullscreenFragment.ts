@@ -48,6 +48,8 @@ export interface FullscreenFragmentAssembly {
 	outputName: string;
 	vertexCount: number;
 	params: GraphParamField[];
+	/** Whether ShaderToy host uniforms are declared at `@binding(0)`. */
+	usesShaderToyHost: boolean;
 }
 
 function packGraphParams(
@@ -99,6 +101,15 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 	return match.name;
 }
 
+function graphUsesShaderToyHost(graph: GraphDocument): boolean {
+	return graph.nodes.some(
+		(node) =>
+			node.primitive === 'host.fragCoord' ||
+			node.primitive === 'host.iResolution' ||
+			node.primitive === 'host.iTime'
+	);
+}
+
 function buildGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
 	// `position` is the fragment's @builtin(position) (host.fragCoord emits `position.xy`);
 	// it must be a parameter so the body resolves it. Uniform `u` is module-scope (binding).
@@ -129,26 +140,40 @@ export async function assembleFullscreenFragmentModuleAsync(
 	const emitted = emitGraphVec4Eval(graph, output, { shaderToy: true });
 	const evalFn = buildGraphEvalFn(outputName, emitted.body, emitted.resultExpr);
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
+	const usesShaderToyHost = graphUsesShaderToyHost(graph);
+	const paramsBinding = usesShaderToyHost ? 1 : 0;
 
-	const stage = assembleStageEntry(
-		{ ...consumerShader, code: libraryWithEval },
-		{
-			bindings: [
+	const bindings = usesShaderToyHost
+		? [
 				{
 					group: 0,
 					binding: 0,
 					name: 'u',
-					kind: 'uniform',
+					kind: 'uniform' as const,
 					wgslType: 'ShaderToyUniforms'
 				},
 				{
 					group: 0,
-					binding: 1,
+					binding: paramsBinding,
 					name: 'params',
-					kind: 'uniform',
+					kind: 'uniform' as const,
 					wgslType: 'GraphParams'
 				}
-			],
+			]
+		: [
+				{
+					group: 0,
+					binding: paramsBinding,
+					name: 'params',
+					kind: 'uniform' as const,
+					wgslType: 'GraphParams'
+				}
+			];
+
+	const stage = assembleStageEntry(
+		{ ...consumerShader, code: libraryWithEval },
+		{
+			bindings,
 			outputFns: { [outputName]: `graph_eval_${outputName}` },
 			callArgs: ['position']
 		}
@@ -156,9 +181,12 @@ export async function assembleFullscreenFragmentModuleAsync(
 
 	const paramsStruct = buildParamsStructWgsl(emitted.params);
 	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
-	const code = [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code].join('\n\n');
+	const codeParts = usesShaderToyHost
+		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code]
+		: [paramsStruct, vertexWgsl, stage.code];
+	const code = codeParts.join('\n\n');
 
-	return { code, outputName, vertexCount, params: emitted.params };
+	return { code, outputName, vertexCount, params: emitted.params, usesShaderToyHost };
 }
 
 async function createRenderPipeline(device: GPUDevice, shaderCode: string): Promise<GPURenderPipeline> {
@@ -185,7 +213,7 @@ export async function executeFullscreenFragment(
 	}
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
-	const { code, vertexCount, params } = await assembleFullscreenFragmentModuleAsync(
+	const { code, vertexCount, params, usesShaderToyHost } = await assembleFullscreenFragmentModuleAsync(
 		graph,
 		output,
 		resolver
@@ -193,22 +221,29 @@ export async function executeFullscreenFragment(
 	const pipeline = await createRenderPipeline(device, code);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
-	const uniformData = packShaderToyUniforms({
-		width,
-		height,
-		iTime: host.iTime,
-		iMouse: host.iMouse,
-		iFrame: host.iFrame
-	});
-	const uniformBuffer = device.createBuffer({
-		label: 'shadertoy-uniforms',
-		size: alignTo(SHADERTOY_UNIFORM_BYTE_LENGTH, 16),
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	});
-	device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+	const bindGroupEntries: GPUBindGroupEntry[] = [];
+	let uniformBuffer: GPUBuffer | null = null;
+	let graphParamsBuffer: GPUBuffer | null = null;
+
+	if (usesShaderToyHost) {
+		const uniformData = packShaderToyUniforms({
+			width,
+			height,
+			iTime: host.iTime,
+			iMouse: host.iMouse,
+			iFrame: host.iFrame
+		});
+		uniformBuffer = device.createBuffer({
+			label: 'shadertoy-uniforms',
+			size: alignTo(SHADERTOY_UNIFORM_BYTE_LENGTH, 16),
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+		device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+		bindGroupEntries.push({ binding: 0, resource: { buffer: uniformBuffer } });
+	}
 
 	const graphParamsData = packGraphParams(width, height, params, graph);
-	const graphParamsBuffer = device.createBuffer({
+	graphParamsBuffer = device.createBuffer({
 		label: 'fullscreen-fragment-graph-params',
 		size: alignTo(graphParamsData.byteLength, 16),
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -220,13 +255,14 @@ export async function executeFullscreenFragment(
 		graphParamsData.byteOffset,
 		graphParamsData.byteLength
 	);
+	bindGroupEntries.push({
+		binding: usesShaderToyHost ? 1 : 0,
+		resource: { buffer: graphParamsBuffer }
+	});
 
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
-		entries: [
-			{ binding: 0, resource: { buffer: uniformBuffer } },
-			{ binding: 1, resource: { buffer: graphParamsBuffer } }
-		]
+		entries: bindGroupEntries
 	});
 
 	const texture = device.createTexture({
@@ -277,8 +313,8 @@ export async function executeFullscreenFragment(
 	}
 	readbackBuffer.unmap();
 
-	uniformBuffer.destroy();
-	graphParamsBuffer.destroy();
+	uniformBuffer?.destroy();
+	graphParamsBuffer?.destroy();
 	texture.destroy();
 	readbackBuffer.destroy();
 
