@@ -90,6 +90,7 @@ runs what.
 | [M-swap-menu-click-outside.md](./M-swap-menu-click-outside.md) | Touch-up: swap menu closes on outside click (capture-phase window pointerdown) | 📌 contract ready | Cursor |
 | [M-datatype-canonical-and-port-defaults.md](./M-datatype-canonical-and-port-defaults.md) | **fix+feature:** one `canonicalDataType` (vec2f ≡ vec2<f32>) enforced at every boundary; optional input-port `default` (unconnected → literal) applied to vector components | 📌 contract ready · next | Cursor |
 | [M-graph-editor-default-layout-v2.md](./M-graph-editor-default-layout-v2.md) | Graph editor default layout v2 — palette \| canvas+code \| inspector/validation/preview | ✅ landed | Cursor (done) |
+| [M-graph-sample-worley-pipeline.md](./M-graph-sample-worley-pipeline.md) | Hard-coded Worley+iTime pipeline sample; replaces Noise field (scalar) | ✅ landed | Cursor (done) |
 | [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Infra: make `npm test` compile WGSL on a software adapter + consumer-coverage device test (catches the "string-valid but GPU-rejected" class) | 📌 contract ready · Later (infra) | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in

@@ -1,1 +1,5 @@
-export { defaultPreviewGraph, primaryPreviewOutput } from './graphBuilders.js';
+export {
+	animatedWorleyPipelineGraph,
+	defaultPreviewGraph,
+	primaryPreviewOutput
+} from './graphBuilders.js';

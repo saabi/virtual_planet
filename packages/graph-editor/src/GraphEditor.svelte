@@ -25,7 +25,7 @@
 		saveGraphToStorage
 	} from './documentStorage.js';
 	import { applyEditIntent } from './irAdapter.js';
-	import { defaultPreviewGraph } from './defaultGraph.js';
+	import { animatedWorleyPipelineGraph } from './defaultGraph.js';
 	import { defaultGraphEditorLayout } from './defaultLayout.js';
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
 	import {
@@ -57,7 +57,7 @@
 		onchange?: (next: GraphDocument) => void;
 	}
 
-	let { graph = $bindable(defaultPreviewGraph()), onchange }: Props = $props();
+	let { graph = $bindable(animatedWorleyPipelineGraph()), onchange }: Props = $props();
 
 	let selectedNodeId = $state<string | null>(null);
 	let selectedEdgeId = $state<string | null>(null);
@@ -267,7 +267,7 @@
 	});
 
 	function newGraph() {
-		const next = defaultPreviewGraph();
+		const next = animatedWorleyPipelineGraph();
 		clearGraphStorage();
 		clearSelection();
 		updateGraph(next);

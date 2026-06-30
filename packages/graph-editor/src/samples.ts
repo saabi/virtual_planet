@@ -1,6 +1,10 @@
 import type { GraphDocument } from '@virtual-planet/graph';
 
-import { cosinePaletteEffectGraph, defaultPreviewGraph } from './graphBuilders.js';
+import {
+	animatedWorleyPipelineGraph,
+	cosinePaletteEffectGraph,
+	defaultPreviewGraph
+} from './graphBuilders.js';
 
 export interface GraphSample {
 	id: string;
@@ -11,9 +15,9 @@ export interface GraphSample {
 /** Named example graphs loadable into the editor canvas. */
 export const GRAPH_SAMPLES: readonly GraphSample[] = [
 	{
-		id: 'default-scalar',
-		label: 'Noise field (scalar)',
-		build: defaultPreviewGraph
+		id: 'pipeline-worley-time',
+		label: 'ShaderToy — Animated Worley',
+		build: animatedWorleyPipelineGraph
 	},
 	{
 		id: 'shadertoy-cosine-palette',
