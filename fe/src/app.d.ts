@@ -21,6 +21,10 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+	interface Window {
+		/** Umami analytics (cookieless), present only when the env-gated script loads. */
+		umami?: { track: (event?: string, data?: Record<string, unknown>) => void };
+	}
 }
 
 export {};

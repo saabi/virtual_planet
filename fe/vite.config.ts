@@ -5,6 +5,7 @@ import { glslify } from './vite-glslify';
 import { wgsl } from './vite-wgsl';
 
 export default defineConfig({
+	envPrefix: ['VITE_', 'PUBLIC_'],
 	plugins: [
 		sveltekit({
 			compilerOptions: {

@@ -27,6 +27,8 @@ npm test             # vitest run (one-shot)
 npx vitest run src/lib/planet/params/planetParams.test.ts   # single test file
 ```
 
+`PUBLIC_*` env vars are inlined at **build time** (`PUBLIC_SITE_URL`, `PUBLIC_UMAMI_SRC`, `PUBLIC_UMAMI_WEBSITE_ID`). Production runs via PM2: `pm2 start ecosystem.config.cjs` from the repo root (serves `fe/build/index.js` on port 5002). See `fe/.env.example` and `fe/README.md`.
+
 ## Architecture
 
 Data flows one direction: **`PlanetParameters` + `CameraState` + `PatchScheduler` → `RenderBackend` → GPU passes**. State lives in Svelte 5 runes; math and scheduling are pure TypeScript.
