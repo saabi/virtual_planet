@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { CoordinateSpace, DataType, GraphDocument } from './types.js';
+import { getPrimitive } from './registry.js';
 import { validateGraph } from './validate.js';
 import { deserializeGraph, serializeGraph } from './serialize.js';
+import './primitives/index.js';
 
 function twoNodeGraph(opts?: {
 	toType?: DataType;
@@ -62,11 +64,11 @@ function pipelineEdge(fromType: DataType, toType: DataType): GraphDocument {
 	return {
 		version: '1',
 		nodes: [
-			{ id: 'a', primitive: 'geometry.plane', inputs: [], outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: fromType }] },
-			{ id: 'b', primitive: 'stage.vertex', inputs: [{ id: 'in', name: 'in', direction: 'in', dataType: toType }], outputs: [{ id: 'o', name: 'o', direction: 'out', dataType: 'vec4f' }] },
+			{ id: 'a', primitive: 'geometry.plane', inputs: [], outputs: [{ id: 'mesh', name: 'mesh', direction: 'out', dataType: fromType }] },
+			{ id: 'b', primitive: 'stage.vertex', inputs: [{ id: 'mesh', name: 'mesh', direction: 'in', dataType: toType }], outputs: [{ id: 'varyings', name: 'varyings', direction: 'out', dataType: 'varyings' }] },
 		],
-		edges: [{ id: 'e', from: { node: 'a', port: 'out' }, to: { node: 'b', port: 'in' } }],
-		outputs: [{ name: 'o', from: { node: 'b', port: 'o' } }],
+		edges: [{ id: 'e', from: { node: 'a', port: 'mesh' }, to: { node: 'b', port: 'mesh' } }],
+		outputs: [{ name: 'varyings', from: { node: 'b', port: 'varyings' } }],
 		consumers: [],
 	};
 }
@@ -137,6 +139,44 @@ describe('@virtual-planet/graph IR', () => {
 		expect(validateGraph(pipelineEdge('geometry', 'f32')).ok).toBe(false);
 		// renderTarget → geometry (cross-kind) rejected
 		expect(validateGraph(pipelineEdge('renderTarget', 'geometry')).ok).toBe(false);
+		// texture → geometry (cross-kind) rejected
+		expect(validateGraph(pipelineEdge('texture', 'geometry')).ok).toBe(false);
+	});
+
+	it('registers S0 pipeline node stubs with resource ports', () => {
+		expect(getPrimitive('geometry.fullscreenPlane')).toMatchObject({
+			category: 'geometry/source',
+			outputs: [{ name: 'mesh', dataType: 'geometry' }]
+		});
+		expect(getPrimitive('geometry.fullscreenPlane')?.metadata?.help).toContain('geometry.plane');
+		expect(getPrimitive('geometry.plane')).toMatchObject({
+			category: 'geometry/source',
+			outputs: [{ name: 'mesh', dataType: 'geometry' }]
+		});
+		expect(getPrimitive('geometry.plane')?.metadata?.help).toContain('geometry.fullscreenPlane');
+		expect(getPrimitive('buffer.persist')).toMatchObject({
+			category: 'buffer',
+			inputs: [{ name: 'in', dataType: 'geometry' }],
+			outputs: [{ name: 'out', dataType: 'geometry' }]
+		});
+		expect(getPrimitive('stage.vertex')).toMatchObject({
+			category: 'stage',
+			inputs: [{ name: 'mesh', dataType: 'geometry' }],
+			outputs: [{ name: 'varyings', dataType: 'varyings' }]
+		});
+		expect(getPrimitive('stage.fragment')).toMatchObject({
+			category: 'stage',
+			inputs: [
+				{ name: 'varyings', dataType: 'varyings' },
+				{ name: 'color', dataType: 'vec4f' }
+			],
+			outputs: [{ name: 'texture', dataType: 'texture' }]
+		});
+		expect(getPrimitive('target.display')).toMatchObject({
+			category: 'target/sink',
+			inputs: [{ name: 'color', dataType: 'texture' }],
+			outputs: []
+		});
 	});
 
 	it('rejects mismatched resource ports', () => {

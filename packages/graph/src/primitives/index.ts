@@ -27,3 +27,4 @@ import './color/index.js';
 import './sdf/index.js';
 import './effect/index.js';
 import './host/index.js';
+import './pipeline/index.js';

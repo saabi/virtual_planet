@@ -69,10 +69,15 @@ landed in `a29b4cc`. `math.remap` and `sdf.opSubtract` are generated from canoni
 with declared dependencies; generic group params preserve TypeBox-backed numeric/boolean
 contracts and validate mappings.
 
-**Next:** rebase and execute **M-pipeline-nodes-s0** (building the full pipeline graph
-describing geometry, buffers, stages, and targets as nodes, consuming the node-model
-foundation). Its existing Part 1 predates the landed resource-port foundation and must be
-reviewed before implementation.
+**Current in-flight handoff:** [`M-pipeline-nodes-s0`](./handoffs/M-pipeline-nodes-s0.md)
+has an implementation ready to commit. It adds explicit S0 pipeline nodes (geometry
+source, persistent buffer, vertex stage, fragment stage, display target), rebuilds the
+ShaderToy cosine sample around `geometry.plane`, and adds a minimal runtime pipeline
+planner/executor. Automated graph/procedural-WGSL/runtime/editor gates are green; the
+browser visual gate passed with screenshot
+[`_docs/screenshots/cosine-palette.png`](../../screenshots/cosine-palette.png).
+
+**Next:** commit **M-pipeline-nodes-s0**, then choose the next pipeline-graph slice.
 
 **Background:** Stages A–D (the generic engine: IR → primitives → compiler → linker →
 CPU/GPU runtime → editor → tessellation → vegetation) are complete. **M13** (migrating the

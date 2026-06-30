@@ -6,6 +6,8 @@ export type ResourceDataType = 'image' | 'mesh' | 'audio';
 /** Internal pipeline resources (geometry/buffers/targets) — pipeline-as-graph.md. */
 export type PipelineResourceType =
 	| 'geometry'
+	| 'varyings'
+	| 'texture'
 	| 'vertexBuffer'
 	| 'indexBuffer'
 	| 'renderTarget'
@@ -122,4 +124,3 @@ export interface GroupDefinition {
 	help?: string;
 	usage?: string;
 }
-

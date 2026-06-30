@@ -82,17 +82,37 @@ export function defaultPreviewGraph(): GraphDocument {
 	};
 }
 
-/** ShaderToy S0: host inputs → cosine palette → fragment consumer. */
+/** ShaderToy S0: explicit pipeline nodes with the cosine palette as the fragment field. */
 export function cosinePaletteEffectGraph(): GraphDocument {
 	return {
 		version: '1',
 		nodes: [
-			snapshotNode('n_frag', 'host.fragCoord', { x: 0, y: 100 }),
-			snapshotNode('n_res', 'host.iResolution', { x: 0, y: 220 }),
-			snapshotNode('n_time', 'host.iTime', { x: 0, y: 340 }),
-			snapshotNode('n_effect', 'effect.cosinePalette', { x: 280, y: 180 })
+			snapshotNode('n_plane', 'geometry.plane', { x: 0, y: 40 }, { resU: 2, resV: 2 }),
+			snapshotNode('n_persist', 'buffer.persist', { x: 240, y: 40 }),
+			snapshotNode('n_vertex', 'stage.vertex', { x: 480, y: 40 }),
+			snapshotNode('n_fragment', 'stage.fragment', { x: 740, y: 160 }),
+			snapshotNode('n_display', 'target.display', { x: 1000, y: 160 }),
+			snapshotNode('n_frag', 'host.fragCoord', { x: 220, y: 280 }),
+			snapshotNode('n_res', 'host.iResolution', { x: 220, y: 400 }),
+			snapshotNode('n_time', 'host.iTime', { x: 220, y: 520 }),
+			snapshotNode('n_effect', 'effect.cosinePalette', { x: 500, y: 400 })
 		],
 		edges: [
+			{
+				id: 'e_plane_persist',
+				from: portRef('n_plane', 'geometry.plane', 'out', 0),
+				to: portRef('n_persist', 'buffer.persist', 'in', 0)
+			},
+			{
+				id: 'e_persist_vertex',
+				from: portRef('n_persist', 'buffer.persist', 'out', 0),
+				to: portRef('n_vertex', 'stage.vertex', 'in', 0)
+			},
+			{
+				id: 'e_vertex_fragment',
+				from: portRef('n_vertex', 'stage.vertex', 'out', 0),
+				to: portRef('n_fragment', 'stage.fragment', 'in', 0)
+			},
 			{
 				id: 'e_frag_effect',
 				from: portRef('n_frag', 'host.fragCoord', 'out', 0),
@@ -107,6 +127,16 @@ export function cosinePaletteEffectGraph(): GraphDocument {
 				id: 'e_time_effect',
 				from: portRef('n_time', 'host.iTime', 'out', 0),
 				to: portRef('n_effect', 'effect.cosinePalette', 'in', 2)
+			},
+			{
+				id: 'e_effect_fragment',
+				from: portRef('n_effect', 'effect.cosinePalette', 'out', 0),
+				to: portRef('n_fragment', 'stage.fragment', 'in', 1)
+			},
+			{
+				id: 'e_fragment_display',
+				from: portRef('n_fragment', 'stage.fragment', 'out', 0),
+				to: portRef('n_display', 'target.display', 'in', 0)
 			}
 		],
 		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],

@@ -18,6 +18,7 @@ export * from './consumers/vegetationCandidates.js';
 export * from './consumers/vegetationPreview.js';
 export * from './consumers/fullscreenFragment.js';
 export * from './consumers/shadertoyUniforms.js';
+export * from './pipelineGraph.js';
 export * from './vegetationTypes.js';
 export * from './vegetationBuffer.js';
 export * from './surfaceMesh.js';

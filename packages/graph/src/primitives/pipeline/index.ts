@@ -1,0 +1,74 @@
+import './fullscreenPlane.js';
+import './plane.js';
+import { Type } from '@virtual-planet/schema';
+
+import type { NodePrimitive } from '../../primitive.js';
+import { registerPrimitive } from '../../registry.js';
+
+const noParams = Type.Object({});
+
+const primitives: NodePrimitive[] = [
+	{
+		id: 'buffer.persist',
+		category: 'buffer',
+		inputs: [{ name: 'in', dataType: 'geometry', metadata: { semantic: 'geometry-resource' } }],
+		outputs: [{ name: 'out', dataType: 'geometry', metadata: { semantic: 'persistent-geometry-resource' } }],
+		params: noParams,
+		wgsl: { moduleId: 'buffer.persist', entry: 'persistGeometry' },
+		metadata: {
+			description: 'Caches a generated geometry resource across frames.',
+			pure: true,
+			deterministic: true,
+			role: 'pipelineBuffer'
+		}
+	},
+	{
+		id: 'stage.vertex',
+		category: 'stage',
+		inputs: [{ name: 'mesh', dataType: 'geometry', metadata: { semantic: 'geometry-resource' } }],
+		outputs: [{ name: 'varyings', dataType: 'varyings', metadata: { semantic: 'fragment-varyings' } }],
+		params: noParams,
+		wgsl: { moduleId: 'stage.vertex', entry: 'vertexStage' },
+		metadata: {
+			description: 'Vertex stage node for pipeline graph execution.',
+			pure: true,
+			deterministic: true,
+			role: 'pipelineStage'
+		}
+	},
+	{
+		id: 'stage.fragment',
+		category: 'stage',
+		inputs: [
+			{ name: 'varyings', dataType: 'varyings', metadata: { semantic: 'fragment-varyings' } },
+			{ name: 'color', dataType: 'vec4f', metadata: { semantic: 'rgba-field' } }
+		],
+		outputs: [{ name: 'texture', dataType: 'texture', metadata: { semantic: 'rgba-texture' } }],
+		params: noParams,
+		wgsl: { moduleId: 'stage.fragment', entry: 'fragmentStage' },
+		metadata: {
+			description: 'Fragment stage node that writes a field color into a texture resource.',
+			pure: false,
+			deterministic: false,
+			role: 'pipelineStage'
+		}
+	},
+	{
+		id: 'target.display',
+		category: 'target/sink',
+		inputs: [{ name: 'color', dataType: 'texture', metadata: { semantic: 'presentable-color-texture' } }],
+		outputs: [],
+		params: noParams,
+		wgsl: { moduleId: 'target.display', entry: 'displayTarget' },
+		metadata: {
+			description: 'Display target sink for presenting the pipeline color output.',
+			pure: false,
+			deterministic: false,
+			role: 'pipelineTarget'
+		}
+	}
+];
+
+for (const primitive of primitives) {
+	registerPrimitive(primitive);
+}

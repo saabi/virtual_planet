@@ -18,7 +18,32 @@ describe('graph-editor samples registry', () => {
 		expect(sample).toBeDefined();
 		const graph = sample!.build();
 		expect(validateGraph(graph).ok).toBe(true);
-		expect(graph.nodes).toHaveLength(4);
+		expect(graph.nodes.map((node) => node.primitive)).toEqual(
+			expect.arrayContaining([
+				'geometry.plane',
+				'buffer.persist',
+				'stage.vertex',
+				'stage.fragment',
+				'target.display',
+				'effect.cosinePalette'
+			])
+		);
+		expect(graph.edges.find((edge) => edge.id === 'e_plane_persist')?.from).toEqual({
+			node: 'n_plane',
+			port: 'mesh'
+		});
+		expect(graph.edges.find((edge) => edge.id === 'e_persist_vertex')?.to).toEqual({
+			node: 'n_vertex',
+			port: 'mesh'
+		});
+		expect(graph.edges.find((edge) => edge.id === 'e_effect_fragment')?.from).toEqual({
+			node: 'n_effect',
+			port: 'color'
+		});
+		expect(graph.nodes.find((node) => node.id === 'n_plane')?.params).toEqual({
+			resU: 2,
+			resV: 2
+		});
 		expect(graph.consumers[0]?.stage).toBe('fragment');
 		expect(graph.outputs[0]?.name).toBe('image');
 	});

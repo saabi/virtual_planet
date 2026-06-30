@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
 	import {
-		executeFullscreenFragment,
+		PipelineGraphExecutor,
 		requestGpuDevice,
 		type ShaderToyHostInputs
 	} from '@virtual-planet/runtime-webgpu';
@@ -56,6 +56,7 @@
 		let cancelled = false;
 		let frame = 0;
 		let device: GPUDevice | null = null;
+		const executor = new PipelineGraphExecutor();
 		statusMessage = 'Rendering…';
 
 		void (async () => {
@@ -75,10 +76,9 @@
 					};
 
 					try {
-						const result = await executeFullscreenFragment({
+						const result = await executor.execute({
 							device,
 							graph,
-							output,
 							width: size,
 							height: size,
 							host

@@ -97,8 +97,8 @@ state says **Ready to start**.
 | W1 | **D1** | [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) | Complete (`a29b4cc`) | Generated remap/opSubtract groups and group-param contract landed. |
 | W2 | **N1** | [`M-noise-functions-harvest`](./briefs/M-noise-functions-harvest.md) | **DONE (`b0f9fd9`)** | 2D noise harvest: six primitives, hash2d deps, f32 parity fixtures. |
 | W2 | **C1** | [`M-colorlab-harvest` slice A](./briefs/M-colorlab-harvest.md) | **DONE** | 14 colour primitives, colorlabCommon deps, frozen-matrix parity fixtures. [handoff](./handoffs/M-colorlab-harvest-a.md). |
-| W2 | Integrator | Rebase/pin [`M-pipeline-nodes-s0`](./briefs/M-pipeline-nodes-s0.md) against landed node-model foundation | **Ready to start** | Contract/docs only; Part 1 of the old brief is partly landed and must not be reimplemented. |
-| W3 | **P1** | Rebased `M-pipeline-nodes-s0` implementation | Blocked on W2 contract pass | Exclusive pipeline graph/runtime/editor sample files; visual gate required. |
+| W2 | Integrator | Rebase/pin [`M-pipeline-nodes-s0`](./briefs/M-pipeline-nodes-s0.md) against landed node-model foundation | **DONE (implementation handoff)** | See [`handoffs/M-pipeline-nodes-s0.md`](./handoffs/M-pipeline-nodes-s0.md). |
+| W3 | **P1** | Rebased `M-pipeline-nodes-s0` implementation | **Visual gate passed** | Automated gates green; screenshot captured at [`../../screenshots/cosine-palette.png`](../../screenshots/cosine-palette.png). |
 
 N1 and C1 both edit central barrels. In a shared working tree, run them sequentially. They
 may run concurrently only in isolated worktrees/branches, with the integrator merging one

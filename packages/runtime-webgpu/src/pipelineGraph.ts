@@ -1,0 +1,157 @@
+import type { GraphDocument, Node, PortRef } from '@virtual-planet/graph';
+import { getPrimitive, validateGraph } from '@virtual-planet/graph';
+import type { WgslModuleResolver } from '@virtual-planet/compiler';
+
+import {
+	executeFullscreenFragment,
+	type FullscreenFragmentResult,
+	type ShaderToyHostInputs
+} from './consumers/fullscreenFragment.js';
+
+const PIPELINE_GEOMETRY_SOURCE_ROLE = 'pipelineGeometrySource';
+
+export interface PipelineGraphPlan {
+	geometryNode: string;
+	geometryPrimitive: string;
+	persistNode: string;
+	vertexStageNode: string;
+	fragmentStageNode: string;
+	displayTargetNode: string;
+	fieldOutput: PortRef;
+}
+
+export interface PipelineGraphInput {
+	device: GPUDevice;
+	graph: GraphDocument;
+	resolver?: WgslModuleResolver;
+	width: number;
+	height: number;
+	host: ShaderToyHostInputs;
+}
+
+/** Stable cache identity for geometry realized through `buffer.persist`. */
+export function geometryCacheFingerprint(doc: GraphDocument, plan: PipelineGraphPlan): string {
+	const geometryNode = doc.nodes.find((node) => node.id === plan.geometryNode);
+	const params = geometryNode?.params ?? {};
+	const paramKeys = Object.keys(params).sort();
+	const paramsKey = JSON.stringify(params, paramKeys);
+	return `${plan.persistNode}:${plan.geometryNode}:${plan.geometryPrimitive}:${paramsKey}`;
+}
+
+export class PipelineGraphResourceCache {
+	readonly geometry = new Set<string>();
+	geometryRealizations = 0;
+
+	realizeGeometry(cacheKey: string): void {
+		if (this.geometry.has(cacheKey)) return;
+		this.geometry.add(cacheKey);
+		this.geometryRealizations++;
+	}
+}
+
+function findNode(doc: GraphDocument, primitive: string): Node {
+	const node = doc.nodes.find((candidate) => candidate.primitive === primitive);
+	if (!node) {
+		throw new Error(`Pipeline graph is missing ${primitive}`);
+	}
+	return node;
+}
+
+function incoming(doc: GraphDocument, node: string, port: string) {
+	return doc.edges.find((edge) => edge.to.node === node && edge.to.port === port);
+}
+
+function requireEdge(doc: GraphDocument, from: PortRef, to: PortRef): void {
+	const edge = doc.edges.find(
+		(candidate) =>
+			candidate.from.node === from.node &&
+			candidate.from.port === from.port &&
+			candidate.to.node === to.node &&
+			candidate.to.port === to.port
+	);
+	if (!edge) {
+		throw new Error(
+			`Pipeline graph is missing edge ${from.node}.${from.port} -> ${to.node}.${to.port}`
+		);
+	}
+}
+
+function findPipelineGeometrySource(doc: GraphDocument, persist: Node): Node {
+	const inEdge = incoming(doc, persist.id, 'in');
+	if (!inEdge) {
+		throw new Error('buffer.persist is missing its geometry input');
+	}
+	if (inEdge.from.port !== 'mesh') {
+		throw new Error('Pipeline geometry source must connect via the mesh port');
+	}
+
+	const geometry = doc.nodes.find((candidate) => candidate.id === inEdge.from.node);
+	if (!geometry) {
+		throw new Error(`Pipeline graph references missing geometry node ${inEdge.from.node}`);
+	}
+
+	const primitive = getPrimitive(geometry.primitive);
+	if (primitive?.metadata?.role !== PIPELINE_GEOMETRY_SOURCE_ROLE) {
+		throw new Error(
+			`Pipeline geometry source must use role ${PIPELINE_GEOMETRY_SOURCE_ROLE}, got ${geometry.primitive}`
+		);
+	}
+
+	return geometry;
+}
+
+export function planPipelineGraph(doc: GraphDocument): PipelineGraphPlan {
+	const validation = validateGraph(doc);
+	if (!validation.ok) {
+		throw new Error(`Pipeline graph failed validation: ${validation.issues[0]?.kind ?? 'unknown'}`);
+	}
+
+	const persist = findNode(doc, 'buffer.persist');
+	const geometry = findPipelineGeometrySource(doc, persist);
+	const vertex = findNode(doc, 'stage.vertex');
+	const fragment = findNode(doc, 'stage.fragment');
+	const display = findNode(doc, 'target.display');
+
+	requireEdge(doc, { node: geometry.id, port: 'mesh' }, { node: persist.id, port: 'in' });
+	requireEdge(doc, { node: persist.id, port: 'out' }, { node: vertex.id, port: 'mesh' });
+	requireEdge(doc, { node: vertex.id, port: 'varyings' }, { node: fragment.id, port: 'varyings' });
+	requireEdge(doc, { node: fragment.id, port: 'texture' }, { node: display.id, port: 'color' });
+
+	const fieldEdge = incoming(doc, fragment.id, 'color');
+	if (!fieldEdge) {
+		throw new Error('Pipeline graph fragment stage is missing its field color input');
+	}
+
+	return {
+		geometryNode: geometry.id,
+		geometryPrimitive: geometry.primitive,
+		persistNode: persist.id,
+		vertexStageNode: vertex.id,
+		fragmentStageNode: fragment.id,
+		displayTargetNode: display.id,
+		fieldOutput: fieldEdge.from
+	};
+}
+
+export class PipelineGraphExecutor {
+	readonly cache = new PipelineGraphResourceCache();
+
+	async execute(input: PipelineGraphInput): Promise<FullscreenFragmentResult> {
+		const plan = planPipelineGraph(input.graph);
+		this.cache.realizeGeometry(geometryCacheFingerprint(input.graph, plan));
+		return executeFullscreenFragment({
+			device: input.device,
+			graph: input.graph,
+			output: plan.fieldOutput,
+			resolver: input.resolver,
+			width: input.width,
+			height: input.height,
+			host: input.host
+		});
+	}
+}
+
+export async function executePipelineGraph(input: PipelineGraphInput): Promise<FullscreenFragmentResult> {
+	const executor = new PipelineGraphExecutor();
+	return executor.execute(input);
+}

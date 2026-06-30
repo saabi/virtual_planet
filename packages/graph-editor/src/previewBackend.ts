@@ -7,6 +7,13 @@ export type ScalarPreviewBackend = 'cpu' | 'gpu';
 export type PreviewBackend = ScalarPreviewBackend | 'effect' | 'mesh' | 'vegetation';
 
 function fragmentImageConsumer(doc: GraphDocument): boolean {
+	if (
+		doc.nodes.some((node) => node.primitive === 'stage.fragment') &&
+		doc.nodes.some((node) => node.primitive === 'target.display')
+	) {
+		return true;
+	}
+
 	const fragmentConsumer = doc.consumers.find((consumer) => consumer.stage === 'fragment');
 	if (!fragmentConsumer) return false;
 
