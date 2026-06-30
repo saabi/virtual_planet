@@ -14,7 +14,19 @@ export * from './registry.js';
 export * from './ports.js';
 export * from './paramInputs.js';
 export * from './contract.js';
-export { isPipelineTarget, outputSinkNodeIds } from './pipeline.js';
+export {
+	PIPELINE_IMAGE_OUTPUT_NAME,
+	derivePipelineConsumers,
+	derivePipelinePresentations,
+	effectiveConsumers,
+	effectiveGraphDocument,
+	effectiveOutputs,
+	isPipelineTarget,
+	outputSinkNodeIds,
+	pipelineFieldOutput,
+	tryPipelinePresentation,
+	type PipelinePresentation
+} from './pipeline.js';
 export {
 	HASH12_PARITY,
 	HASH22_PARITY,

@@ -70,4 +70,23 @@ describe('@virtual-planet/graph-editor compiledGraphWgsl', () => {
 		expect(results[0]!.code).toBe('');
 		expect(results[0]!.diagnostic).toBeTruthy();
 	});
+
+	it('compiles a pipeline graph with empty doc.outputs and doc.consumers', async () => {
+		const doc: GraphDocument = {
+			...cosinePaletteEffectGraph(),
+			outputs: [],
+			consumers: []
+		};
+		const results = await compiledGraphWgsl(doc);
+		expect(results).toHaveLength(1);
+		const compiled = results[0]!;
+		expect(compiled.diagnostic).toBeUndefined();
+		expect(compiled.code).toContain('fn plane_grid_position(');
+		expect(compiled.code).toContain('@vertex');
+		expect(compiled.code).toContain('@fragment');
+		expect(compiled.code).toContain('cosine_palette');
+
+		const wgslError = await validateWgslCode(compiled.code);
+		expect(wgslError).toBeNull();
+	});
 });

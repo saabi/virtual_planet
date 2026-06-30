@@ -1,5 +1,11 @@
 import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@virtual-planet/compiler';
-import type { GraphDocument, PortRef, ProceduralConsumer } from '@virtual-planet/graph';
+import {
+	effectiveConsumers,
+	effectiveOutputs,
+	type GraphDocument,
+	type PortRef,
+	type ProceduralConsumer
+} from '@virtual-planet/graph';
 import {
 	assembleFullscreenFragmentModuleAsync,
 	buildParamsStructWgsl,
@@ -28,6 +34,10 @@ function compileDiagnostic(error: unknown): string {
 		return `Graph incomplete: ${message}`;
 	}
 	return message;
+}
+
+function compileReadyDoc(doc: GraphDocument): GraphDocument {
+	return { ...doc, outputs: effectiveOutputs(doc) };
 }
 
 function findOutputName(doc: GraphDocument, output: PortRef): string {
@@ -240,7 +250,8 @@ export async function compiledGraphWgsl(
 		];
 	}
 
-	if (doc.consumers.length === 0) {
+	const consumers = effectiveConsumers(doc);
+	if (consumers.length === 0) {
 		return [
 			{
 				consumerId: '(graph)',
@@ -252,11 +263,12 @@ export async function compiledGraphWgsl(
 		];
 	}
 
+	const compileDoc = compileReadyDoc(doc);
 	const results: CompiledConsumerWgsl[] = [];
 
 	if (inferPreviewBackend(doc) === 'effect') {
 		const output = primaryPreviewOutput(doc);
-		const consumer = doc.consumers.find((candidate) => candidate.stage === 'fragment') ?? doc.consumers[0]!;
+		const consumer = consumers.find((candidate) => candidate.stage === 'fragment') ?? consumers[0]!;
 		if (!output) {
 			return [
 				{
@@ -268,17 +280,17 @@ export async function compiledGraphWgsl(
 				}
 			];
 		}
-		results.push(await compileFragmentImageConsumer(doc, consumer, output, resolver));
+		results.push(await compileFragmentImageConsumer(compileDoc, consumer, output, resolver));
 		return results;
 	}
 
-	for (const consumer of doc.consumers) {
+	for (const consumer of consumers) {
 		const output = primaryPreviewOutput(doc);
 		if ((consumer.type === 'preview' || !consumer.stage) && output) {
-			results.push(await compileScalarPreviewConsumer(doc, consumer, output, resolver));
+			results.push(await compileScalarPreviewConsumer(compileDoc, consumer, output, resolver));
 			continue;
 		}
-		results.push(await compileStagedConsumer(doc, consumer, resolver));
+		results.push(await compileStagedConsumer(compileDoc, consumer, resolver));
 	}
 
 	return results;

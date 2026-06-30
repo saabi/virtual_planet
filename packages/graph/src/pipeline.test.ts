@@ -3,7 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { getPrimitive } from './registry.js';
 import type { GraphDocument, Node, Port, PortRef } from './types.js';
 import type { PortSpec } from './primitive.js';
-import { isPipelineTarget, outputSinkNodeIds } from './pipeline.js';
+import {
+	derivePipelineConsumers,
+	effectiveConsumers,
+	effectiveGraphDocument,
+	effectiveOutputs,
+	isPipelineTarget,
+	outputSinkNodeIds,
+	pipelineFieldOutput,
+	PIPELINE_IMAGE_OUTPUT_NAME,
+	tryPipelinePresentation
+} from './pipeline.js';
 import { validateGraphFull } from './validate.js';
 
 import './primitives/index.js';
@@ -145,5 +155,70 @@ describe('@virtual-planet/graph pipeline output reconciliation', () => {
 			port: 'color'
 		});
 		expect(result.issues.some((issue) => issue.kind === 'dangling-node')).toBe(false);
+	});
+});
+
+describe('@virtual-planet/graph pipeline consumer derivation', () => {
+	it('derives a fragment image consumer from a wired display target', () => {
+		const graph: GraphDocument = {
+			...s0PipelineGraph(),
+			outputs: [],
+			consumers: []
+		};
+		const presentation = tryPipelinePresentation(graph);
+		expect(presentation).toMatchObject({
+			displayNodeId: 'n_display',
+			outputName: PIPELINE_IMAGE_OUTPUT_NAME,
+			fieldOutput: portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+		});
+		expect(derivePipelineConsumers(graph)).toEqual([presentation!.consumer]);
+	});
+
+	it('reuses an existing declared output name for the same field port', () => {
+		const graph = s0PipelineGraph();
+		const presentation = tryPipelinePresentation(graph);
+		expect(presentation?.outputName).toBe('image');
+		expect(effectiveOutputs(graph)).toEqual(graph.outputs);
+	});
+
+	it('merges derived outputs and consumers without duplicating explicit declarations', () => {
+		const graph = s0PipelineGraph();
+		expect(effectiveConsumers(graph)).toEqual(graph.consumers);
+		expect(effectiveGraphDocument(graph).outputs).toEqual(graph.outputs);
+		expect(effectiveGraphDocument(graph).consumers).toEqual(graph.consumers);
+	});
+
+	it('fills empty pipeline doc metadata for compile and preview', () => {
+		const graph: GraphDocument = {
+			...s0PipelineGraph(),
+			outputs: [],
+			consumers: []
+		};
+		expect(pipelineFieldOutput(graph)).toEqual(
+			portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+		);
+		expect(effectiveOutputs(graph)).toEqual([
+			{
+				name: PIPELINE_IMAGE_OUTPUT_NAME,
+				from: portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+			}
+		]);
+		expect(effectiveConsumers(graph)).toHaveLength(1);
+		expect(effectiveConsumers(graph)[0]).toMatchObject({
+			stage: 'fragment',
+			type: 'image',
+			outputs: [PIPELINE_IMAGE_OUTPUT_NAME]
+		});
+	});
+
+	it('repairs fragment consumers with empty outputs arrays', () => {
+		const graph: GraphDocument = {
+			...s0PipelineGraph(),
+			outputs: [],
+			consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: [] }]
+		};
+		const consumers = effectiveConsumers(graph);
+		expect(consumers).toHaveLength(1);
+		expect(consumers[0]?.outputs).toEqual([PIPELINE_IMAGE_OUTPUT_NAME]);
 	});
 });

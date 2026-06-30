@@ -1,6 +1,7 @@
 import '@virtual-planet/graph';
 import {
 	getPrimitive,
+	pipelineFieldOutput,
 	type GraphDocument,
 	type Node,
 	type Port,
@@ -145,7 +146,7 @@ export function cosinePaletteEffectGraph(): GraphDocument {
 }
 
 export function primaryPreviewOutput(doc: GraphDocument): PortRef | null {
-	return doc.outputs[0]?.from ?? null;
+	return doc.outputs[0]?.from ?? pipelineFieldOutput(doc);
 }
 
 export function outputPortDataType(doc: GraphDocument, output: PortRef): string | null {
