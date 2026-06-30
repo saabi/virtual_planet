@@ -23,14 +23,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Pipeline output reconciliation** — the validator roots reachability at declared
-  `doc.outputs`, but a pipeline graph's real terminal is the `target.display` node; the two
-  aren't reconciled, so a pipeline that ends in `target.display` is flagged "no output /
-  every node dangling". Make `target.display` (role `pipelineRenderTarget`) an implicit
-  output sink and/or auto-manage `doc.outputs` in the editor; clean up stale output refs
-  when the referenced node is deleted.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-pipeline-output-reconciliation.md`  ·  Claimed by: Cursor
-
 - **Format-adaptive preview — list output buffers** — replace the hardcoded backend tab bar
   with a list of the graph's output buffers, each tagged by family (geometry/image/data/
   audio), routed to the matching existing panel, with a manual format picker when the family
@@ -52,3 +44,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
   - T-B incomplete/invalid-graph flagging (editor surfacing) — `b1761ae`
   - T-C reliable recompile + honest node source — `a8d758f`
   - T-D 🔴 real geometry + vertex codegen (replaced pipeline stubs; no-stub guard) — `07f0ba5`
+- **Pipeline output reconciliation** — `target.display` as implicit sink; stale output cleanup on delete — `3a2b6bd`
