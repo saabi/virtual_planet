@@ -25,20 +25,48 @@ describe('@virtual-planet/graph-editor nodePaletteStorage', () => {
 		vi.stubGlobal('localStorage', createStorageMock());
 	});
 
-	it('round-trips palette mode and collapsed groups', () => {
-		savePaletteState({ mode: 'contract', collapsedGroups: ['math', 'noise/perlin'] });
+	it('round-trips palette mode and per-mode expanded groups', () => {
+		savePaletteState({
+			mode: 'contract',
+			expandedByMode: {
+				section: ['math'],
+				contract: ['f32->f32'],
+				both: []
+			}
+		});
 		expect(loadPaletteState()).toEqual({
 			mode: 'contract',
-			collapsedGroups: ['math', 'noise/perlin']
+			expandedByMode: {
+				section: ['math'],
+				contract: ['f32->f32'],
+				both: []
+			}
 		});
 	});
 
-	it('defaults to section mode when storage is empty', () => {
-		expect(loadPaletteState()).toEqual({ mode: 'section', collapsedGroups: [] });
+	it('defaults to section mode with all groups collapsed when storage is empty', () => {
+		expect(loadPaletteState()).toEqual({
+			mode: 'section',
+			expandedByMode: { section: [], contract: [], both: [] }
+		});
 	});
 
 	it('ignores corrupt storage payloads', () => {
 		localStorage.setItem(NODE_PALETTE_STORAGE_KEY, '{bad');
-		expect(loadPaletteState()).toEqual({ mode: 'section', collapsedGroups: [] });
+		expect(loadPaletteState()).toEqual({
+			mode: 'section',
+			expandedByMode: { section: [], contract: [], both: [] }
+		});
+	});
+
+	it('drops legacy collapsedGroups and starts collapsed', () => {
+		localStorage.setItem(
+			NODE_PALETTE_STORAGE_KEY,
+			JSON.stringify({ mode: 'section', collapsedGroups: ['math', 'noise'] })
+		);
+		expect(loadPaletteState()).toEqual({
+			mode: 'section',
+			expandedByMode: { section: [], contract: [], both: [] }
+		});
 	});
 });

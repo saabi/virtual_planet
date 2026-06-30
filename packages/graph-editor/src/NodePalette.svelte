@@ -8,8 +8,10 @@
 		filterPaletteGroups,
 		filterPrimitives,
 		groupPrimitives,
+		isPaletteGroupOpen,
 		paletteGroupCount,
 		primitiveBadge,
+		togglePaletteGroupExpanded,
 		type PaletteGroup,
 		type PaletteMode
 	} from './nodePaletteModel.js';
@@ -25,7 +27,13 @@
 
 	let searchQuery = $state('');
 	let paletteMode = $state<PaletteMode>('section');
-	let collapsedGroups = $state<Set<string>>(new Set());
+	let expandedByMode = $state<Record<PaletteMode, Set<string>>>({
+		section: new Set(),
+		contract: new Set(),
+		both: new Set()
+	});
+
+	const expandedGroups = $derived(expandedByMode[paletteMode]);
 
 	const filteredPrimitives = $derived(filterPrimitives(allPrimitives, searchQuery));
 	const visibleIds = $derived(new Set(filteredPrimitives.map((primitive) => primitive.id)));
@@ -37,13 +45,21 @@
 	onMount(() => {
 		const stored = loadPaletteState();
 		paletteMode = stored.mode;
-		collapsedGroups = new Set(stored.collapsedGroups);
+		expandedByMode = {
+			section: new Set(stored.expandedByMode.section),
+			contract: new Set(stored.expandedByMode.contract),
+			both: new Set(stored.expandedByMode.both)
+		};
 	});
 
 	function persistPaletteState() {
 		savePaletteState({
 			mode: paletteMode,
-			collapsedGroups: [...collapsedGroups]
+			expandedByMode: {
+				section: [...expandedByMode.section],
+				contract: [...expandedByMode.contract],
+				both: [...expandedByMode.both]
+			}
 		});
 	}
 
@@ -53,15 +69,14 @@
 	}
 
 	function isGroupOpen(key: string): boolean {
-		if (searchActive) return true;
-		return !collapsedGroups.has(key);
+		return isPaletteGroupOpen(key, expandedGroups, searchActive);
 	}
 
 	function toggleGroup(key: string) {
-		const next = new Set(collapsedGroups);
-		if (next.has(key)) next.delete(key);
-		else next.add(key);
-		collapsedGroups = next;
+		expandedByMode = {
+			...expandedByMode,
+			[paletteMode]: togglePaletteGroupExpanded(key, expandedGroups)
+		};
 		persistPaletteState();
 	}
 

@@ -7,7 +7,9 @@ import {
 	filterPaletteGroups,
 	filterPrimitives,
 	groupPrimitives,
-	paletteGroupHasMatch
+	isPaletteGroupOpen,
+	paletteGroupHasMatch,
+	togglePaletteGroupExpanded
 } from './nodePaletteModel.js';
 
 const emptyParams = Type.Object({});
@@ -120,5 +122,34 @@ describe('filterPaletteGroups', () => {
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0]?.key).toBe('math');
 		expect(paletteGroupHasMatch(filtered[0]!, visible)).toBe(true);
+	});
+});
+
+describe('isPaletteGroupOpen', () => {
+	const empty = new Set<string>();
+
+	it('returns collapsed for all keys with no stored expansions', () => {
+		expect(isPaletteGroupOpen('math', empty, false)).toBe(false);
+		expect(isPaletteGroupOpen('noise', empty, false)).toBe(false);
+	});
+
+	it('returns open only for explicitly expanded keys', () => {
+		const expanded = togglePaletteGroupExpanded('math', empty);
+		expect(isPaletteGroupOpen('math', expanded, false)).toBe(true);
+		expect(isPaletteGroupOpen('noise', expanded, false)).toBe(false);
+	});
+
+	it('forces all groups open during search', () => {
+		expect(isPaletteGroupOpen('math', empty, true)).toBe(true);
+		expect(isPaletteGroupOpen('noise', empty, true)).toBe(true);
+	});
+});
+
+describe('togglePaletteGroupExpanded', () => {
+	it('adds and removes keys idempotently', () => {
+		const first = togglePaletteGroupExpanded('math', new Set());
+		expect([...first]).toEqual(['math']);
+		const second = togglePaletteGroupExpanded('math', first);
+		expect([...second]).toEqual([]);
 	});
 });

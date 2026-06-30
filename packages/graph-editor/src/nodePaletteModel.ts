@@ -200,3 +200,24 @@ export function primitiveBadge(primitive: NodePrimitive, mode: PaletteMode): str
 	}
 	return primitive.category;
 }
+
+/** Whether a palette group is expanded (search forces all open). */
+export function isPaletteGroupOpen(
+	key: string,
+	expandedGroups: ReadonlySet<string>,
+	searchActive: boolean
+): boolean {
+	if (searchActive) return true;
+	return expandedGroups.has(key);
+}
+
+/** Toggle a group's expanded state; returns a new set. */
+export function togglePaletteGroupExpanded(
+	key: string,
+	expandedGroups: ReadonlySet<string>
+): Set<string> {
+	const next = new Set(expandedGroups);
+	if (next.has(key)) next.delete(key);
+	else next.add(key);
+	return next;
+}
