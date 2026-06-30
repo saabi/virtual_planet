@@ -69,7 +69,8 @@ runs what.
 | [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas) | ✅ landed (`ed9aabd`) + render fix (`0ba7e29`) | Cursor (done) |
 | [M-node-model-foundation.md](./M-node-model-foundation.md) | **Foundation (R1):** resource ports · role/contract swap families · node **groups** (subgraph nodes) · `list<T>` — built in slices | ✅ landed (`3641621`) | Opus/Gemini (done) |
 | [M-node-model-decomposition-fix.md](./M-node-model-decomposition-fix.md) | Correctly finish `math.remap` / `sdf.opSubtract` as group-backed decompositions | 🔄 active cleanup | Cursor |
-| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | ✅ landed (`5af0b80`); visual confirmed | agent (done) |
+| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | ✅ nodes landed (`5af0b80`) — but **WGSL is stubs** (see below) | agent (done) |
+| [M-real-geometry-vertex-codegen.md](./M-real-geometry-vertex-codegen.md) | **🔴 gap-fix:** pipeline nodes emit **real** geometry/vertex WGSL (plane grid + `@vertex`); runner uses it, not the hardcoded fullscreen triangle | 📌 contract ready · high priority | browser-capable agent |
 | [M-compiled-wgsl-view.md](./M-compiled-wgsl-view.md) | **Tier 1:** final compiled-WGSL view — watch the whole graph's shader output | 📌 contract ready | Cursor |
 | [M-graph-validation-flagging.md](./M-graph-validation-flagging.md) | **Tier 1:** flag incomplete/invalid graphs (unconnected inputs, no consumer, unresolved) | 📌 contract ready | Cursor |
 | [M-editor-recompile-and-node-source.md](./M-editor-recompile-and-node-source.md) | **Tier 1:** reliable recompile on edit + real source for groups/pipeline nodes | 📌 contract ready | Cursor |

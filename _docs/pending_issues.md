@@ -19,6 +19,16 @@
 
 ## Engine — compiler / runtime (not built)
 
+- **🔴 Pipeline nodes are empty stubs — geometry/tessellation isn't really generated.**
+  `procedural-wgsl/src/modules/pipeline/stubs.ts` gives `geometry.plane`/`fullscreenPlane`/
+  `buffer.persist`/`stage.vertex`/`stage.fragment`/`target.display` **empty WGSL bodies**
+  (`fn planeGrid() {}`), and the runner renders via a **hardcoded fullscreen triangle**
+  (`fullscreenFragment.ts FULLSCREEN_VERTEX_WGSL`). So the compiled-WGSL view shows empty
+  functions and no tessellation/geometry code — the pipeline-as-graph is cosmetic at the
+  geometry/vertex level (only the fragment field subgraph is real). Fix: `geometry.plane`
+  emits real vertex-grid WGSL, `stage.vertex` compiles to a real `@vertex` shader using it,
+  the runner uses that instead of the hardcoded triangle. **High priority — it makes "build
+  uses actual nodes" honest for the geometry path.** Brief: `M-real-geometry-vertex-codegen.md`.
 - **params-as-inputs follow-on**: codegen + `evalCPU` must use the wired upstream value when a promotable param is connected (graph-core `resolveParamBindings` exists; compiler/runtime-cpu/editor integration pending). `M-params-as-inputs.md`.
 - **frame-graph GPU executor**: multi-pass ordering, single-frame **feedback** (ping-pong), transient-pool allocation. Only the pure core (`buildPassOrder`/`validatePassGraph`/`resolveTargetSizes`, T4) is built. Needed for multibuffer + render-to-texture. `M-pass-graph-executor.md`.
 - **render targets beyond single-pass**: `iResolution` per write-target and `iChannelResolution` per read-target; the current runner is single-target. `inputs-cpu-and-resources.md`, `pipeline-as-graph.md`.
