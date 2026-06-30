@@ -1,7 +1,6 @@
 import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@virtual-planet/compiler';
 import {
-	effectiveConsumers,
-	effectiveOutputs,
+	effectiveGraphDocument,
 	type GraphDocument,
 	type PortRef,
 	type ProceduralConsumer
@@ -34,10 +33,6 @@ function compileDiagnostic(error: unknown): string {
 		return `Graph incomplete: ${message}`;
 	}
 	return message;
-}
-
-function compileReadyDoc(doc: GraphDocument): GraphDocument {
-	return { ...doc, outputs: effectiveOutputs(doc) };
 }
 
 function findOutputName(doc: GraphDocument, output: PortRef): string {
@@ -250,7 +245,8 @@ export async function compiledGraphWgsl(
 		];
 	}
 
-	const consumers = effectiveConsumers(doc);
+	const compileDoc = effectiveGraphDocument(doc);
+	const consumers = compileDoc.consumers;
 	if (consumers.length === 0) {
 		return [
 			{
@@ -263,11 +259,10 @@ export async function compiledGraphWgsl(
 		];
 	}
 
-	const compileDoc = compileReadyDoc(doc);
 	const results: CompiledConsumerWgsl[] = [];
 
 	if (inferPreviewBackend(doc) === 'effect') {
-		const output = primaryPreviewOutput(doc);
+		const output = primaryPreviewOutput(compileDoc);
 		const consumer = consumers.find((candidate) => candidate.stage === 'fragment') ?? consumers[0]!;
 		if (!output) {
 			return [
@@ -285,7 +280,7 @@ export async function compiledGraphWgsl(
 	}
 
 	for (const consumer of consumers) {
-		const output = primaryPreviewOutput(doc);
+		const output = primaryPreviewOutput(compileDoc);
 		if ((consumer.type === 'preview' || !consumer.stage) && output) {
 			results.push(await compileScalarPreviewConsumer(compileDoc, consumer, output, resolver));
 			continue;

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
 	import type { LayoutDocument } from '@virtual-planet/subdivide';
-	import type { GraphDocument } from '@virtual-planet/graph';
+	import { effectiveGraphDocument, type GraphDocument } from '@virtual-planet/graph';
 
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
@@ -111,12 +111,14 @@
 		})
 	);
 
-	const previewBuffers = $derived(enumeratePreviewBuffers(graph));
+	const previewDoc = $derived(effectiveGraphDocument(graph));
+	const previewBuffers = $derived(enumeratePreviewBuffers(previewDoc));
 	const selectedPreviewBuffer = $derived(
-		findPreviewBufferById(graph, selectedPreviewBufferId) ?? inferDefaultPreviewBuffer(graph)
+		findPreviewBufferById(previewDoc, selectedPreviewBufferId) ??
+			inferDefaultPreviewBuffer(previewDoc)
 	);
 	const previewOutput = $derived(
-		selectedPreviewBuffer ? resolvePreviewBufferPort(graph, selectedPreviewBuffer) : null
+		selectedPreviewBuffer ? resolvePreviewBufferPort(previewDoc, selectedPreviewBuffer) : null
 	);
 	const previewRenderer = $derived(
 		resolvePreviewRenderer(selectedPreviewBuffer, {
@@ -517,14 +519,14 @@
 		{/if}
 		{#if previewRenderer === 'cpu'}
 			<CpuPreviewPanel
-				{graph}
+				graph={previewDoc}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
 			/>
 		{:else if previewRenderer === 'gpu'}
 			<GpuPreviewPanel
-				{graph}
+				graph={previewDoc}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
@@ -533,20 +535,20 @@
 			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} {compileSignature} />
 		{:else if previewRenderer === 'effect'}
 			<EffectPreviewPanel
-				{graph}
+				graph={previewDoc}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
 			/>
 		{:else if previewRenderer === 'audio'}
 			<AudioPreviewPanel
-				{graph}
+				graph={previewDoc}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
 			/>
 		{:else}
-			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} {compileSignature} />
+			<VegetationPreviewPanel graph={previewDoc} refreshEpoch={previewRefreshEpoch} {compileSignature} />
 		{/if}
 	</div>
 {/snippet}
