@@ -23,11 +23,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Palette touch-up — all sections collapsed by default** — the palette renders every group
-  expanded (`collapsedGroups` starts empty). Flip the default so sections (and Both-mode
-  subsections) start collapsed; keep persistence + search auto-expand. Owns `NodePalette.svelte`
-  — **disjoint from the preview-render fix** (`GraphEditor.svelte`), safe in parallel.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-palette-collapsed-default.md`  ·  Claimed by: Cursor
+_(none — add tasks below as briefs are pinned.)_
 
 ## Later — do NOT start now
 
