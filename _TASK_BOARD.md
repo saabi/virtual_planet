@@ -45,3 +45,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
   - T-C reliable recompile + honest node source — `a8d758f`
   - T-D 🔴 real geometry + vertex codegen (replaced pipeline stubs; no-stub guard) — `07f0ba5`
 - **Pipeline output reconciliation** — `target.display` as implicit sink; stale output cleanup on delete — `3a2b6bd`
+- **Pipeline consumer derivation** — derive implicit fragment image consumer + synthetic outputs for compile/preview when doc metadata is empty — `bbf649f`
