@@ -23,13 +23,11 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **🔴 Preview render fix — assemble against the effective doc** — a valid pipeline graph
-  compiles but the Effect preview throws "Output port is not declared in graph.outputs":
-  preview panels assemble against the **raw** doc, not the normalized one. Pass
-  `effectiveGraphDocument(graph)` to every preview panel (normalize once in `GraphEditor`).
-  Owns `GraphEditor.svelte` (panel wiring) — **disjoint from the palette task** (`NodePalette.svelte`),
-  safe in parallel.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-effective-doc-fix.md`  ·  Claimed by: UNCLAIMED
+- **Palette touch-up — all sections collapsed by default** — the palette renders every group
+  expanded (`collapsedGroups` starts empty). Flip the default so sections (and Both-mode
+  subsections) start collapsed; keep persistence + search auto-expand. Owns `NodePalette.svelte`
+  — **disjoint from the preview-render fix** (`GraphEditor.svelte`), safe in parallel.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-palette-collapsed-default.md`  ·  Claimed by: Cursor
 
 ## Later — do NOT start now
 
@@ -50,3 +48,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Pipeline consumer derivation** — derive implicit fragment image consumer + synthetic outputs for compile/preview when doc metadata is empty — `bbf649f`
 - **Format-adaptive preview buffer list** — enumerate graph output buffers by family; buffer selector replaces backend tabs — `c65912c`
 - **Node palette organization** — search + section/contract/both grouping with collapsible groups — `8e358e1`
+- **Preview effective doc fix** — preview panels and compile path use `effectiveGraphDocument` — `e1cd183`
