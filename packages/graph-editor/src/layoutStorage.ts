@@ -1,11 +1,16 @@
 import { parseLayoutDocument, type LayoutDocument } from '@virtual-planet/subdivide';
 
+import type { PreviewFamily } from './previewBuffers.js';
+
 export const GRAPH_EDITOR_LAYOUT_KEY = 'virtual-planet:graph-editor-layout:v1';
 
 export interface StoredEditorChrome {
 	version: 1;
 	layout: LayoutDocument;
+	/** @deprecated Legacy backend tab — migrated to `selectedPreviewBufferId`. */
 	previewMode?: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect';
+	selectedPreviewBufferId?: string;
+	previewFamilyOverride?: PreviewFamily | null;
 }
 
 function storage(): Storage {
@@ -17,6 +22,13 @@ function storage(): Storage {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const PREVIEW_FAMILIES: readonly PreviewFamily[] = ['geometry', 'image', 'data', 'audio'];
+
+function parsePreviewFamily(value: unknown): PreviewFamily | null {
+	if (typeof value !== 'string') return null;
+	return PREVIEW_FAMILIES.includes(value as PreviewFamily) ? (value as PreviewFamily) : null;
 }
 
 export function loadEditorChrome(
@@ -48,6 +60,15 @@ export function loadEditorChrome(
 			parsed.previewMode === 'effect'
 		) {
 			chrome.previewMode = parsed.previewMode;
+		}
+		if (typeof parsed.selectedPreviewBufferId === 'string') {
+			chrome.selectedPreviewBufferId = parsed.selectedPreviewBufferId;
+		}
+		if (parsed.previewFamilyOverride === null) {
+			chrome.previewFamilyOverride = null;
+		} else {
+			const family = parsePreviewFamily(parsed.previewFamilyOverride);
+			if (family) chrome.previewFamilyOverride = family;
 		}
 		return chrome;
 	} catch {

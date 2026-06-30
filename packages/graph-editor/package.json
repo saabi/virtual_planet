@@ -33,7 +33,8 @@
 		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte",
 		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte",
 		"./EffectPreviewPanel.svelte": "./src/EffectPreviewPanel.svelte",
-		"./MeshPreviewPanel.svelte": "./src/MeshPreviewPanel.svelte"
+		"./MeshPreviewPanel.svelte": "./src/MeshPreviewPanel.svelte",
+		"./AudioPreviewPanel.svelte": "./src/AudioPreviewPanel.svelte"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",

@@ -9,6 +9,7 @@
 	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
 	import VegetationPreviewPanel from './VegetationPreviewPanel.svelte';
 	import EffectPreviewPanel from './EffectPreviewPanel.svelte';
+	import AudioPreviewPanel from './AudioPreviewPanel.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -24,10 +25,20 @@
 		saveGraphToStorage
 	} from './documentStorage.js';
 	import { applyEditIntent } from './irAdapter.js';
-	import { defaultPreviewGraph, primaryPreviewOutput } from './defaultGraph.js';
+	import { defaultPreviewGraph } from './defaultGraph.js';
 	import { defaultGraphEditorLayout } from './defaultLayout.js';
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
-	import { inferPreviewBackend, isPreviewModeCompatible, type PreviewBackend } from './previewBackend.js';
+	import {
+		resolvePreviewRenderer,
+		type PreviewRenderer
+	} from './previewBackend.js';
+	import {
+		enumeratePreviewBuffers,
+		findPreviewBufferById,
+		inferDefaultPreviewBuffer,
+		resolvePreviewBufferPort,
+		type PreviewFamily
+	} from './previewBuffers.js';
 	import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import { computeGraphCompileSignature } from './graphCompileSignature.js';
@@ -56,7 +67,9 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let previewMode = $state<PreviewBackend>('cpu');
+	let selectedPreviewBufferId = $state<string | null>(null);
+	let previewFamilyOverride = $state<PreviewFamily | null>(null);
+	let previewRendererOverride = $state<PreviewRenderer | null>(null);
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -98,7 +111,19 @@
 		})
 	);
 
-	const previewOutput = $derived(primaryPreviewOutput(graph));
+	const previewBuffers = $derived(enumeratePreviewBuffers(graph));
+	const selectedPreviewBuffer = $derived(
+		findPreviewBufferById(graph, selectedPreviewBufferId) ?? inferDefaultPreviewBuffer(graph)
+	);
+	const previewOutput = $derived(
+		selectedPreviewBuffer ? resolvePreviewBufferPort(graph, selectedPreviewBuffer) : null
+	);
+	const previewRenderer = $derived(
+		resolvePreviewRenderer(selectedPreviewBuffer, {
+			familyOverride: previewFamilyOverride,
+			rendererOverride: previewRendererOverride
+		})
+	);
 	const compileSignature = $derived(computeGraphCompileSignature(graph));
 
 	$effect(() => {
@@ -109,15 +134,39 @@
 		return () => clearTimeout(timer);
 	});
 
-	function syncPreviewModeForGraph(doc: GraphDocument, force = false) {
-		const inferred = inferPreviewBackend(doc);
-		if (force || !isPreviewModeCompatible(doc, previewMode)) {
-			if (previewMode === 'mesh' || previewMode === 'vegetation') {
-				if (force) previewMode = inferred;
-			} else {
-				previewMode = inferred;
-			}
+	function syncPreviewSelectionForGraph(doc: GraphDocument, force = false) {
+		const buffers = enumeratePreviewBuffers(doc);
+		if (buffers.length === 0) {
+			selectedPreviewBufferId = null;
+			return;
 		}
+		const stillValid = buffers.some((buffer) => buffer.id === selectedPreviewBufferId);
+		if (force || !stillValid || !selectedPreviewBufferId) {
+			const defaultBuffer = inferDefaultPreviewBuffer(doc);
+			selectedPreviewBufferId = defaultBuffer?.id ?? buffers[0]!.id;
+			previewFamilyOverride = null;
+			previewRendererOverride = null;
+		}
+	}
+
+	function selectPreviewBuffer(bufferId: string) {
+		selectedPreviewBufferId = bufferId;
+		previewFamilyOverride = null;
+		previewRendererOverride = null;
+		scheduleChromeSave();
+	}
+
+	function setPreviewFamilyOverride(family: PreviewFamily) {
+		const buffer = selectedPreviewBuffer;
+		if (!buffer) return;
+		previewFamilyOverride = family === buffer.family ? null : family;
+		previewRendererOverride = null;
+		scheduleChromeSave();
+	}
+
+	function setPreviewRenderer(renderer: PreviewRenderer) {
+		previewRendererOverride = renderer;
+		scheduleChromeSave();
 	}
 
 	function debounce<T extends (...args: never[]) => void>(
@@ -135,7 +184,8 @@
 		(chrome: {
 			version: 1;
 			layout: LayoutDocument;
-			previewMode: PreviewBackend;
+			selectedPreviewBufferId?: string | null;
+			previewFamilyOverride?: PreviewFamily | null;
 		}) => {
 			saveEditorChrome(chrome);
 		},
@@ -143,16 +193,20 @@
 	);
 
 	function scheduleChromeSave(layoutDoc = layout) {
-		debouncedSaveChrome({ version: 1, layout: layoutDoc, previewMode });
+		debouncedSaveChrome({
+			version: 1,
+			layout: layoutDoc,
+			selectedPreviewBufferId,
+			previewFamilyOverride
+		});
 	}
 
 	function onLayoutChange(event: { layout: LayoutDocument }) {
 		scheduleChromeSave(event.layout);
 	}
 
-	function setPreviewMode(mode: PreviewBackend) {
-		previewMode = mode;
-		scheduleChromeSave();
+	function setPreviewMode(mode: PreviewRenderer) {
+		setPreviewRenderer(mode);
 	}
 
 	let lastCodeViewSyncNodeId = $state<string | null>(null);
@@ -176,7 +230,7 @@
 		graph = next;
 		markupParseError = null;
 		codeSaveError = null;
-		syncPreviewModeForGraph(next);
+		syncPreviewSelectionForGraph(next);
 		onchange?.(next);
 		if (persist) {
 			saveGraphToStorage(next);
@@ -187,14 +241,26 @@
 		const chrome = loadEditorChrome();
 		if (chrome) {
 			layout = chrome.layout;
-			if (chrome.previewMode) {
-				previewMode = chrome.previewMode;
+			if (chrome.selectedPreviewBufferId) {
+				selectedPreviewBufferId = chrome.selectedPreviewBufferId;
+			}
+			if (chrome.previewFamilyOverride !== undefined) {
+				previewFamilyOverride = chrome.previewFamilyOverride;
+			}
+			if (chrome.previewMode === 'vegetation') {
+				previewRendererOverride = 'vegetation';
+			} else if (chrome.previewMode === 'mesh') {
+				previewRendererOverride = 'mesh';
+			} else if (chrome.previewMode === 'gpu') {
+				previewRendererOverride = 'gpu';
 			}
 		}
 
 		const stored = loadGraphFromStorage();
 		if (stored) {
 			updateGraph(stored, false);
+		} else {
+			syncPreviewSelectionForGraph(graph, true);
 		}
 	});
 
@@ -216,7 +282,7 @@
 		clearSelection();
 		const next = sample.build();
 		updateGraph(next);
-		previewMode = inferPreviewBackend(next);
+		syncPreviewSelectionForGraph(next, true);
 		scheduleChromeSave();
 		storageMessage = sample.label;
 	}
@@ -415,71 +481,65 @@
 
 {#snippet preview()}
 	<div class="preview-zone">
-		<div class="preview-toggle" role="tablist" aria-label="Preview backend">
-			<button
-				type="button"
-				role="tab"
-				aria-selected={previewMode === 'cpu'}
-				class:active={previewMode === 'cpu'}
-				onclick={() => setPreviewMode('cpu')}
-			>
-				CPU
-			</button>
-			<button
-				type="button"
-				role="tab"
-				aria-selected={previewMode === 'gpu'}
-				class:active={previewMode === 'gpu'}
-				onclick={() => setPreviewMode('gpu')}
-			>
-				GPU
-			</button>
-			<button
-				type="button"
-				role="tab"
-				aria-selected={previewMode === 'mesh'}
-				class:active={previewMode === 'mesh'}
-				onclick={() => setPreviewMode('mesh')}
-			>
-				Mesh
-			</button>
-			<button
-				type="button"
-				role="tab"
-				aria-selected={previewMode === 'effect'}
-				class:active={previewMode === 'effect'}
-				onclick={() => setPreviewMode('effect')}
-			>
-				Effect
-			</button>
-			<button
-				type="button"
-				role="tab"
-				aria-selected={previewMode === 'vegetation'}
-				class:active={previewMode === 'vegetation'}
-				onclick={() => setPreviewMode('vegetation')}
-			>
-				Vegetation
-			</button>
+		<div class="preview-buffer-bar" role="tablist" aria-label="Graph output buffers">
+			{#if previewBuffers.length === 0}
+				<p class="preview-empty">No preview buffers — wire an output or pipeline display target.</p>
+			{:else}
+				{#each previewBuffers as buffer (buffer.id)}
+					<button
+						type="button"
+						role="tab"
+						aria-selected={selectedPreviewBuffer?.id === buffer.id}
+						class:active={selectedPreviewBuffer?.id === buffer.id}
+						class="buffer-tab"
+						onclick={() => selectPreviewBuffer(buffer.id)}
+					>
+						<span class="family-badge" data-family={buffer.family}>{buffer.family.slice(0, 1)}</span>
+						<span class="buffer-label">{buffer.label}</span>
+					</button>
+				{/each}
+			{/if}
 		</div>
-		{#if previewMode === 'cpu'}
+		{#if selectedPreviewBuffer && !selectedPreviewBuffer.inferred}
+			<label class="family-override">
+				<span>View as</span>
+				<select
+					value={previewFamilyOverride ?? selectedPreviewBuffer.family}
+					onchange={(event) =>
+						setPreviewFamilyOverride((event.currentTarget as HTMLSelectElement).value as PreviewFamily)}
+				>
+					<option value="data">data</option>
+					<option value="image">image</option>
+					<option value="geometry">geometry</option>
+					<option value="audio">audio</option>
+				</select>
+			</label>
+		{/if}
+		{#if previewRenderer === 'cpu'}
 			<CpuPreviewPanel
 				{graph}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
 			/>
-		{:else if previewMode === 'gpu'}
+		{:else if previewRenderer === 'gpu'}
 			<GpuPreviewPanel
 				{graph}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
 				{compileSignature}
 			/>
-		{:else if previewMode === 'mesh'}
+		{:else if previewRenderer === 'mesh'}
 			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} {compileSignature} />
-		{:else if previewMode === 'effect'}
+		{:else if previewRenderer === 'effect'}
 			<EffectPreviewPanel
+				{graph}
+				output={previewOutput}
+				refreshEpoch={previewRefreshEpoch}
+				{compileSignature}
+			/>
+		{:else if previewRenderer === 'audio'}
+			<AudioPreviewPanel
 				{graph}
 				output={previewOutput}
 				refreshEpoch={previewRefreshEpoch}
@@ -681,14 +741,25 @@
 		min-height: 0;
 	}
 
-	.preview-toggle {
+	.preview-buffer-bar {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 4px;
 		padding: 6px 8px 0;
 		flex: 0 0 auto;
 	}
 
-	.preview-toggle button {
+	.preview-empty {
+		margin: 0;
+		font-size: 10px;
+		opacity: 0.65;
+		padding: 2px 0 4px;
+	}
+
+	.buffer-tab {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		font-size: 10px;
 		padding: 3px 8px;
 		border: 1px solid rgba(255, 255, 255, 0.15);
@@ -696,16 +767,70 @@
 		background: #1a1f30;
 		color: inherit;
 		cursor: pointer;
-		opacity: 0.7;
+		opacity: 0.75;
 	}
 
-	.preview-toggle button.active {
+	.buffer-tab.active {
 		opacity: 1;
 		border-color: rgba(255, 255, 255, 0.35);
 		background: #24304a;
 	}
 
-	.preview-toggle button:hover {
+	.buffer-tab:hover {
 		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.family-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 14px;
+		height: 14px;
+		border-radius: 3px;
+		font-size: 9px;
+		font-weight: 700;
+		text-transform: uppercase;
+		background: rgba(255, 255, 255, 0.12);
+	}
+
+	.family-badge[data-family='image'] {
+		background: rgba(120, 180, 255, 0.25);
+	}
+
+	.family-badge[data-family='geometry'] {
+		background: rgba(140, 220, 160, 0.25);
+	}
+
+	.family-badge[data-family='data'] {
+		background: rgba(255, 200, 120, 0.25);
+	}
+
+	.family-badge[data-family='audio'] {
+		background: rgba(220, 140, 255, 0.25);
+	}
+
+	.buffer-label {
+		max-width: 120px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.family-override {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 8px 0;
+		font-size: 10px;
+		flex: 0 0 auto;
+	}
+
+	.family-override select {
+		font-size: 10px;
+		padding: 2px 6px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
 	}
 </style>

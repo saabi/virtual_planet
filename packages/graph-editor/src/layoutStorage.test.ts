@@ -26,18 +26,29 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		vi.stubGlobal('localStorage', createStorageMock());
 	});
 
-	it('round-trips layout and previewMode through localStorage', () => {
+	it('round-trips layout and preview selection through localStorage', () => {
 		const layout = defaultGraphEditorLayout();
 		const palette = layout.root.children[0];
 		if (palette?.type === 'pane') {
 			palette.size = 0.22;
 		}
-		saveEditorChrome({ version: 1, layout, previewMode: 'gpu' });
+		saveEditorChrome({
+			version: 1,
+			layout,
+			selectedPreviewBufferId: 'field',
+			previewFamilyOverride: 'image'
+		});
 		const loaded = loadEditorChrome();
 		expect(loaded).not.toBeNull();
-		expect(loaded!.previewMode).toBe('gpu');
+		expect(loaded!.selectedPreviewBufferId).toBe('field');
+		expect(loaded!.previewFamilyOverride).toBe('image');
 		const loadedPalette = loaded!.layout.root.children[0];
 		expect(loadedPalette?.type === 'pane' && loadedPalette.size).toBe(0.22);
+	});
+
+	it('still loads legacy previewMode chrome', () => {
+		saveEditorChrome({ version: 1, layout: defaultGraphEditorLayout(), previewMode: 'gpu' });
+		expect(loadEditorChrome()?.previewMode).toBe('gpu');
 	});
 
 	it('returns null when storage is empty', () => {

@@ -6,7 +6,7 @@ export interface GraphEditorPaneMenuHost {
 	hasNodeSelection: () => boolean;
 	deleteSelection: () => void;
 	duplicateSelectedNode: () => void;
-	setPreviewMode: (mode: 'cpu' | 'gpu' | 'mesh' | 'effect') => void;
+	setPreviewMode: (mode: 'cpu' | 'gpu' | 'mesh' | 'effect' | 'vegetation') => void;
 	refreshPreview: () => void;
 	clearSelection: () => void;
 	saveCode: () => void;
@@ -60,6 +60,11 @@ export function createZoneContextMenus(
 				id: 'preview-mesh',
 				label: 'Mesh preview',
 				run: () => host.setPreviewMode('mesh')
+			},
+			{
+				id: 'preview-vegetation',
+				label: 'Vegetation preview',
+				run: () => host.setPreviewMode('vegetation')
 			},
 			{
 				id: 'preview-refresh',

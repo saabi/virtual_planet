@@ -1,51 +1,70 @@
 import type { GraphDocument } from '@virtual-planet/graph';
 
-import { outputPortDataType, primaryPreviewOutput } from './graphBuilders.js';
+import {
+	effectivePreviewFamily,
+	enumeratePreviewBuffers,
+	inferDefaultPreviewBuffer,
+	type PreviewFamily
+} from './previewBuffers.js';
 
-/** Preview backends the editor can show for the current canvas graph. */
+/** Preview renderers mapped from buffer families (reuse existing panels). */
 export type ScalarPreviewBackend = 'cpu' | 'gpu';
-export type PreviewBackend = ScalarPreviewBackend | 'effect' | 'mesh' | 'vegetation';
+export type PreviewBackend = ScalarPreviewBackend | 'effect' | 'mesh' | 'vegetation' | 'audio';
 
-function fragmentImageConsumer(doc: GraphDocument): boolean {
-	if (
-		doc.nodes.some((node) => node.primitive === 'stage.fragment') &&
-		doc.nodes.some((node) => node.primitive === 'target.display')
-	) {
-		return true;
+export type PreviewRenderer = PreviewBackend;
+
+/** Route a preview family to an existing preview panel. */
+export function rendererForPreviewFamily(
+	family: PreviewFamily,
+	opts: { preferGpu?: boolean } = {}
+): PreviewRenderer {
+	switch (family) {
+		case 'image':
+			return opts.preferGpu ? 'gpu' : 'effect';
+		case 'geometry':
+			return 'mesh';
+		case 'data':
+			return opts.preferGpu ? 'gpu' : 'cpu';
+		case 'audio':
+			return 'audio';
+		default: {
+			const _exhaustive: never = family;
+			return _exhaustive;
+		}
 	}
-
-	const fragmentConsumer = doc.consumers.find((consumer) => consumer.stage === 'fragment');
-	if (!fragmentConsumer) return false;
-
-	for (const outputName of fragmentConsumer.outputs) {
-		const graphOutput = doc.outputs.find((candidate) => candidate.name === outputName);
-		if (!graphOutput) continue;
-		const dataType = outputPortDataType(doc, graphOutput.from);
-		if (dataType === 'vec4f') return true;
-	}
-	return false;
 }
 
-/** Pick the default preview backend from the canvas graph's consumer and output type. */
+/** Resolve the renderer for a selected buffer and optional family override. */
+export function resolvePreviewRenderer(
+	buffer: { family: PreviewFamily; inferred: boolean } | null,
+	opts: {
+		familyOverride?: PreviewFamily | null;
+		rendererOverride?: PreviewRenderer | null;
+		preferGpu?: boolean;
+	} = {}
+): PreviewRenderer {
+	if (opts.rendererOverride) return opts.rendererOverride;
+	if (!buffer) return 'cpu';
+	const family = effectivePreviewFamily(buffer, opts.familyOverride);
+	return rendererForPreviewFamily(family, { preferGpu: opts.preferGpu });
+}
+
+/** Pick the default preview backend from the canvas graph's output buffers. */
 export function inferPreviewBackend(doc: GraphDocument): ScalarPreviewBackend | 'effect' {
-	if (fragmentImageConsumer(doc)) {
-		return 'effect';
-	}
-
-	const output = primaryPreviewOutput(doc);
-	if (!output) return 'cpu';
-
-	const dataType = outputPortDataType(doc, output);
-	if (dataType === 'f32') return 'cpu';
+	const buffer = inferDefaultPreviewBuffer(doc);
+	if (!buffer) return 'cpu';
+	const renderer = rendererForPreviewFamily(buffer.family);
+	if (renderer === 'effect') return 'effect';
+	if (renderer === 'gpu') return 'gpu';
 	return 'cpu';
 }
 
-/** Whether the current preview mode still makes sense for this graph. */
-export function isPreviewModeCompatible(
-	doc: GraphDocument,
-	mode: PreviewBackend
-): boolean {
+/** Whether a legacy preview mode still matches any enumerated buffer. */
+export function isPreviewModeCompatible(doc: GraphDocument, mode: PreviewBackend): boolean {
 	if (mode === 'mesh' || mode === 'vegetation') return true;
+	if (mode === 'audio') {
+		return enumeratePreviewBuffers(doc).some((buffer) => buffer.family === 'audio');
+	}
 	const inferred = inferPreviewBackend(doc);
 	if (mode === 'effect') return inferred === 'effect';
 	if (mode === 'cpu' || mode === 'gpu') return inferred !== 'effect';
