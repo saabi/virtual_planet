@@ -149,8 +149,8 @@ node may be either; both are "a function + a contract."
 
 | id | status | notes |
 |----|--------|-------|
-| `geometry.fullscreenPlane` | 📋 atomic | 2-triangle fullscreen quad (replaces S0's hidden vertex WGSL) |
-| `geometry.plane` | 📋 atomic | parametric `res×res` plane grid (instanceable) |
+| `geometry.fullscreenPlane` | ✅ → **deprecated** | back-compat **alias** for `geometry.plane` at `resU/resV = 2`. New graphs use `geometry.plane`. |
+| `geometry.plane` | ✅ atomic | parametric `resU×resV` plane grid (instanceable). **Pending: initial orientation (normal/rotation) + dimensions (size/w/h)** — only subdivisions exist today; via params and/or `transform.scale`/`rotate`/`translate`. |
 | `geometry.cube` | 📋 atomic | six cube faces — a raw vertex list |
 | `geometry.cubeSphere` | 📋 **group** | = `geometry.cube` + `transform.spherify` (node group, not WGSL) |
 | `geometry.tessellate` | 📋 atomic | compute mesh-gen over a surface mapping → vertex/index buffers ([M-mesh-gen-consumer](./briefs/M-mesh-gen-consumer.md)) |

@@ -28,7 +28,8 @@
 
 ## Standard library — node gaps
 
-- **geometry transforms**: `transform.spherify`/`displace`/`twist`/`bend`/affine, and decompose `geometry.cubeSphere` → `geometry.cube` + `transform.spherify` (more elemental, reusable on any vertex list). `node-model-design-notes.md` §B.
+- **`geometry.plane` needs orientation + dimensions**: it currently exposes only `resU`/`resV` (subdivision counts) — no size or facing. Add initial **dimensions** (width/height or size) and **orientation** (normal/rotation) so the general plane can stand in for the deprecated `geometry.fullscreenPlane` (now a 2×2 alias) in arbitrary placements. Open design choice: bake them as node params for convenience, or supply them via composable `transform.scale`/`rotate`/`translate` nodes (per the elemental-primitives + transforms philosophy), or both (params = initial defaults, transforms = composition). `node-model-design-notes.md` §B.
+- **geometry transforms**: `transform.spherify`/`displace`/`translate`/`rotate`/`scale`/`twist`/`bend`/affine, and decompose `geometry.cubeSphere` → `geometry.cube` + `transform.spherify` (more elemental, reusable on any vertex list). These also cover the plane orientation/dimensions case above via composition. `node-model-design-notes.md` §B.
 - **colorlab harvest remainder**: OKLab/OKLCH, CVD simulation, chromatic adaptation, gamut mapping (slice A = D65 space conversions only). `M-colorlab-harvest.md`.
 - **vegetation as nodes**: `veg.densityField`/`peakDetect`/`prominence`/`coverageMask` — the algorithm lives in `runtime-cpu/vegetation.ts` but isn't exposed as graph nodes. `primitive-library.md`.
 - **terrain analysis primitives**: `slope`/`altitude`/`curvature`/`beachMask`/`ridgeMask`/`erosionApprox` (discussed turn 50; not built). `primitive-library.md`.
