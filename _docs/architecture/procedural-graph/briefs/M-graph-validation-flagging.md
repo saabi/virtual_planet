@@ -14,7 +14,14 @@ catches type/space/resource **edge** mismatches, but not **incompleteness** — 
 an unconnected required input, a consumer whose output isn't reachable, an unresolved
 primitive, or a dangling node compiles to broken/empty WGSL silently. Surface all of it.
 
-## Part 1 — Validation rules (`graph`)
+## Part 1 — Validation rules (`graph`) — ✅ DONE (`9af09e0`)
+
+Landed: `validateGraphCompleteness(doc)` + `validateGraphFull(doc)` emit
+`unresolved-primitive` + `no-output-path` (**errors**) and `unconnected-input` +
+`dangling-node` (**warnings** — runtime-supplied inputs like `perlin.position` must not
+false-fail; `isWarning(issue)` exported). `validateGraph` stays purely structural (callers
+unaffected). **The editor should call `validateGraphFull`** (primitives are registered
+there). Original spec below for reference:
 
 Extend `validateGraph` (additive `ValidationIssue` kinds):
 
