@@ -51,7 +51,7 @@ These three touch **different graph-editor files** → safe in parallel (coordin
 
 ---
 
-## T-D — 🔴 Real geometry + vertex codegen (replace pipeline stubs)  ·  Claimed by: UNCLAIMED
+## T-D — 🔴 Real geometry + vertex codegen (replace pipeline stubs)  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-real-geometry-vertex-codegen.md`
 - **Why:** the pipeline nodes (`geometry.plane`/`fullscreenPlane`/`stage.vertex`/…) have
@@ -67,7 +67,7 @@ These three touch **different graph-editor files** → safe in parallel (coordin
   parity at `resU/resV=2`; extend the no-stub guard so no registered node emits an empty
   body. **check AND test**; WGSL validity. ⚠ **visual**: the ShaderToy sample still renders
   (now node-driven) and the compiled-WGSL view shows real geometry/vertex code — screenshot.
-- **Status:** UNCLAIMED
+- **Status:** DONE 07f0ba5
 
 ---
 
