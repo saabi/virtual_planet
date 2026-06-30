@@ -2,7 +2,7 @@ import { parseLayoutDocument, type LayoutDocument } from '@virtual-planet/subdiv
 
 import type { PreviewFamily } from './previewBuffers.js';
 
-export const GRAPH_EDITOR_LAYOUT_KEY = 'virtual-planet:graph-editor-layout:v1';
+export const GRAPH_EDITOR_LAYOUT_KEY = 'virtual-planet:graph-editor-layout:v2';
 
 export interface StoredEditorChrome {
 	version: 1;

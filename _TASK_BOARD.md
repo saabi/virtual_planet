@@ -65,3 +65,5 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Fullscreen-fragment params binding** — declare and bind `GraphParams` in image consumer — `aa309e9`
 - **Node swap by contract** — title-click searchable swap menu + `replace-node-primitive` edit intent — `cf23086`
 - **Canonical data types + port defaults** — `canonicalDataType`/`dataTypeToWgsl` + unconnected input defaults (vector vec4f w=1) — `1f1bee4`
+- **Same-named port direction fix** — xyflow handle ids (`in:`/`out:`) + direction-aware port lookup in validate/codegen — _(uncommitted prior session)_
+- **Graph editor default layout v2** — palette \| canvas+code \| inspector/validation/preview; layout key bumped to `:v2`

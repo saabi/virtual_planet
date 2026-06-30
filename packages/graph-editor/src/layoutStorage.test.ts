@@ -28,9 +28,9 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 
 	it('round-trips layout and preview selection through localStorage', () => {
 		const layout = defaultGraphEditorLayout();
-		const palette = layout.root.children[0];
-		if (palette?.type === 'pane') {
-			palette.size = 0.22;
+		const paletteCol = layout.root.children[0];
+		if (paletteCol?.type === 'group') {
+			paletteCol.size = 0.22;
 		}
 		saveEditorChrome({
 			version: 1,
@@ -42,8 +42,8 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		expect(loaded).not.toBeNull();
 		expect(loaded!.selectedPreviewBufferId).toBe('field');
 		expect(loaded!.previewFamilyOverride).toBe('image');
-		const loadedPalette = loaded!.layout.root.children[0];
-		expect(loadedPalette?.type === 'pane' && loadedPalette.size).toBe(0.22);
+		const loadedPaletteCol = loaded!.layout.root.children[0];
+		expect(loadedPaletteCol?.type === 'group' && loadedPaletteCol.size).toBe(0.22);
 	});
 
 	it('still loads legacy previewMode chrome', () => {
@@ -62,9 +62,11 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 
 	it('loads a layout that references an unknown zone', () => {
 		const layout = defaultGraphEditorLayout();
-		const palette = layout.root.children[0];
-		if (palette?.type === 'pane') {
-			palette.zone = 'unknown_zone';
+		const paletteCol = layout.root.children[0];
+		const palettePane =
+			paletteCol?.type === 'group' ? paletteCol.children[0] : undefined;
+		if (palettePane?.type === 'pane') {
+			palettePane.zone = 'unknown_zone';
 		}
 		saveEditorChrome({ version: 1, layout });
 		expect(loadEditorChrome()).not.toBeNull();
