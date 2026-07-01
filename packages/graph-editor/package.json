@@ -5,12 +5,12 @@
 	"description": "Reusable Svelte graph-editor components over the Typed Graph IR (no renderer logic).",
 	"type": "module",
 	"dependencies": {
-		"@codemirror/commands": "^6.8.0",
+		"@codemirror/commands": "^6.10.4",
 		"@codemirror/lang-xml": "^6.1.0",
-		"@codemirror/language": "^6.11.0",
-		"@codemirror/state": "^6.5.0",
-		"@codemirror/view": "^6.38.0",
-		"@lezer/highlight": "^1.2.0",
+		"@codemirror/language": "^6.12.4",
+		"@codemirror/state": "^6.7.0",
+		"@codemirror/view": "^6.43.4",
+		"@lezer/highlight": "^1.2.3",
 		"@virtual-planet/compiler": "*",
 		"@virtual-planet/editor-ui": "*",
 		"@virtual-planet/graph": "*",
@@ -19,7 +19,7 @@
 		"@virtual-planet/runtime-webgpu": "*",
 		"@virtual-planet/schema": "*",
 		"@virtual-planet/subdivide": "*",
-		"@xyflow/svelte": "^1.0.0"
+		"@xyflow/svelte": "^1.6.1"
 	},
 	"exports": {
 		".": "./src/index.ts",
@@ -45,10 +45,10 @@
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@testing-library/svelte": "^5.2.8",
-		"@webgpu/types": "^0.1.70",
-		"happy-dom": "^17.4.4",
-		"svelte": "^5.56.1",
+		"@testing-library/svelte": "^5.4.2",
+		"@webgpu/types": "^0.1.71",
+		"happy-dom": "^20.10.6",
+		"svelte": "^5.56.4",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
 	}
