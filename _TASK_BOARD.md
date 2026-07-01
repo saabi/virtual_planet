@@ -31,20 +31,17 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Done (recent)
 
+- **Primitive help coverage (frontmatter-based, all nodes)** — `af69aef` · unified
+  `formatBuiltinSource` + inspector fallback; backfilled `help` across noise/math/color/
+  terrain/surface/SDF/host/effect primitives (62 blank → 0; 9 → 71/112 authored); guard test
+  ensures no blank tooltips.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-primitive-help-coverage.md`
+
 - **`geometry.plane` orientation + dimensions** — `a55b8c2` · width/height + Euler XYZ rotation;
   WGSL + evalCPU parity; defaults bit-identical fullscreen quad.
   Brief: `_docs/architecture/procedural-graph/briefs/M-plane-orientation-dimensions.md`
 
 ## Ready to route
-
-- **Primitive help coverage (frontmatter-based, all nodes)** — audited: 112 primitives, only 9
-  have `help`, **62 (55%) resolve to a blank inspector tooltip**. Unify on frontmatter as the
-  single authoring/display surface (`formatBuiltinSource` currently omits `help`/`usage` even
-  when set), add a guaranteed non-empty fallback + guard test, then backfill real help text by
-  category (phased sub-passes — noise/math/color/terrain+surface+material/remaining). Owns
-  `graph-editor` (`primitiveSources.ts`, `nodeInspectorHelp.ts`) + `graph` (primitive metadata,
-  per-category passes).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-primitive-help-coverage.md`  ·  Claimed by: UNCLAIMED
 
 - **Shared preview clock (synced uniforms)** — **SUPERSEDED** by `M-single-loop-preview.md`
   (✅ landed `4a7f43d`, fixed `c8dcceb`). Brief kept for history:
