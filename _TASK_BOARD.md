@@ -23,24 +23,34 @@ is still open.
 
 _(none claimed — add tasks below as briefs are pinned.)_
 
+## Done (recent)
+
+- **`geometry.plane` orientation + dimensions** — `a55b8c2` · width/height + Euler XYZ rotation;
+  WGSL + evalCPU parity; defaults bit-identical fullscreen quad.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-plane-orientation-dimensions.md`
+
 ## Ready to route
 
-- **Shared preview clock (synced uniforms)** — **SUPERSEDED** by `M-single-loop-preview.md`
-  (do not run). Brief kept for history:
-  `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`
+- **Primitive help coverage (frontmatter-based, all nodes)** — audited: 112 primitives, only 9
+  have `help`, **62 (55%) resolve to a blank inspector tooltip**. Unify on frontmatter as the
+  single authoring/display surface (`formatBuiltinSource` currently omits `help`/`usage` even
+  when set), add a guaranteed non-empty fallback + guard test, then backfill real help text by
+  category (phased sub-passes — noise/math/color/terrain+surface+material/remaining). Owns
+  `graph-editor` (`primitiveSources.ts`, `nodeInspectorHelp.ts`) + `graph` (primitive metadata,
+  per-category passes).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-primitive-help-coverage.md`  ·  Claimed by: UNCLAIMED
 
-- **`geometry.plane` orientation + dimensions** (user-flagged) — add width/height + orientation
-  params (defaults reproduce the current fullscreen quad); WGSL + evalCPU parity. Owns
-  `geometry.plane` primitive (graph) + plane WGSL (procedural-wgsl).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-plane-orientation-dimensions.md`  ·  Claimed by: UNCLAIMED
+- **Shared preview clock (synced uniforms)** — **SUPERSEDED** by `M-single-loop-preview.md`
+  (✅ landed `4a7f43d`, fixed `c8dcceb`). Brief kept for history:
+  `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`
 
 ### Architecture direction (near-term; sequences existing briefs)
 
-- **Unified preview execution** — one graph render loop per frame evaluating ALL live outputs
-  with shared uniforms; **preview panes are views** (display a target texture), not independent
-  shaders; **feedback** (output → next-frame input) needs the single shared-frame loop. Vehicle:
-  `M-pass-graph-executor` (GPU executor) + a preview-as-views slice. `M-shared-preview-clock` is
-  phase 0. **Guardrail: don't add per-pane independent-render infra.**
+- **Unified preview execution** — Phase 1 (single-loop, independent outputs) ✅ landed
+  (`4a7f43d` + key fix `c8dcceb`) — panes are views of one GraphFrameExecutor loop, shared
+  uniforms, visually confirmed synced. **Remaining:** Part 3 — cross-target reads (render-target-
+  as-texture GPU binding) + previous-frame ping-pong feedback — brief when a graph actually wires
+  one output into another.
   Brief: `_docs/architecture/procedural-graph/briefs/M-unified-preview-execution.md`
 
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU

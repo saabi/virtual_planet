@@ -96,6 +96,7 @@ runs what.
 | [M-preview-multi-target.md](./M-preview-multi-target.md) | One preview buffer per pipeline display sink | ✅ landed | Cursor (done) |
 | [M-port-quick-connect.md](./M-port-quick-connect.md) | Right-click port → add compatible wired node | ✅ landed | Cursor (done) |
 | [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Device-compile test hardening — Node WebGPU + consumer coverage | ✅ landed | Cursor (done) |
+| [M-primitive-help-coverage.md](./M-primitive-help-coverage.md) | Frontmatter-based help for every primitive — 62/112 (55%) resolve blank; unify frontmatter as the source, guaranteed non-empty fallback + guard test, backfill by category | 📌 contract ready · phased | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
