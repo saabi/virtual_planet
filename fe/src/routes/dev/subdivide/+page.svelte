@@ -12,21 +12,21 @@
 	};
 </script>
 
-{#snippet main(_paneId)}
+{#snippet main(_paneId: string)}
 	<div class="zone main">
 		<h2>Main</h2>
 		<p>Cmd/Ctrl+drag an edge to split. Drag dividers to resize.</p>
 	</div>
 {/snippet}
 
-{#snippet side(_paneId)}
+{#snippet side(_paneId: string)}
 	<div class="zone side">
 		<h2>Side</h2>
 		<p>Use the header dropdown to swap zones.</p>
 	</div>
 {/snippet}
 
-{#snippet bottom(_paneId)}
+{#snippet bottom(_paneId: string)}
 	<div class="zone bottom">
 		<h2>Bottom</h2>
 	</div>
