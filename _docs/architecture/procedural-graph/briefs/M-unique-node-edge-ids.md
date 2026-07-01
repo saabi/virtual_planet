@@ -4,7 +4,7 @@
 `@virtual-planet/graph-editor` (`irAdapter.ts`, `documentStorage.ts`), `@virtual-planet/graph`
 (validation), issue formatters (`graph-editor`, `mcp-server`) · **Depends on:** nothing ·
 **Design authority:** `graph-and-compiler.md` · **Contract author:** Opus · **Recommended
-executor:** Cursor.
+executor:** Cursor · **Status:** DONE `44d6141`
 
 ## Problem
 

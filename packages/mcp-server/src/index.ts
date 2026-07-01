@@ -63,6 +63,8 @@ function formatValidationIssue(issue: ValidationIssue): string {
 			return `dangling-node: node ${issue.node}`;
 		case 'multiple-inputs':
 			return `multiple-inputs: node ${issue.node}, port ${issue.port}, count ${issue.count}`;
+		case 'duplicate-id':
+			return `duplicate-id: ${issue.entity} ${issue.id}`;
 		default:
 			return JSON.stringify(issue);
 	}

@@ -88,6 +88,10 @@ export function buildValidationHighlightIndex(issues: ValidationIssue[]): Valida
 				markPort(issue.node, issue.port, severity);
 				markNode(issue.node, severity);
 				break;
+			case 'duplicate-id':
+				if (issue.entity === 'node') markNode(issue.id, 'error');
+				else edges.add(issue.id);
+				break;
 			default: {
 				const _exhaustive: never = issue;
 				void _exhaustive;
@@ -120,6 +124,8 @@ export function formatValidationIssue(issue: ValidationIssue): string {
 			return `Edge ${issue.edge}: invalid ${issue.end} port direction`;
 		case 'multiple-inputs':
 			return `Input ${issue.node}.${issue.port} has ${issue.count} incoming edges (max 1)`;
+		case 'duplicate-id':
+			return `Duplicate ${issue.entity} id ${issue.id}`;
 		default: {
 			const _exhaustive: never = issue;
 			return String(_exhaustive);
@@ -137,6 +143,8 @@ export function issueFocusTarget(
 		case 'no-output-path':
 		case 'multiple-inputs':
 			return { nodeId: issue.node };
+		case 'duplicate-id':
+			return issue.entity === 'node' ? { nodeId: issue.id } : { edgeId: issue.id };
 		case 'unknown-node':
 		case 'unknown-port':
 		case 'type-mismatch':

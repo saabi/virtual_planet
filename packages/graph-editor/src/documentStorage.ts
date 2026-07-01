@@ -4,6 +4,7 @@ import {
 	type GraphDocument
 } from '@virtual-planet/graph';
 import { resyncGraphPortMetadata } from './graphSync.js';
+import { dedupeGraphIds } from './graphIds.js';
 
 export const GRAPH_EDITOR_STORAGE_KEY = 'virtual-planet:graph-editor:v1';
 
@@ -24,7 +25,7 @@ export function parseGraphFile(json: string): GraphDocument {
 	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
 		throw new Error('Graph JSON must be an object');
 	}
-	return resyncGraphPortMetadata(deserializeGraph(json));
+	return dedupeGraphIds(resyncGraphPortMetadata(deserializeGraph(json)));
 }
 
 export function loadGraphFromStorage(key = GRAPH_EDITOR_STORAGE_KEY): GraphDocument | null {

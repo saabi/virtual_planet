@@ -12,6 +12,7 @@ import {
 	type ValidationResult
 } from '@virtual-planet/graph';
 import { Value, type TSchema } from '@virtual-planet/schema';
+import { collectEdgeIds, collectNodeIds, mintEdgeId, mintNodeId } from './graphIds.js';
 import { inputHandleId, outputHandleId } from './portHandles.js';
 
 export interface FlowNodeData {
@@ -46,19 +47,6 @@ export type GraphEditIntent =
 			source: PortRef;
 			sourceDirection: 'in' | 'out';
 	  };
-
-let nodeCounter = 0;
-let edgeCounter = 0;
-
-function nextNodeId(primitiveId: string): string {
-	nodeCounter += 1;
-	return `n_${primitiveId.replace(/\./g, '_')}_${nodeCounter}`;
-}
-
-function nextEdgeId(): string {
-	edgeCounter += 1;
-	return `e_${edgeCounter}`;
-}
 
 function findInputPort(node: Node, portId: string): Port | undefined {
 	return node.inputs.find((port) => port.id === portId);
@@ -134,14 +122,15 @@ function pruneOutputsAndConsumers(
 	return { outputs, consumers };
 }
 
-function createNode(primitiveId: string, position: { x: number; y: number }): Node {
+function createNode(doc: GraphDocument, primitiveId: string, position: { x: number; y: number }): Node {
 	const primitive = getPrimitive(primitiveId);
 	if (!primitive) {
 		throw new Error(`Unknown primitive: ${primitiveId}`);
 	}
 
+	const usedIds = collectNodeIds(doc);
 	return {
-		id: nextNodeId(primitiveId),
+		id: mintNodeId(usedIds, primitiveId),
 		primitive: primitiveId,
 		inputs: instantiatePorts(primitive.inputs, 'in'),
 		outputs: instantiatePorts(primitive.outputs, 'out'),
@@ -250,7 +239,7 @@ export function validateConnection(
 export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): GraphDocument {
 	switch (intent.kind) {
 		case 'add-node': {
-			const node = createNode(intent.primitiveId, intent.position);
+			const node = createNode(doc, intent.primitiveId, intent.position);
 			return { ...doc, nodes: [...doc.nodes, node] };
 		}
 		case 'remove-node': {
@@ -282,16 +271,30 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			if (!source) {
 				throw new Error(`Unknown node: ${intent.sourceNodeId}`);
 			}
-			const node = createNode(source.primitive, intent.position);
+			const newNode = {
+				...createNode(doc, source.primitive, intent.position),
+				...(source.params !== undefined ? { params: { ...source.params } } : {})
+			};
+			const nextDoc: GraphDocument = { ...doc, nodes: [...doc.nodes, newNode] };
+			const usedEdgeIds = collectEdgeIds(nextDoc);
+			const duplicatedEdges = doc.edges
+				.filter((edge) => edge.from.node === source.id || edge.to.node === source.id)
+				.map((edge) => {
+					const id = mintEdgeId(usedEdgeIds);
+					usedEdgeIds.add(id);
+					return {
+						id,
+						from:
+							edge.from.node === source.id
+								? { ...edge.from, node: newNode.id }
+								: edge.from,
+						to:
+							edge.to.node === source.id ? { ...edge.to, node: newNode.id } : edge.to
+					};
+				});
 			return {
-				...doc,
-				nodes: [
-					...doc.nodes,
-					{
-						...node,
-						...(source.params !== undefined ? { params: { ...source.params } } : {})
-					}
-				]
+				...nextDoc,
+				edges: [...doc.edges, ...duplicatedEdges]
 			};
 		}
 		case 'add-edge': {
@@ -312,7 +315,14 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 					: doc.edges;
 			return {
 				...doc,
-				edges: [...edges, { id: nextEdgeId(), from: intent.from, to: intent.to }]
+				edges: [
+					...edges,
+					{
+						id: mintEdgeId(new Set(edges.map((edge) => edge.id))),
+						from: intent.from,
+						to: intent.to
+					}
+				]
 			};
 		}
 		case 'remove-edge': {
@@ -357,7 +367,7 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 				throw new Error(`Unknown node: ${intent.source.node}`);
 			}
 
-			const node = createNode(intent.primitiveId, intent.position);
+			const node = createNode(doc, intent.primitiveId, intent.position);
 			const nextDoc: GraphDocument = { ...doc, nodes: [...doc.nodes, node] };
 
 			let from: PortRef;
@@ -413,7 +423,14 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 
 			return {
 				...nextDoc,
-				edges: [...edges, { id: nextEdgeId(), from, to }]
+				edges: [
+					...edges,
+					{
+						id: mintEdgeId(new Set(edges.map((edge) => edge.id))),
+						from,
+						to
+					}
+				]
 			};
 		}
 		default: {
@@ -423,8 +440,5 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 	}
 }
 
-/** Reset id counters — for deterministic tests. */
-export function resetIdCounters(nextNode = 0, nextEdge = 0): void {
-	nodeCounter = nextNode;
-	edgeCounter = nextEdge;
-}
+/** @deprecated Doc-aware minting ignores counters; kept for test compatibility. */
+export function resetIdCounters(_nextNode = 0, _nextEdge = 0): void {}

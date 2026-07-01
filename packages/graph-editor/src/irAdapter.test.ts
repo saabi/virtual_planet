@@ -544,4 +544,74 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 		expect(doc.edges[0]?.to).toEqual({ node: target.id, port: 'x' });
 		expect(fullValidation(doc).ok).toBe(true);
 	});
+
+	it('mints node ids above the loaded document max suffix', () => {
+		const loaded: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_noise_worley2d_14',
+					primitive: 'noise.worley2d',
+					inputs: [
+						{ id: 'position', name: 'position', direction: 'in', dataType: 'vec2f' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [],
+			consumers: []
+		};
+
+		const doc = applyEditIntent(loaded, {
+			kind: 'add-node',
+			primitiveId: 'noise.worley2d',
+			position: { x: 0, y: 0 }
+		});
+
+		expect(doc.nodes).toHaveLength(2);
+		expect(doc.nodes[1]?.id).toBe('n_noise_worley2d_15');
+		expect(new Set(doc.nodes.map((node) => node.id)).size).toBe(2);
+	});
+
+	it('mints edge ids above the loaded document max suffix', () => {
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_a',
+					primitive: 'constant.f32',
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_b',
+					primitive: 'math.remap',
+					inputs: [{ id: 'x', name: 'x', direction: 'in', dataType: 'f32' }],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_c',
+					primitive: 'constant.f32',
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_d',
+					primitive: 'math.remap',
+					inputs: [{ id: 'x', name: 'x', direction: 'in', dataType: 'f32' }],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [{ id: 'e_8', from: { node: 'n_a', port: 'value' }, to: { node: 'n_b', port: 'x' } }],
+			outputs: [],
+			consumers: []
+		};
+		const next = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: 'n_c', port: 'value' },
+			to: { node: 'n_d', port: 'x' }
+		});
+		expect(next.edges.map((edge) => edge.id)).toEqual(['e_8', 'e_9']);
+	});
 });
