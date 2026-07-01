@@ -1,5 +1,9 @@
 # Brief — Shared preview clock (synced uniforms across panes)
 
+> **⛔ SUPERSEDED by `M-single-loop-preview.md`.** Do not run. One render loop subsumes the
+> shared clock (one loop = one clock); a shared clock while panes still render independently is
+> throwaway per-pane-execution infra. Kept for rationale/history only.
+
 **Type:** editor UX · **Packages:** `@virtual-planet/graph-editor` (new `previewClock.ts`,
 `EffectPreviewPanel.svelte`) · **Depends on:** per-pane preview ✅ (`b73e6b3`) · **Design
 authority:** `editor.md`, `pipeline-as-graph.md` (ShaderToy host inputs) · **Contract author:**

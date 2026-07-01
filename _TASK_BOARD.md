@@ -25,12 +25,16 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Shared preview clock (synced uniforms)** — each preview pane runs its own `startTime`/
-  `frame`, so panes animate out of phase. Add a shared `previewClock` (one `iTime`/`iFrame`
-  source) read by all Effect panels; `iMouse` stays per-pane. Synced by default; leave a seam
-  for a per-pane unsync toggle (UI later). Owns `graph-editor` new `previewClock.ts` +
-  `EffectPreviewPanel.svelte`.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`  ·  Claimed by: UNCLAIMED
+- **Single-loop preview (frame-graph executor + panes as views)** — replace per-pane
+  independent shaders with ONE execution per frame: GPU frame executor runs all outputs each
+  frame (topological, shared uniforms) into target textures; panes become views (display a
+  texture, no per-pane shader/clock/loop). Phase 1 of `M-unified-preview-execution`; supersedes
+  the shared-clock stopgap. Scope: independent outputs (cross-target reads + feedback deferred).
+  Owns `runtime-webgpu` (frame executor, = `M-pass-graph-executor` GPU half), `graph-editor`
+  (loop + `PreviewZone`/`GraphEditor`). Bigger task — coordinate.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-single-loop-preview.md`  ·  Claimed by: UNCLAIMED
+
+  _(superseded: `M-shared-preview-clock.md` — one loop subsumes the shared clock; do not run)_
 
 - **`geometry.plane` orientation + dimensions** (user-flagged) — add width/height + orientation
   params (defaults reproduce the current fullscreen quad); WGSL + evalCPU parity. Owns
