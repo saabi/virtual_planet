@@ -81,7 +81,10 @@
 	let documentReadOnly = $state(false);
 	let documentRevision = $state(0);
 	let previewRefreshEpoch = $state(0);
-	let previewFrameLoop = $state<PreviewFrameLoop | null>(null);
+	// $state.raw: reactive on reassignment (panes re-read the loop) but NOT deeply proxied —
+	// the loop is an imperative handle (GPU device/textures/closures); proxying it breaks the
+	// `=== loop` identity guard below and hazards its internals. We only ever reassign it.
+	let previewFrameLoop = $state.raw<PreviewFrameLoop | null>(null);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
 	let markupViewActions = $state<MarkupViewActions | null>(null);

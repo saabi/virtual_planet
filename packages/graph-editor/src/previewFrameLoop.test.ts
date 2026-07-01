@@ -3,7 +3,7 @@ import { effectiveGraphDocument } from '@virtual-planet/graph';
 
 import { animatedWorleyPipelineGraph } from './graphBuilders.js';
 
-const executeMock = vi.fn(async () => ({
+const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: number } }) => ({
 	width: 4,
 	height: 4,
 	targets: {
@@ -76,7 +76,7 @@ describe('createPreviewFrameLoop', () => {
 		loop.destroy();
 
 		expect(executeMock).toHaveBeenCalled();
-		const host = executeMock.mock.calls[0]?.[0].host;
+		const host = executeMock.mock.calls[0]?.[0]?.host;
 		expect(host?.iFrame).toBe(0);
 		expect(host?.iTime).toBe(0);
 
