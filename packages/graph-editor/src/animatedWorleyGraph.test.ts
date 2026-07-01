@@ -45,9 +45,14 @@ describe('animatedWorleyPipelineGraph', () => {
 		expect(buffers.filter((buffer) => buffer.family === 'image').map((buffer) => buffer.id).sort()).toEqual(
 			['n_display', 'n_target_display_1']
 		);
-		// NOTE: effectiveGraphDocument still derives only one image consumer for two sinks
-		// (shared 'pipeline_image' output name collapses in consumerKey) — tracked by
-		// M-multi-target-consumer-derivation.md.
-		effectiveGraphDocument(graph);
+
+		const effective = effectiveGraphDocument(graph);
+		const imageConsumers = effective.consumers.filter((consumer) => consumer.type === 'image');
+		expect(imageConsumers).toHaveLength(2);
+		expect(new Set(imageConsumers.map((consumer) => consumer.id)).size).toBe(2);
+		expect(new Set(effective.outputs.map((output) => output.name)).size).toBe(2);
+
+		const effectiveBuffers = enumeratePreviewBuffers(effective);
+		expect(effectiveBuffers.filter((buffer) => buffer.family === 'image')).toHaveLength(2);
 	});
 });

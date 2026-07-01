@@ -221,4 +221,45 @@ describe('@virtual-planet/graph pipeline consumer derivation', () => {
 		expect(consumers).toHaveLength(1);
 		expect(consumers[0]?.outputs).toEqual([PIPELINE_IMAGE_OUTPUT_NAME]);
 	});
+
+	it('derives distinct outputs and consumers per display sink on multi-target graphs', () => {
+		const graph: GraphDocument = {
+			...s0PipelineGraph(),
+			outputs: [],
+			consumers: [],
+			nodes: [
+				...s0PipelineGraph().nodes,
+				snapshotNode('n_fragment_b', 'stage.fragment'),
+				snapshotNode('n_display_b', 'target.display'),
+				snapshotNode('n_effect_b', 'effect.cosinePalette')
+			],
+			edges: [
+				...s0PipelineGraph().edges,
+				{
+					id: 'e_vertex_fragment_b',
+					from: portRef('n_vertex', 'stage.vertex', 'out', 0),
+					to: portRef('n_fragment_b', 'stage.fragment', 'in', 0)
+				},
+				{
+					id: 'e_effect_b_fragment_b',
+					from: portRef('n_effect_b', 'effect.cosinePalette', 'out', 0),
+					to: portRef('n_fragment_b', 'stage.fragment', 'in', 1)
+				},
+				{
+					id: 'e_fragment_b_display_b',
+					from: portRef('n_fragment_b', 'stage.fragment', 'out', 0),
+					to: portRef('n_display_b', 'target.display', 'in', 0)
+				}
+			]
+		};
+
+		const effective = effectiveGraphDocument(graph);
+		const imageConsumers = effective.consumers.filter((consumer) => consumer.type === 'image');
+		expect(imageConsumers).toHaveLength(2);
+		expect(new Set(imageConsumers.map((consumer) => consumer.id)).size).toBe(2);
+		expect(new Set(effective.outputs.map((output) => output.name)).size).toBe(2);
+		expect(effective.outputs.map((output) => output.name).sort()).toEqual(
+			['pipeline_image_n_display', 'pipeline_image_n_display_b'].sort()
+		);
+	});
 });

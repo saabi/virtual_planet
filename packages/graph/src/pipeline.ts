@@ -17,15 +17,8 @@ function incomingEdge(doc: GraphDocument, nodeId: string, port: string) {
 	return doc.edges.find((edge) => edge.to.node === nodeId && edge.to.port === port);
 }
 
-function outputNameForField(doc: GraphDocument, fieldOutput: PortRef): string {
-	const existing = doc.outputs.find(
-		(candidate) =>
-			candidate.from.node === fieldOutput.node && candidate.from.port === fieldOutput.port
-	);
-	return existing?.name ?? PIPELINE_IMAGE_OUTPUT_NAME;
-}
-
-function presentationForDisplay(doc: GraphDocument, displayNode: Node): PipelinePresentation | null {
+/** Field colour port wired into the fragment stage for a display sink, if complete. */
+function fieldOutputForDisplay(doc: GraphDocument, displayNode: Node): PortRef | null {
 	const toDisplay = incomingEdge(doc, displayNode.id, 'color');
 	if (!toDisplay) return null;
 
@@ -34,13 +27,43 @@ function presentationForDisplay(doc: GraphDocument, displayNode: Node): Pipeline
 	if (toDisplay.from.port !== 'texture') return null;
 
 	const fieldEdge = incomingEdge(doc, fragmentNode.id, 'color');
-	if (!fieldEdge) return null;
+	return fieldEdge?.from ?? null;
+}
 
-	const outputName = outputNameForField(doc, fieldEdge.from);
+function countPipelinePresentations(doc: GraphDocument): number {
+	let count = 0;
+	for (const node of doc.nodes) {
+		if (!isPipelineTarget(node)) continue;
+		if (fieldOutputForDisplay(doc, node)) count += 1;
+	}
+	return count;
+}
+
+function outputNameForField(
+	doc: GraphDocument,
+	fieldOutput: PortRef,
+	displayNodeId: string
+): string {
+	const existing = doc.outputs.find(
+		(candidate) =>
+			candidate.from.node === fieldOutput.node && candidate.from.port === fieldOutput.port
+	);
+	if (existing) return existing.name;
+	if (countPipelinePresentations(doc) > 1) {
+		return `${PIPELINE_IMAGE_OUTPUT_NAME}_${displayNodeId}`;
+	}
+	return PIPELINE_IMAGE_OUTPUT_NAME;
+}
+
+function presentationForDisplay(doc: GraphDocument, displayNode: Node): PipelinePresentation | null {
+	const fieldOutput = fieldOutputForDisplay(doc, displayNode);
+	if (!fieldOutput) return null;
+
+	const outputName = outputNameForField(doc, fieldOutput, displayNode.id);
 	return {
 		displayNodeId: displayNode.id,
 		outputName,
-		fieldOutput: fieldEdge.from,
+		fieldOutput,
 		consumer: {
 			type: 'image',
 			id: `pipeline:${displayNode.id}`,
@@ -79,11 +102,7 @@ export function derivePipelineConsumers(doc: GraphDocument): ProceduralConsumer[
 export function effectiveOutputs(doc: GraphDocument): GraphOutput[] {
 	const outputs = [...doc.outputs];
 	for (const presentation of derivePipelinePresentations(doc)) {
-		const exists = outputs.some(
-			(candidate) =>
-				candidate.from.node === presentation.fieldOutput.node &&
-				candidate.from.port === presentation.fieldOutput.port
-		);
+		const exists = outputs.some((candidate) => candidate.name === presentation.outputName);
 		if (!exists) {
 			outputs.push({ name: presentation.outputName, from: presentation.fieldOutput });
 		}
@@ -92,7 +111,7 @@ export function effectiveOutputs(doc: GraphDocument): GraphOutput[] {
 }
 
 function consumerKey(consumer: ProceduralConsumer): string {
-	return `${consumer.stage ?? ''}:${consumer.type}:${consumer.outputs.join(',')}`;
+	return `${consumer.id ?? ''}:${consumer.stage ?? ''}:${consumer.type}:${consumer.outputs.join(',')}`;
 }
 
 function explicitFragmentCoversPresentation(
