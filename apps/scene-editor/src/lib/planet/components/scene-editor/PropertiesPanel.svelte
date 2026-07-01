@@ -48,7 +48,7 @@
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
 	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
-	import { Subsection, VerticalTabs } from '@virtual-planet/editor-ui';
+	import { Subsection, VerticalTabs } from '@world-lab/editor-ui';
 	import {
 		PROPS_SUPER_SECTIONS,
 		defaultOpenPropsSection,

@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/webgputoy-app",
+	"name": "@world-lab/webgputoy-app",
 	"private": true,
 	"version": "0.1.0",
 	"license": "MIT",
@@ -20,14 +20,14 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
-		"@virtual-planet/compiler": "*",
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/graph-editor": "*",
-		"@virtual-planet/procedural-wgsl": "*",
-		"@virtual-planet/runtime-cpu": "*",
-		"@virtual-planet/runtime-webgpu": "*",
-		"@virtual-planet/schema": "*",
-		"@virtual-planet/subdivide": "*",
+		"@world-lab/compiler": "*",
+		"@world-lab/graph": "*",
+		"@world-lab/graph-editor": "*",
+		"@world-lab/procedural-wgsl": "*",
+		"@world-lab/runtime-cpu": "*",
+		"@world-lab/runtime-webgpu": "*",
+		"@world-lab/schema": "*",
+		"@world-lab/subdivide": "*",
 		"happy-dom": "20.10.6"
 	},
 	"devDependencies": {

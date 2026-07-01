@@ -1,4 +1,4 @@
-import type { NodePrimitive, PortSpec } from '@virtual-planet/graph';
+import type { NodePrimitive, PortSpec } from '@world-lab/graph';
 
 export interface NodeInspectorHelp {
 	summary: string;

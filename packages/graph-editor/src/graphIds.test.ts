@@ -1,10 +1,10 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { validateGraph, type GraphDocument } from '@virtual-planet/graph';
+import { validateGraph, type GraphDocument } from '@world-lab/graph';
 import { dedupeGraphIds, mintEdgeId, mintNodeId } from './graphIds.js';
 import { parseGraphFile } from './documentStorage.js';
 
-describe('@virtual-planet/graph-editor graphIds', () => {
+describe('@world-lab/graph-editor graphIds', () => {
 	it('mintNodeId skips ids already present on the doc', () => {
 		const used = new Set(['n_noise_worley2d_1', 'n_noise_worley2d_4', 'n_other']);
 		expect(mintNodeId(used, 'noise.worley2d')).toBe('n_noise_worley2d_5');

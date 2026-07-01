@@ -32,11 +32,11 @@ This is a filesystem and documentation migration, not a renderer rewrite.
     otherwise leave detailed release scripts for OS2.
 - `apps/scene-editor/package.json`
   - Rename app package from `virtual-planet` to either
-    `@virtual-planet/scene-editor-app` or the final scope chosen before npm prep.
+    `@world-lab/scene-editor-app` or the final scope chosen before npm prep.
   - Keep `"private": true`.
 - `apps/graph-editor/package.json`
   - Move `apps/graph-editor/` -> `apps/webgputoy/`.
-  - Rename the app package to `@virtual-planet/webgputoy-app`, unless the package
+  - Rename the app package to `@world-lab/webgputoy-app`, unless the package
     scope is changed before OS1 executes.
   - Keep `"private": true`.
 - `ecosystem.config.cjs`

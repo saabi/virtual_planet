@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { registerPrimitive } from '@virtual-planet/graph';
-import { Type } from '@virtual-planet/schema';
+import { registerPrimitive } from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import type { GraphSlice } from './slice.js';
 import { generateWgsl, type WgslModule, type WgslModuleResolver } from './codegen.js';
 
@@ -27,7 +27,7 @@ function sliceWith(primIds: string[]): GraphSlice {
 	};
 }
 
-describe('@virtual-planet/compiler generateWgsl', () => {
+describe('@world-lab/compiler generateWgsl', () => {
 	it('emits only the modules the slice needs, dependencies first', async () => {
 		const g = await generateWgsl(sliceWith(['test.a']), resolver);
 		expect(g.moduleIds).toEqual(['mod.util', 'mod.a']);

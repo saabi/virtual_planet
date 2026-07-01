@@ -1,4 +1,4 @@
-import { quantity, Type } from '@virtual-planet/schema';
+import { quantity, Type } from '@world-lab/schema';
 
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';

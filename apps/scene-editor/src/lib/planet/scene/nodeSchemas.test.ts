@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { annotationsOf, check, create } from '@virtual-planet/schema';
+import { annotationsOf, check, create } from '@world-lab/schema';
 import {
 	bodySchema,
 	bodyAtmosphereSchema,

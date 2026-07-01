@@ -1,6 +1,6 @@
-import { getPrimitive, type NodePrimitive } from '@virtual-planet/graph';
-import { Value } from '@virtual-planet/schema';
-import { STANDARD_LIBRARY_MODULES } from '@virtual-planet/procedural-wgsl';
+import { getPrimitive, type NodePrimitive } from '@world-lab/graph';
+import { Value } from '@world-lab/schema';
+import { STANDARD_LIBRARY_MODULES } from '@world-lab/procedural-wgsl';
 
 import {
 	hydrateUserPrimitives,

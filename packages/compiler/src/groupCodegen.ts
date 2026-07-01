@@ -11,14 +11,14 @@ import {
 	type GroupDefinition,
 	type CoordinateSpace,
 	type ValueDataType
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 import {
 	annotationsOf,
 	fieldKind,
 	fields,
 	sectionsOf,
 	type TSchema
-} from '@virtual-planet/schema';
+} from '@world-lab/schema';
 
 // Helper to sanitize identifiers for WGSL
 function sanitizeId(id: string): string {

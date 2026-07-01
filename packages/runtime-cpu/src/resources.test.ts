@@ -9,7 +9,7 @@ import {
 	type MeshCpuView,
 } from './resources.js';
 
-describe('@virtual-planet/runtime-cpu resources', () => {
+describe('@world-lab/runtime-cpu resources', () => {
 	it('samples and normalizes a known RGBA8 pixel', () => {
 		const image: ImageCpuView = {
 			kind: 'image',

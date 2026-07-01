@@ -1,4 +1,4 @@
-import type { GraphDocument, ProceduralConsumer } from '@virtual-planet/graph';
+import type { GraphDocument, ProceduralConsumer } from '@world-lab/graph';
 import type { WgslModuleResolver } from './codegen.js';
 import { generateWgsl } from './codegen.js';
 import type { ShaderLinker } from './linker.js';

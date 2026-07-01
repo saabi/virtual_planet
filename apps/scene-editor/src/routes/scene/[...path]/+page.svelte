@@ -21,7 +21,7 @@
 	} from '$lib/planet/scene/sceneEdit.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { evaluateScene } from '$lib/planet/scene/driver.js';
-	import { fields } from '@virtual-planet/schema';
+	import { fields } from '@world-lab/schema';
 	import SceneEditorShell from '$lib/planet/components/scene-editor/SceneEditorShell.svelte';
 	import {
 		loadSceneViewSettings,

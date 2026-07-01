@@ -1,4 +1,4 @@
-import { fields, type SchemaField } from '@virtual-planet/schema';
+import { fields, type SchemaField } from '@world-lab/schema';
 import type { NodePrimitive, PortSpec } from './primitive.js';
 import type { DataType, Edge, Node, PortRef } from './types.js';
 

@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/graph",
+	"name": "@world-lab/graph",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -18,7 +18,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/schema": "*"
+		"@world-lab/schema": "*"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

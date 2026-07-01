@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isWarning, type GraphDocument, type ValidationIssue } from '@virtual-planet/graph';
+	import { isWarning, type GraphDocument, type ValidationIssue } from '@world-lab/graph';
 
 	import {
 		countValidationSeverity,

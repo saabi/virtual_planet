@@ -14,7 +14,7 @@ const hasPlane = (planes: Plane[], n: Vec3, c: number) =>
 			near(p.constant, c)
 	);
 
-describe('@virtual-planet/runtime-cpu camera', () => {
+describe('@world-lab/runtime-cpu camera', () => {
 	it('extracts six normalized frustum planes', () => {
 		const f = frustumFromViewProjection(IDENTITY);
 		expect(f.planes).toHaveLength(6);

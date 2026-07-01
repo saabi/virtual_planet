@@ -1,5 +1,5 @@
-import type { GraphDocument } from '@virtual-planet/graph';
-import { planeGridVertexCount } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
+import { planeGridVertexCount } from '@world-lab/graph';
 
 import type { PipelineGraphPlan } from './pipelineGraph.js';
 

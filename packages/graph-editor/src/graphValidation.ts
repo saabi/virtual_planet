@@ -4,7 +4,7 @@ import {
 	type GraphDocument,
 	type ValidationIssue,
 	type ValidationResult
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 
 export type IssueSeverity = 'error' | 'warning';
 

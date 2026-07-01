@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compatibleDataTypes } from './ports.js';
 
-describe('@virtual-planet/graph ports', () => {
+describe('@world-lab/graph ports', () => {
 	it('allows vec2f to vec3f promotion', () => {
 		expect(compatibleDataTypes('vec2f', 'vec3f')).toBe(true);
 		expect(compatibleDataTypes('vec2<f32>', 'vec3f')).toBe(true);

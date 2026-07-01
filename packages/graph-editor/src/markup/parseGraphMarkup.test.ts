@@ -3,7 +3,7 @@ import { defaultPreviewGraph } from '../defaultGraph.js';
 import { parseGraphMarkup } from './parseGraphMarkup.js';
 import { printGraphMarkup } from './printGraph.js';
 
-describe('@virtual-planet/graph-editor parseGraphMarkup', () => {
+describe('@world-lab/graph-editor parseGraphMarkup', () => {
 	it('round-trips the default preview graph markup', () => {
 		const doc = defaultPreviewGraph();
 		const parsed = parseGraphMarkup(printGraphMarkup(doc));

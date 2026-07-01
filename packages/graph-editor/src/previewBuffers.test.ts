@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 
 import { cosinePaletteEffectGraph, defaultPreviewGraph } from './graphBuilders.js';
 import {

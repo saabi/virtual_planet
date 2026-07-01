@@ -1,4 +1,4 @@
-import { getPrimitive } from '@virtual-planet/graph';
+import { getPrimitive } from '@world-lab/graph';
 
 import type { GraphSlice } from './slice.js';
 

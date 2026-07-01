@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
-	import { createDefaultLayout } from '@virtual-planet/subdivide';
-	import type { LayoutDocument } from '@virtual-planet/subdivide';
+	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
+	import { createDefaultLayout } from '@world-lab/subdivide';
+	import type { LayoutDocument } from '@world-lab/subdivide';
 
 	let layout = $state<LayoutDocument>(createDefaultLayout('main'));
 

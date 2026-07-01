@@ -9,7 +9,7 @@
 	} from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 
-	import type { GraphDocument } from '@virtual-planet/graph';
+	import type { GraphDocument } from '@world-lab/graph';
 	import GraphNodeView from './GraphNodeView.svelte';
 	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
 	import { setGraphCanvasContext } from './graphCanvasContext.js';

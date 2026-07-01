@@ -1,4 +1,4 @@
-import { quantity, Type } from '@virtual-planet/schema';
+import { quantity, Type } from '@world-lab/schema';
 
 /** Shared planet shaping params (mirrors PlanetParams uniform fields). */
 export const planetRadiusParam = quantity('m', { default: 100 });

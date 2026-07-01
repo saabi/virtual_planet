@@ -1,4 +1,4 @@
-import type { GraphDocument, Node, PortRef } from '@virtual-planet/graph';
+import type { GraphDocument, Node, PortRef } from '@world-lab/graph';
 
 const INDENT = '  ';
 

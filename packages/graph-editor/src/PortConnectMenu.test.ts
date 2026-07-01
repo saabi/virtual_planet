@@ -1,9 +1,9 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import PortConnectMenu from './PortConnectMenu.svelte';
-import { compatibleProducers } from '@virtual-planet/graph';
+import { compatibleProducers } from '@world-lab/graph';
 
 describe('PortConnectMenu click-outside', () => {
 	it('calls onclose on pointerdown outside the menu root', () => {

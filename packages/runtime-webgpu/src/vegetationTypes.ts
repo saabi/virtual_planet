@@ -1,4 +1,4 @@
-import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 export type Density3 = readonly [number, number, number];
 export type VegetationChannel = 0 | 1 | 2;

@@ -1,4 +1,4 @@
-import type { LayoutDocument, LayoutNode } from '@virtual-planet/subdivide';
+import type { LayoutDocument, LayoutNode } from '@world-lab/subdivide';
 
 import type { PreviewFamily } from './previewBuffers.js';
 import type { PreviewRenderer } from './previewBackend.js';

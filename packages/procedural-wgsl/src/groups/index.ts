@@ -1,4 +1,4 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 
 import { buildGroupModule } from './buildGroupModule.js';
 import { MATH_REMAP_GROUP } from './math.remap.js';

@@ -1,7 +1,7 @@
-import '@virtual-planet/graph';
-import { Type } from '@virtual-planet/schema';
+import '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, listPrimitives } from '@virtual-planet/graph';
+import { getPrimitive, listPrimitives } from '@world-lab/graph';
 
 import { generateInspectorSummary, resolveNodeInspectorHelp } from './nodeInspectorHelp.js';
 import { getDefaultPrimitiveSource } from './primitiveSources.js';

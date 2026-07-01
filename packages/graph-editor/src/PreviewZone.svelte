@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GraphDocument } from '@virtual-planet/graph';
+	import type { GraphDocument } from '@world-lab/graph';
 
 	import AudioPreviewPanel from './AudioPreviewPanel.svelte';
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';

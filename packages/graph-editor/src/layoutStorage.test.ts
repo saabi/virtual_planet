@@ -21,7 +21,7 @@ function createStorageMock() {
 	} satisfies Storage;
 }
 
-describe('@virtual-planet/graph-editor layoutStorage', () => {
+describe('@world-lab/graph-editor layoutStorage', () => {
 	beforeEach(() => {
 		vi.stubGlobal('localStorage', createStorageMock());
 	});

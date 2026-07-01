@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/scene-editor-app",
+	"name": "@world-lab/scene-editor-app",
 	"private": true,
 	"version": "0.1.0",
 	"license": "MIT",
@@ -25,11 +25,11 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/editor-ui": "^0.0.0",
-		"@virtual-planet/graph": "^0.0.0",
-		"@virtual-planet/runtime-cpu": "^0.0.0",
-		"@virtual-planet/schema": "^0.0.0",
-		"@virtual-planet/subdivide": "^0.0.0",
+		"@world-lab/editor-ui": "^0.0.0",
+		"@world-lab/graph": "^0.0.0",
+		"@world-lab/runtime-cpu": "^0.0.0",
+		"@world-lab/schema": "^0.0.0",
+		"@world-lab/subdivide": "^0.0.0",
 		"happy-dom": "20.10.6",
 		"three": "^0.185.0"
 	},

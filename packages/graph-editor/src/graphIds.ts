@@ -1,4 +1,4 @@
-import type { GraphDocument, Node } from '@virtual-planet/graph';
+import type { GraphDocument, Node } from '@world-lab/graph';
 
 export function collectNodeIds(doc: GraphDocument): Set<string> {
 	return new Set(doc.nodes.map((node) => node.id));

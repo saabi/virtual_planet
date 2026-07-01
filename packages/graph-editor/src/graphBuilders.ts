@@ -1,4 +1,4 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import {
 	getPrimitive,
 	pipelineFieldOutput,
@@ -8,7 +8,7 @@ import {
 	type Port,
 	type PortRef,
 	type PortSpec
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({

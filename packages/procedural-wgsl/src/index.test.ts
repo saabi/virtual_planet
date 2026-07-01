@@ -96,9 +96,9 @@ function registeredWgslModuleIds(): string[] {
 	].sort();
 }
 
-describe('@virtual-planet/procedural-wgsl', () => {
+describe('@world-lab/procedural-wgsl', () => {
 	it('exports its package identity', () => {
-		expect(PROCEDURAL_WGSL_PACKAGE).toBe('@virtual-planet/procedural-wgsl');
+		expect(PROCEDURAL_WGSL_PACKAGE).toBe('@world-lab/procedural-wgsl');
 	});
 
 	it('maps every standard-library id to a module with source', () => {

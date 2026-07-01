@@ -1,4 +1,4 @@
-import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 /** Known consumer kinds executed by the WebGPU runtime. */
 export type ConsumerKind =

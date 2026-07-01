@@ -12,7 +12,7 @@ import {
 	type ScaleBehavior,
 	type TSchema,
 	type Unit,
-} from '@virtual-planet/schema';
+} from '@world-lab/schema';
 import type {
 	CoordinateSpace,
 	DataType,
@@ -21,8 +21,8 @@ import type {
 	PortSpec,
 	PrimitiveMetadata,
 	WgslArgumentBinding,
-} from '@virtual-planet/graph';
-import { canonicalDataType } from '@virtual-planet/graph';
+} from '@world-lab/graph';
+import { canonicalDataType } from '@world-lab/graph';
 
 export interface WgslFnParameter {
 	name: string;

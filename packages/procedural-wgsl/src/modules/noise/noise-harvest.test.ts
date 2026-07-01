@@ -3,10 +3,10 @@ import {
 	annotationsOf,
 	fields,
 	type TSchema
-} from '@virtual-planet/schema';
-import { getPrimitive, type PortSpec } from '@virtual-planet/graph';
-import { loadWgslPrimitive, textLinker } from '@virtual-planet/compiler';
-import '@virtual-planet/graph';
+} from '@world-lab/schema';
+import { getPrimitive, type PortSpec } from '@world-lab/graph';
+import { loadWgslPrimitive, textLinker } from '@world-lab/compiler';
+import '@world-lab/graph';
 
 import {
 	NOISE_BLUE2D_MODULE,

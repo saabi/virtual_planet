@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 import { sliceGraph } from './slice.js';
 
 // n_src feeds both n_h (height) and n_m (mask); n_iso is independent (noise).
@@ -33,7 +33,7 @@ function graph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/compiler sliceGraph', () => {
+describe('@world-lab/compiler sliceGraph', () => {
 	it('keeps only the requested branch and excludes unrelated nodes', () => {
 		const s = sliceGraph(graph(), { outputs: ['height'] });
 		expect(s.nodes.map((n) => n.id).sort()).toEqual(['n_h', 'n_src']);

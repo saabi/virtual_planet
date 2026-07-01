@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { validateGraph, validateGraphFull } from '@virtual-planet/graph';
+import { validateGraph, validateGraphFull } from '@world-lab/graph';
 
 import { defaultPreviewGraph } from './graphBuilders.js';
 import { inferPreviewBackend } from './previewBackend.js';

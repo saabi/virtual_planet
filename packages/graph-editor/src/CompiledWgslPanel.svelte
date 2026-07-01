@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GraphDocument } from '@virtual-planet/graph';
+	import type { GraphDocument } from '@world-lab/graph';
 
 	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 	import { compiledGraphWgsl, type CompiledConsumerWgsl } from './compiledWgsl.js';

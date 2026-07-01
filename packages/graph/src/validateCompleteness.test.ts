@@ -21,7 +21,7 @@ function graph(opts: { connectB?: boolean; output?: { node: string; port: string
 	return { version: '1', nodes, edges, outputs: [{ name: 'out', from: opts.output ?? { node: 'sum', port: 'value' } }], consumers: [] };
 }
 
-describe('@virtual-planet/graph validateGraphCompleteness', () => {
+describe('@world-lab/graph validateGraphCompleteness', () => {
 	it('a fully wired graph has no errors (unconnected runtime inputs are warnings)', () => {
 		const r = validateGraphFull(graph());
 		expect(r.ok).toBe(true); // perlin position is unconnected but only a warning

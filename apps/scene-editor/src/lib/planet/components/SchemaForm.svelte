@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fields, type TSchema } from '@virtual-planet/schema';
+	import { fields, type TSchema } from '@world-lab/schema';
 
 	interface Props {
 		schema: TSchema;

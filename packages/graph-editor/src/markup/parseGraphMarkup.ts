@@ -7,7 +7,7 @@ import {
 	type PortRef,
 	type PortSpec,
 	type ProceduralConsumer
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 
 export class MarkupParseError extends Error {
 	readonly line?: number;

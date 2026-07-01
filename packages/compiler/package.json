@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/compiler",
+	"name": "@world-lab/compiler",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -18,8 +18,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/schema": "*",
+		"@world-lab/graph": "*",
+		"@world-lab/schema": "*",
 		"yaml": "^2.9.0"
 	},
 	"devDependencies": {

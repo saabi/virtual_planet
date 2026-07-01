@@ -1,5 +1,5 @@
-import '@virtual-planet/graph';
-import { getPrimitive } from '@virtual-planet/graph';
+import '@world-lab/graph';
+import { getPrimitive } from '@world-lab/graph';
 
 export type SurfacePrimitiveId = 'surface.plane' | 'surface.cubeSphere';
 

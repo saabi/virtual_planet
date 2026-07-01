@@ -1,4 +1,4 @@
-import type { CoordinateSpace, DataType, PortDefaultValue } from '@virtual-planet/graph';
+import type { CoordinateSpace, DataType, PortDefaultValue } from '@world-lab/graph';
 
 export type PortBindingSource =
 	| { kind: 'edge'; edgeId: string; fromNode: string; fromPort: string }

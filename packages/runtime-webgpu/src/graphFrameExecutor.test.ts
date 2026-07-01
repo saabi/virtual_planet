@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it, vi } from 'vitest';
-import { effectiveGraphDocument } from '@virtual-planet/graph';
+import { effectiveGraphDocument } from '@world-lab/graph';
 
 import { GraphFrameExecutor } from './graphFrameExecutor.js';
 import { PipelineGraphExecutor } from './pipelineGraph.js';

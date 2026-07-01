@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateGraph } from '@virtual-planet/graph';
+import { validateGraph } from '@world-lab/graph';
 import { cosinePaletteEffectGraph } from './graphBuilders.js';
 
 describe('cosinePaletteEffectGraph', () => {

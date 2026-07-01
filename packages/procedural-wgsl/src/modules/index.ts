@@ -1,4 +1,4 @@
-import type { WgslModule } from '@virtual-planet/compiler';
+import type { WgslModule } from '@world-lab/compiler';
 
 import { MATH_ABS_MODULE } from './math/abs.js';
 import { MATH_ADD_MODULE } from './math/add.js';

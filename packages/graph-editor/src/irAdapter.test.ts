@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it, beforeEach } from 'vitest';
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 import {
 	applyEditIntent,
 	graphToFlow,
@@ -20,7 +20,7 @@ function emptyDoc(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/graph-editor irAdapter', () => {
+describe('@world-lab/graph-editor irAdapter', () => {
 	beforeEach(() => {
 		resetIdCounters();
 	});

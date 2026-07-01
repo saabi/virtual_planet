@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument } from '@world-lab/graph';
 import { evaluateGraphOutput } from './evalGraph.js';
 
 function uvPerlinRemapGraph(): GraphDocument {
@@ -49,7 +49,7 @@ function handComputedRemap(uv: [number, number], remapParams: Record<string, num
 	return remap;
 }
 
-describe('@virtual-planet/runtime-cpu evalGraph', () => {
+describe('@world-lab/runtime-cpu evalGraph', () => {
 	it('evaluates procedural.uv -> noise.perlin3d -> math.remap with known params', () => {
 		const doc = uvPerlinRemapGraph();
 		const uv: [number, number] = [0.5, 0.5];

@@ -13,7 +13,7 @@ procedural multi-scale planet renderer. An **npm-workspaces monorepo** (root
 - **`apps/scene-editor/`** — the active Scene Editor app (SvelteKit 2 + Svelte 5 runes +
   TypeScript), deployed at `https://planets.ferreyrapons.com`. Most work happens here.
 - **`apps/webgputoy/`** — the graph-editor / WebGPU playground app.
-- **`packages/*`** — reusable, eventually-publishable libraries (e.g. `@virtual-planet/schema`).
+- **`packages/*`** — reusable, eventually-publishable libraries (e.g. `@world-lab/schema`).
   Each is its own workspace with `check`/`test` scripts.
 
 Within `apps/scene-editor/`, routes:
@@ -43,7 +43,7 @@ There is no lint/format step; `npm run check` (svelte-check) is the type/correct
 
 Monorepo: run `npm install` **from the root** (one lockfile links all workspaces). App
 commands still run from `apps/scene-editor/`. Package commands run from the package dir, or
-from root via `npm run check -w @virtual-planet/schema` / `npm test -w @virtual-planet/schema`.
+from root via `npm run check -w @world-lab/schema` / `npm test -w @world-lab/schema`.
 
 ## Architecture
 

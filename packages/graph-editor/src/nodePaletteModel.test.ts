@@ -1,6 +1,6 @@
-import { Type } from '@virtual-planet/schema';
+import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
-import type { NodePrimitive } from '@virtual-planet/graph';
+import type { NodePrimitive } from '@world-lab/graph';
 
 import {
 	contractGroupLabel,

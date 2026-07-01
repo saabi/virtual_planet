@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive } from '@virtual-planet/graph';
+import { getPrimitive } from '@world-lab/graph';
 
 describe('effect.cosinePalette primitive', () => {
 	it('registers with ShaderToy category and vec4 color output', () => {

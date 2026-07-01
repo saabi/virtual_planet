@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive } from '@virtual-planet/graph';
+import { getPrimitive } from '@world-lab/graph';
 import { nodeAccentColor } from './nodeAccentColor.js';
 
 describe('nodeAccentColor', () => {

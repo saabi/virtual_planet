@@ -1,4 +1,4 @@
-# @virtual-planet/runtime-webgpu
+# @world-lab/runtime-webgpu
 
 WebGPU runtime: buffers, pipelines, bind groups, consumers, tessellation scheduling.
 
@@ -8,7 +8,7 @@ Several tests hand assembled WGSL to a real `GPUDevice` (`createShaderModule` +
 `getCompilationInfo`). In Node (vitest), install the optional Dawn binding:
 
 ```sh
-npm install -w @virtual-planet/runtime-webgpu
+npm install -w @world-lab/runtime-webgpu
 ```
 
 The `webgpu` package is already listed as a devDependency; `vitest.config.ts` loads
@@ -39,7 +39,7 @@ When no adapter is available, device tests **skip** gracefully. To require a wor
 (for CI or pre-merge):
 
 ```sh
-REQUIRE_WEBGPU=1 npm test -w @virtual-planet/runtime-webgpu
+REQUIRE_WEBGPU=1 npm test -w @world-lab/runtime-webgpu
 ```
 
 `test/consumerDeviceCompile.test.ts` compiles representative consumer shaders (fullscreen

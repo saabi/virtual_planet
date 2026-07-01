@@ -1,4 +1,4 @@
-import { derivePipelinePresentations, type GraphDocument, type PortRef } from '@virtual-planet/graph';
+import { derivePipelinePresentations, type GraphDocument, type PortRef } from '@world-lab/graph';
 
 import type { PassGraph } from './frameGraph/types.js';
 

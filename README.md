@@ -23,16 +23,16 @@ Reusable libraries under `packages/*`, currently private (not yet published to n
 
 | Package | Role |
 |---------|------|
-| `@virtual-planet/schema` | TypeBox-based schema/type layer (units, extents, path refs) |
-| `@virtual-planet/graph` | Typed Graph IR — nodes, ports, validation, serialization |
-| `@virtual-planet/compiler` | Graph compiler — dependency slicing, WGSL codegen, module resolution, shader linking |
-| `@virtual-planet/procedural-wgsl` | Standard library of reusable WGSL function modules (noise, terrain, vegetation, math, color) |
-| `@virtual-planet/runtime-cpu` | CPU runtime — camera/picking, resource sampling, CPU primitive evaluation |
-| `@virtual-planet/runtime-webgpu` | WebGPU runtime — buffers, pipelines, bind groups, consumers, frame executor |
-| `@virtual-planet/graph-editor` | Reusable Svelte graph-editor components over the Graph IR (host-app agnostic) |
-| `@virtual-planet/editor-ui` | Shared Svelte editor chrome and parameter controls |
-| `@virtual-planet/subdivide` | Resizable pane-layout engine for Svelte 5 |
-| `@virtual-planet/mcp-server` | MCP server exposing the Graph IR to AI assistants |
+| `@world-lab/schema` | TypeBox-based schema/type layer (units, extents, path refs) |
+| `@world-lab/graph` | Typed Graph IR — nodes, ports, validation, serialization |
+| `@world-lab/compiler` | Graph compiler — dependency slicing, WGSL codegen, module resolution, shader linking |
+| `@world-lab/procedural-wgsl` | Standard library of reusable WGSL function modules (noise, terrain, vegetation, math, color) |
+| `@world-lab/runtime-cpu` | CPU runtime — camera/picking, resource sampling, CPU primitive evaluation |
+| `@world-lab/runtime-webgpu` | WebGPU runtime — buffers, pipelines, bind groups, consumers, frame executor |
+| `@world-lab/graph-editor` | Reusable Svelte graph-editor components over the Graph IR (host-app agnostic) |
+| `@world-lab/editor-ui` | Shared Svelte editor chrome and parameter controls |
+| `@world-lab/subdivide` | Resizable pane-layout engine for Svelte 5 |
+| `@world-lab/mcp-server` | MCP server exposing the Graph IR to AI assistants |
 
 ## Local setup
 
@@ -54,7 +54,7 @@ npm run dev:webgputoy      # or: cd apps/webgputoy && npm run dev
 ```
 
 Package-level commands run from the package directory, or from the root via
-`npm run check -w @virtual-planet/schema` / `npm test -w @virtual-planet/schema`.
+`npm run check -w @world-lab/schema` / `npm test -w @world-lab/schema`.
 
 ## Current status
 

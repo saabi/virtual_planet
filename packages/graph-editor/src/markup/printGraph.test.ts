@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deserializeGraph, serializeGraph } from '@virtual-planet/graph';
+import { deserializeGraph, serializeGraph } from '@world-lab/graph';
 import { defaultPreviewGraph } from '../defaultGraph.js';
 import { printGraphMarkup } from './printGraph.js';
 
@@ -18,7 +18,7 @@ const DEFAULT_PREVIEW_MARKUP = `<PlanetGraph version="1">
   <Consumer type="preview" outputs="field" />
 </PlanetGraph>`;
 
-describe('@virtual-planet/graph-editor printGraphMarkup', () => {
+describe('@world-lab/graph-editor printGraphMarkup', () => {
 	it('prints the default preview graph fixture', () => {
 		expect(printGraphMarkup(defaultPreviewGraph())).toBe(DEFAULT_PREVIEW_MARKUP);
 	});

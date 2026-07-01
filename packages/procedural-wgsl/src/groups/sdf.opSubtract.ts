@@ -1,4 +1,4 @@
-import type { GroupDefinition } from '@virtual-planet/graph';
+import type { GroupDefinition } from '@world-lab/graph';
 
 import { mathBinaryNode, mathUnaryNode } from './buildGroupModule.js';
 

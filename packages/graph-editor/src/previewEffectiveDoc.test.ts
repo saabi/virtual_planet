@@ -1,10 +1,10 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument } from '@virtual-planet/graph';
+import { effectiveGraphDocument } from '@world-lab/graph';
 import {
 	assembleFullscreenFragmentModuleAsync,
 	createStandardLibraryResolver
-} from '@virtual-planet/runtime-webgpu';
+} from '@world-lab/runtime-webgpu';
 
 import { cosinePaletteEffectGraph } from './graphBuilders.js';
 import {

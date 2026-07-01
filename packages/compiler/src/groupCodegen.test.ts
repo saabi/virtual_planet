@@ -5,15 +5,15 @@ import {
 	listPrimitives,
 	type GroupDefinition,
 	type GraphDocument
-} from '@virtual-planet/graph';
-import { quantity, Type } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { quantity, Type } from '@world-lab/schema';
 import { loadWgslPrimitive } from './primitiveLoader.js';
 import { groupToFunction } from './groupCodegen.js';
 import { compileGraph } from './compileGraph.js';
 import { textLinker } from './linker.js';
-import '@virtual-planet/graph'; // side-effect: registers standard primitives
+import '@world-lab/graph'; // side-effect: registers standard primitives
 
-describe('@virtual-planet/compiler groupCodegen', () => {
+describe('@world-lab/compiler groupCodegen', () => {
 	it('generates a WGSL function and frontmatter for g.normalDisplace', async () => {
 		// Ensure standard math primitives are registered
 		expect(getPrimitive('math.add')).toBeDefined();

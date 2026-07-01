@@ -4,7 +4,7 @@ import {
 	LAYOUT_DOCUMENT_VERSION,
 	parseLayoutDocument,
 	type LayoutDocument
-} from '@virtual-planet/subdivide';
+} from '@world-lab/subdivide';
 
 export const SCENE_LAYOUT_KEY = 'virtual-planet:scene-layout:v1';
 

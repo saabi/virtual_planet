@@ -1,4 +1,4 @@
-import type { ResourceDataType, ResourceDependency } from '@virtual-planet/graph';
+import type { ResourceDataType, ResourceDependency } from '@world-lab/graph';
 
 export type ImageChannelCount = 1 | 2 | 3 | 4;
 export type ImagePixelData = Uint8Array | Float32Array;

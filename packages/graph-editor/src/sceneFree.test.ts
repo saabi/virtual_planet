@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 // ADR guard: packages/graph-editor edits FIELD GRAPHS only. It must not import the
 // planet renderer, the scene tree, or any host-app modules ($lib / $app /
-// apps/scene-editor/). It may depend only on the generic @virtual-planet graph stack + UI libs.
+// apps/scene-editor/). It may depend only on the generic @world-lab graph stack + UI libs.
 // See _docs/architecture/procedural-graph/editor-and-scene-integration.md.
 
-const ALLOWED_VP = /^@virtual-planet\/(graph|schema|compiler|runtime-cpu|runtime-webgpu|subdivide|editor-ui)(\/|$)/;
+const ALLOWED_VP = /^@world-lab\/(graph|schema|compiler|runtime-cpu|runtime-webgpu|subdivide|editor-ui)(\/|$)/;
 const FORBIDDEN = /\$(lib|app)|(^|\/)apps\/scene-editor\/|(^|\/)(planet|scene)(\/|$)/;
 const IMPORT_RE = /(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g;
 

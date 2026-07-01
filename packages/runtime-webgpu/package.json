@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/runtime-webgpu",
+	"name": "@world-lab/runtime-webgpu",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -12,10 +12,10 @@
 	"type": "module",
 	"dependencies": {
 		"@types/node": "^26.0.1",
-		"@virtual-planet/compiler": "*",
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/procedural-wgsl": "*",
-		"@virtual-planet/schema": "*",
+		"@world-lab/compiler": "*",
+		"@world-lab/graph": "*",
+		"@world-lab/procedural-wgsl": "*",
+		"@world-lab/schema": "*",
 		"happy-dom": "^20.10.6",
 		"webgpu": "^0.4.0"
 	},
@@ -27,7 +27,7 @@
 		"test": "vitest run"
 	},
 	"devDependencies": {
-		"@virtual-planet/runtime-cpu": "*",
+		"@world-lab/runtime-cpu": "*",
 		"@webgpu/types": "^0.1.71",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"

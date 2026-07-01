@@ -1,6 +1,6 @@
-import type { GraphDocument, Node, PortRef } from '@virtual-planet/graph';
-import { derivePipelinePresentations, getPrimitive, validateGraph } from '@virtual-planet/graph';
-import type { WgslModuleResolver } from '@virtual-planet/compiler';
+import type { GraphDocument, Node, PortRef } from '@world-lab/graph';
+import { derivePipelinePresentations, getPrimitive, validateGraph } from '@world-lab/graph';
+import type { WgslModuleResolver } from '@world-lab/compiler';
 
 import {
 	executeFullscreenFragment,

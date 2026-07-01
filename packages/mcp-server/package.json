@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/mcp-server",
+	"name": "@world-lab/mcp-server",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -18,8 +18,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/schema": "*"
+		"@world-lab/graph": "*",
+		"@world-lab/schema": "*"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

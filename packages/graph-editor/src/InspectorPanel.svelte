@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { getPrimitive, type GraphDocument } from '@virtual-planet/graph';
-	import { Value } from '@virtual-planet/schema';
+	import { getPrimitive, type GraphDocument } from '@world-lab/graph';
+	import { Value } from '@world-lab/schema';
 	import ParamForm from './ParamForm.svelte';
 	import PortBindingList from './PortBindingList.svelte';
 	import { applyEditIntent } from './irAdapter.js';

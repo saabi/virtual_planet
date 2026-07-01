@@ -8,8 +8,8 @@ import {
 	type Node,
 	type PortRef,
 	type WgslArgumentBinding
-} from '@virtual-planet/graph';
-import { Value } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { Value } from '@world-lab/schema';
 
 export interface GraphParamField {
 	/** Uniform struct field name. */

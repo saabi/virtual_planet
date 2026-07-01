@@ -1,4 +1,4 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 import { compatibleConsumers, compatibleProducers } from './portMatch.js';
 

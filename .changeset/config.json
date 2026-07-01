@@ -8,7 +8,7 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@virtual-planet/scene-editor-app",
-    "@virtual-planet/webgputoy-app"
+    "@world-lab/scene-editor-app",
+    "@world-lab/webgputoy-app"
   ]
 }

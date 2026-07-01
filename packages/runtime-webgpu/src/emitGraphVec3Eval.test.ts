@@ -1,5 +1,5 @@
-import '@virtual-planet/graph';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@virtual-planet/graph';
+import '@world-lab/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 import { emitGraphVec3Eval } from './emitGraphVec3Eval.js';
 
@@ -31,7 +31,7 @@ function snapshotNode(
 	};
 }
 
-describe('@virtual-planet/runtime-webgpu emitGraphVec3Eval', () => {
+describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 	it('emits metricPosition as direct vec3f output', () => {
 		const graph: GraphDocument = {
 			version: '1',

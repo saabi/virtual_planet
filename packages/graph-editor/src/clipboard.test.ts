@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { applyEditIntent, resetIdCounters } from './irAdapter.js';
 import { copyNodeToClipboard, pasteOffsetPosition } from './clipboard.js';
 
-describe('@virtual-planet/graph-editor clipboard', () => {
+describe('@world-lab/graph-editor clipboard', () => {
 	beforeEach(() => {
 		resetIdCounters();
 	});

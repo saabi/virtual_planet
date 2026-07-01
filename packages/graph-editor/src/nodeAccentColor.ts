@@ -1,4 +1,4 @@
-import { getPrimitive, swapFamily, type NodePrimitive } from '@virtual-planet/graph';
+import { getPrimitive, swapFamily, type NodePrimitive } from '@world-lab/graph';
 
 export type NodeColorMode = 'category' | 'contract' | 'off';
 

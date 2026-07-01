@@ -1,4 +1,4 @@
-import type { Edge, GraphDocument, GraphOutput, Node } from '@virtual-planet/graph';
+import type { Edge, GraphDocument, GraphOutput, Node } from '@world-lab/graph';
 
 export interface SliceRequest {
 	outputs: string[]; // names referencing GraphDocument.outputs

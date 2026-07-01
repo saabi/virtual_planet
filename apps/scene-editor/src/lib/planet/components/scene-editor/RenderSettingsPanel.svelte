@@ -18,8 +18,8 @@
 </script>
 
 <script lang="ts">
-	import { Range, Subsection, VerticalTabs, type TabIconId } from '@virtual-planet/editor-ui';
-	import '@virtual-planet/editor-ui/controls/sliderList.css';
+	import { Range, Subsection, VerticalTabs, type TabIconId } from '@world-lab/editor-ui';
+	import '@world-lab/editor-ui/controls/sliderList.css';
 
 	let {
 		materialDebug = $bindable(),

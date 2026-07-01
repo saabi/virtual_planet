@@ -1,6 +1,6 @@
 <script lang="ts">
-	import '@virtual-planet/graph';
-	import GraphEditor from '@virtual-planet/graph-editor/GraphEditor.svelte';
+	import '@world-lab/graph';
+	import GraphEditor from '@world-lab/graph-editor/GraphEditor.svelte';
 </script>
 
 <svelte:head>

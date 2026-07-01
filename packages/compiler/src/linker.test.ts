@@ -7,7 +7,7 @@ const modules: Record<string, string> = {
 	'main': 'fn main_fn() -> f32 { return used(); }',
 };
 
-describe('@virtual-planet/compiler textLinker', () => {
+describe('@world-lab/compiler textLinker', () => {
 	it('drops helpers the entry does not reach (WGSL-level DCE)', () => {
 		const out = textLinker.link({ entry: 'main', modules });
 		expect(out).toContain('fn main_fn()');

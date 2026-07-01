@@ -79,8 +79,8 @@ Suggested `.changeset/config.json`:
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@virtual-planet/scene-editor-app",
-    "@virtual-planet/webgputoy-app"
+    "@world-lab/scene-editor-app",
+    "@world-lab/webgputoy-app"
   ]
 }
 ```
@@ -94,12 +94,12 @@ Add scripts similar to:
 ```json
 {
   "scripts": {
-    "dev:scene-editor": "npm --workspace @virtual-planet/scene-editor-app run dev",
-    "dev:webgputoy": "npm --workspace @virtual-planet/webgputoy-app run dev",
+    "dev:scene-editor": "npm --workspace @world-lab/scene-editor-app run dev",
+    "dev:webgputoy": "npm --workspace @world-lab/webgputoy-app run dev",
     "build": "npm run build --workspaces --if-present",
     "build:apps": "npm run build:scene-editor && npm run build:webgputoy",
-    "build:scene-editor": "npm --workspace @virtual-planet/scene-editor-app run build",
-    "build:webgputoy": "npm --workspace @virtual-planet/webgputoy-app run build",
+    "build:scene-editor": "npm --workspace @world-lab/scene-editor-app run build",
+    "build:webgputoy": "npm --workspace @world-lab/webgputoy-app run build",
     "check": "npm run check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "ci": "npm run check && npm test && npm run build",

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { evaluateGraphOutput } from '@virtual-planet/runtime-cpu';
-	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+	import { evaluateGraphOutput } from '@world-lab/runtime-cpu';
+	import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 	import { fullValidation, incompleteGraphMessage } from './graphValidation.js';
 

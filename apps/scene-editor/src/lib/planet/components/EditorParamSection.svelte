@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { ParamEditorSection } from '../params/paramEditorSchema.js';
-	import { SliderRow } from '@virtual-planet/editor-ui';
+	import { SliderRow } from '@world-lab/editor-ui';
 
 	let {
 		section,

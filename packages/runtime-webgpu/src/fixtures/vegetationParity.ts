@@ -1,4 +1,4 @@
-import type { WgslModuleResolver } from '@virtual-planet/compiler';
+import type { WgslModuleResolver } from '@world-lab/compiler';
 import {
 	getPrimitive,
 	registerPrimitive,
@@ -6,9 +6,9 @@ import {
 	type Node,
 	type Port,
 	type PortSpec
-} from '@virtual-planet/graph';
-import { createStandardLibraryResolver, STANDARD_LIBRARY_MODULES } from '@virtual-planet/procedural-wgsl';
-import { Type } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { createStandardLibraryResolver, STANDARD_LIBRARY_MODULES } from '@world-lab/procedural-wgsl';
+import { Type } from '@world-lab/schema';
 
 import type {
 	Density3,

@@ -4,7 +4,7 @@
 		compatibleConsumers,
 		compatibleProducers,
 		type PortMatch
-	} from '@virtual-planet/graph';
+	} from '@world-lab/graph';
 	import type { FlowNodeData } from './irAdapter.js';
 </script>
 

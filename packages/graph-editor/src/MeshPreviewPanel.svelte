@@ -3,7 +3,7 @@
 		renderSurfaceMeshPreview,
 		requestGpuDevice,
 		type SurfacePrimitiveId
-	} from '@virtual-planet/runtime-webgpu';
+	} from '@world-lab/runtime-webgpu';
 
 	interface Props {
 		size?: number;

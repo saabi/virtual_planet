@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Type } from '@virtual-planet/schema';
+import { Type } from '@world-lab/schema';
 import { getPrimitive, registerPrimitive } from './registry.js';
 import './primitives/index.js'; // register the standard library (math.remap, …)
 import { paramInputPorts, promotableParams, resolveParamBindings, X_CONST } from './paramInputs.js';
@@ -18,7 +18,7 @@ registerPrimitive({
 	wgsl: { moduleId: 'test.octaveNoise', entry: 'octaveNoise' },
 });
 
-describe('@virtual-planet/graph params-as-inputs', () => {
+describe('@world-lab/graph params-as-inputs', () => {
 	it("promotes math.remap's four bounds", () => {
 		const remap = getPrimitive('math.remap')!;
 		expect(promotableParams(remap).sort()).toEqual(['inMax', 'inMin', 'outMax', 'outMin']);

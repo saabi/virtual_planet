@@ -1,4 +1,4 @@
-# @virtual-planet/subdivide
+# @world-lab/subdivide
 
 Blender-style resizable pane layouts for Svelte 5. The layout tree engine is ported from [saabi/svelte-subdivide](https://github.com/saabi/svelte-subdivide) (LIL); Svelte components land in a follow-up phase.
 
@@ -13,7 +13,7 @@ import {
 	parseLayoutDocument,
 	buildRuntimeTree,
 	serializeRuntime
-} from '@virtual-planet/subdivide';
+} from '@world-lab/subdivide';
 
 const doc = defaultSceneEditorLayout();
 const { root, panes, dividers } = buildRuntimeTree(doc);
@@ -28,7 +28,7 @@ const roundTrip = serializeRuntime(root);
 
 ```svelte
 <script>
-	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
+	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
 </script>
 
 <Subdivide bind:layout zones={zoneSnippets} />

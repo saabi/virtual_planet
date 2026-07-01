@@ -1,4 +1,4 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 

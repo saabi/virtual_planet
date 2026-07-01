@@ -1,4 +1,4 @@
-import { getPrimitive, resolveInputPortDefault, type GraphDocument } from '@virtual-planet/graph';
+import { getPrimitive, resolveInputPortDefault, type GraphDocument } from '@world-lab/graph';
 import type { PortBindingState } from './types.js';
 
 function formatDefaultLabel(value: unknown): string {

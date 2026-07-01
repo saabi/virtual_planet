@@ -1,4 +1,4 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 
 import { renderVegetationPreview } from './vegetationPreview.js';
@@ -11,7 +11,7 @@ import {
 } from '../fixtures/vegetationParity.js';
 import { shouldSkipWebGpuCanvasTest } from '../testSupport/webgpuTestEnv.js';
 
-describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
+describe('@world-lab/runtime-webgpu renderVegetationPreview', () => {
 	it('throws RangeError for invalid patch dimensions', async () => {
 		await expect(
 			renderVegetationPreview({

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { effectiveGraphDocument } from '@virtual-planet/graph';
+import { effectiveGraphDocument } from '@world-lab/graph';
 
 import { animatedWorleyPipelineGraph } from './graphBuilders.js';
 
@@ -12,8 +12,8 @@ const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: numbe
 	}
 }));
 
-vi.mock('@virtual-planet/runtime-webgpu', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@virtual-planet/runtime-webgpu')>();
+vi.mock('@world-lab/runtime-webgpu', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@world-lab/runtime-webgpu')>();
 	return {
 		...actual,
 		requestGpuDevice: vi.fn(async () => ({

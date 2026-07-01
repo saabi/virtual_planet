@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PortMatch } from '@virtual-planet/graph';
+	import type { PortMatch } from '@world-lab/graph';
 	import { filterPrimitives } from './nodePaletteModel.js';
 
 	interface Props {

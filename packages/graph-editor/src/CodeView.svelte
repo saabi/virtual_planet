@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { listPrimitives, type GraphDocument } from '@virtual-planet/graph';
+	import { listPrimitives, type GraphDocument } from '@world-lab/graph';
 	import { applyPrimitiveSource, type PrimitiveSaveResult } from './primitiveEditor.js';
 	import {
 		cloneBuiltinPrimitive,

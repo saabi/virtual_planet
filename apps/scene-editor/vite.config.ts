@@ -31,7 +31,7 @@ export default defineConfig({
 	// Workspace packages use .ts sources with .js import specifiers; bundle them in SSR
 	// so Vite resolves relatives instead of Node looking for missing .js files on disk.
 	ssr: {
-		noExternal: [/^@virtual-planet\//],
+		noExternal: [/^@world-lab\//],
 		// graph-editor imports xyflow; keep xyflow external so SSR does not parse .svelte as JS.
 		external: ['@xyflow/svelte', '@xyflow/system']
 	}

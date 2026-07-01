@@ -1,4 +1,4 @@
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 
 import {
 	createGraphArtifact,

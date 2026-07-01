@@ -1,4 +1,4 @@
-import type { PaneContextAction } from '@virtual-planet/subdivide';
+import type { PaneContextAction } from '@world-lab/subdivide';
 
 export interface GraphEditorPaneMenuHost {
 	fitCanvasView: () => void;

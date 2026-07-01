@@ -1,4 +1,4 @@
-import { loadWgslPrimitive, type LoadedWgslPrimitive } from '@virtual-planet/compiler';
+import { loadWgslPrimitive, type LoadedWgslPrimitive } from '@world-lab/compiler';
 import {
 	getPrimitive,
 	replacePrimitive,
@@ -9,8 +9,8 @@ import {
 	type Port,
 	type PortSpec,
 	type ValidationIssue
-} from '@virtual-planet/graph';
-import { Value, type TSchema } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { Value, type TSchema } from '@world-lab/schema';
 import { resyncGraphPortMetadata } from './graphSync.js';
 import { isBuiltinPrimitive } from './primitiveSources.js';
 import { registerUserPrimitiveFromSource } from './userPrimitives.js';

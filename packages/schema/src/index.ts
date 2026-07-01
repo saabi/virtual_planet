@@ -1,4 +1,4 @@
-// @virtual-planet/schema — schema/type-system extension for the scene model.
+// @world-lab/schema — schema/type-system extension for the scene model.
 //
 // A thin functional, curried, plain-data factory layer over TypeBox (`Type.*`
 // returns introspectable JSON-Schema objects with static inference), enriched with
@@ -8,6 +8,6 @@
 // runtime). See _docs/specs/scene-routing.md.
 
 /** Package identity marker. */
-export const SCHEMA_PACKAGE = '@virtual-planet/schema' as const;
+export const SCHEMA_PACKAGE = '@world-lab/schema' as const;
 
 export * from './schema.js';

@@ -12,7 +12,9 @@ identity, app layout, release process, governance, and deployment documentation.
   deployable **WebGPUToy** app.
 - The repository and workspace packages use the MIT license.
 - The archived `fe.old/` app was removed in the final cleanup pass.
-- npm publishing should be prepared but deferred until explicitly enabled.
+- **npm scope confirmed as `@world-lab/*`** (verified available) — all 10 `packages/*`
+  libraries and both apps' package names use it. npm publishing itself is still prepared
+  but deferred until explicitly enabled.
 - The public apps should have their own curated changelogs.
 - Package changelogs should be generated later from Changesets when packages are
   ready to publish.
@@ -23,8 +25,8 @@ identity, app layout, release process, governance, and deployment documentation.
 | --- | --- | --- |
 | [OS1-world-lab-identity-and-app-layout.md](./OS1-world-lab-identity-and-app-layout.md) | ✅ Landed (`274f7f2`) | Rename/reorganize the app layout and update references. |
 | [OS2-release-changelog-and-versioning.md](./OS2-release-changelog-and-versioning.md) | ✅ Landed | Add changelogs, Changesets, and root workspace scripts. |
-| [OS3-public-readiness-governance-and-final-cleanup.md](./OS3-public-readiness-governance-and-final-cleanup.md) | Implemented locally; push/CI pending | Add roadmap/governance docs, CI, license, and final cleanup. |
-| [OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md) | Draft; scope decision required | Choose a broad npm scope and make standalone packages consumable outside the monorepo. |
+| [OS3-public-readiness-governance-and-final-cleanup.md](./OS3-public-readiness-governance-and-final-cleanup.md) | ✅ Landed (incl. final cleanup: `c66617b`) | Add roadmap/governance docs, CI, license, and final cleanup. |
+| [OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md) | 🔄 Scope decided + rename landed; build/exports/dist/publish-readiness work still open | Choose a broad npm scope and make standalone packages consumable outside the monorepo. |
 
 ## Sequencing
 

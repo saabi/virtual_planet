@@ -1,4 +1,4 @@
-import { getPrimitive, type GraphDocument, type Node, type NodePrimitive, type Port, type PortSpec } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type NodePrimitive, type Port, type PortSpec } from '@world-lab/graph';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({

@@ -1,10 +1,10 @@
-import { generateWgsl, sliceGraph } from '@virtual-planet/compiler';
-import { listPrimitives } from '@virtual-planet/graph';
+import { generateWgsl, sliceGraph } from '@world-lab/compiler';
+import { listPrimitives } from '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 
 import { createStandardLibraryResolver, STANDARD_LIBRARY_MODULES } from './moduleResolver.js';
 
-describe('@virtual-planet/runtime-webgpu moduleResolver', () => {
+describe('@world-lab/runtime-webgpu moduleResolver', () => {
 	it('re-exports the procedural-wgsl standard library', () => {
 		expect(STANDARD_LIBRARY_MODULES['noise.perlin3d']?.source).toContain('fn perlin3d(');
 		expect(STANDARD_LIBRARY_MODULES['math.add']?.source).toContain('fn add(');

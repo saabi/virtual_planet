@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import '@virtual-planet/graph';
-import { getPrimitive, validateGraph } from '@virtual-planet/graph';
+import '@world-lab/graph';
+import { getPrimitive, validateGraph } from '@world-lab/graph';
 import { defaultPreviewGraph } from './defaultGraph.js';
 import { applyPrimitiveSource } from './primitiveEditor.js';
 import { NOISE_PERLIN3D_SOURCE } from './fixtures/perlin3d.source.js';
@@ -9,7 +9,7 @@ import { resetUserPrimitives } from './userPrimitives.js';
 
 const TEST_USER_PERLIN = 'user.test-default-graph-perlin';
 
-describe('@virtual-planet/graph-editor default graph validation', () => {
+describe('@world-lab/graph-editor default graph validation', () => {
 	it('validates the default preview graph', () => {
 		expect(validateGraph(defaultPreviewGraph()).ok).toBe(true);
 	});

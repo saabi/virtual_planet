@@ -1,5 +1,5 @@
-import type { NodePrimitive } from '@virtual-planet/graph';
-import { swapFamily } from '@virtual-planet/graph';
+import type { NodePrimitive } from '@world-lab/graph';
+import { swapFamily } from '@world-lab/graph';
 
 export type PaletteMode = 'section' | 'contract' | 'both';
 

@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { GraphDocument } from '@virtual-planet/graph';
+	import type { GraphDocument } from '@world-lab/graph';
 	import { MarkupParseError } from './markup/parseGraphMarkup.js';
 	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 

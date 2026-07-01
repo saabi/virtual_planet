@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { alignTo, rgba8BufferByteLength } from './buffers.js';
 
-describe('@virtual-planet/runtime-webgpu buffers', () => {
+describe('@world-lab/runtime-webgpu buffers', () => {
 	it('aligns sizes to WebGPU buffer alignment', () => {
 		expect(alignTo(0, 256)).toBe(0);
 		expect(alignTo(1, 4)).toBe(4);

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+	import type { GraphDocument, PortRef } from '@world-lab/graph';
 	import {
 		renderVegetationPreview,
 		requestGpuDevice,
 		type VegetationPreviewMode,
 		type VegetationCandidateGpuRecord
-	} from '@virtual-planet/runtime-webgpu';
+	} from '@world-lab/runtime-webgpu';
 
 	interface Props {
 		graph: GraphDocument;

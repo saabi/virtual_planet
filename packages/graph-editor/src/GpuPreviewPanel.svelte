@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
-	import { executePlaneScalarPreview, requestGpuDevice } from '@virtual-planet/runtime-webgpu';
+	import type { GraphDocument, PortRef } from '@world-lab/graph';
+	import { executePlaneScalarPreview, requestGpuDevice } from '@world-lab/runtime-webgpu';
 
 	import { fullValidation, incompleteGraphMessage } from './graphValidation.js';
 

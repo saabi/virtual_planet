@@ -3,7 +3,7 @@ import { buildSurfaceMesh } from '../surfaceMesh.js';
 import { renderSurfaceMeshPreview } from './surfaceMeshPreview.js';
 import { shouldSkipWebGpuCanvasTest } from '../testSupport/webgpuTestEnv.js';
 
-describe('@virtual-planet/runtime-webgpu surfaceMeshPreview', () => {
+describe('@world-lab/runtime-webgpu surfaceMeshPreview', () => {
 	it.skipIf(shouldSkipWebGpuCanvasTest())('renders plane and cube-sphere meshes with different topology', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();

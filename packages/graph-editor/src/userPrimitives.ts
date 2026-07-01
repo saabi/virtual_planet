@@ -1,5 +1,5 @@
-import { registerPrimitive, type NodePrimitive } from '@virtual-planet/graph';
-import { loadWgslPrimitive } from '@virtual-planet/compiler';
+import { registerPrimitive, type NodePrimitive } from '@world-lab/graph';
+import { loadWgslPrimitive } from '@world-lab/compiler';
 
 export const USER_PRIMITIVES_STORAGE_KEY = 'virtual-planet:graph-editor:user-primitives:v1';
 

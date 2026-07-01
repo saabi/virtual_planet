@@ -13,7 +13,7 @@ function canonicalize<T extends { nodes: { id: string }[]; edges: { id: string }
 	};
 }
 
-describe('@virtual-planet/graph-editor markup round-trip', () => {
+describe('@world-lab/graph-editor markup round-trip', () => {
 	it('parse(print(doc)) matches canonical doc', () => {
 		const doc = defaultPreviewGraph();
 		const roundTripped = parseGraphMarkup(printGraphMarkup(doc));

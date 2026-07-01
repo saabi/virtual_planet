@@ -1,8 +1,8 @@
-// @virtual-planet/procedural-wgsl — Standard library of reusable WGSL function modules (noise, terrain, vegetation, math).
+// @world-lab/procedural-wgsl — Standard library of reusable WGSL function modules (noise, terrain, vegetation, math).
 //
 // WGSL modules resolved by stable id; browser-safe TS template strings (no node:fs).
 
-export const PROCEDURAL_WGSL_PACKAGE = '@virtual-planet/procedural-wgsl' as const;
+export const PROCEDURAL_WGSL_PACKAGE = '@world-lab/procedural-wgsl' as const;
 
 export { STANDARD_LIBRARY_MODULES } from './modules/index.js';
 export {

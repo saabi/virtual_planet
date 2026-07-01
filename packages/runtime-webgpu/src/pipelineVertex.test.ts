@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STANDARD_LIBRARY_MODULES } from '@virtual-planet/procedural-wgsl';
+import { STANDARD_LIBRARY_MODULES } from '@world-lab/procedural-wgsl';
 
 import {
 	assemblePipelineVertexWgsl,
@@ -8,7 +8,7 @@ import {
 	planeGridVertexCount
 } from './pipelineVertex.js';
 
-describe('@virtual-planet/runtime-webgpu pipelineVertex', () => {
+describe('@world-lab/runtime-webgpu pipelineVertex', () => {
 	it('assembles a @vertex entry that calls plane_grid_position with baked geometry params', () => {
 		const planeSource = STANDARD_LIBRARY_MODULES['geometry.plane']!.source;
 		const code = assemblePipelineVertexWgsl(DEFAULT_PIPELINE_GEOMETRY_PARAMS, planeSource);

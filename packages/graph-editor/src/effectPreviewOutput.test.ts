@@ -1,7 +1,7 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument } from '@virtual-planet/graph';
-import { planPipelineGraph } from '@virtual-planet/runtime-webgpu';
+import { effectiveGraphDocument } from '@world-lab/graph';
+import { planPipelineGraph } from '@world-lab/runtime-webgpu';
 
 import { animatedWorleyPipelineGraph } from './graphBuilders.js';
 import { enumeratePreviewBuffers, resolvePreviewBufferPort } from './previewBuffers.js';

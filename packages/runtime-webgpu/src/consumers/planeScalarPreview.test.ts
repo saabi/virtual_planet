@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
 import { executePlaneScalarPreview } from './planeScalarPreview.js';
 
 const hasWebGPU =
@@ -57,7 +57,7 @@ function previewGraph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/runtime-webgpu planeScalarPreview', () => {
+describe('@world-lab/runtime-webgpu planeScalarPreview', () => {
 	it.skipIf(!hasWebGPU)('returns width×height RGBA8 pixels', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();

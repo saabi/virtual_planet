@@ -1,5 +1,5 @@
-import '@virtual-planet/graph';
-import { generateVegetationCandidates } from '@virtual-planet/runtime-cpu';
+import '@world-lab/graph';
+import { generateVegetationCandidates } from '@world-lab/runtime-cpu';
 import { describe, expect, it } from 'vitest';
 
 import { executeVegetationCandidateCompute } from './vegetationCandidates.js';
@@ -56,7 +56,7 @@ async function withGpuDevice<T>(run: (device: GPUDevice) => Promise<T>): Promise
 	}
 }
 
-describe('@virtual-planet/runtime-webgpu vegetationCandidates', () => {
+describe('@world-lab/runtime-webgpu vegetationCandidates', () => {
 	it('throws RangeError for invalid patch width', async () => {
 		await expect(
 			executeVegetationCandidateCompute({

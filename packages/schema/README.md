@@ -1,4 +1,4 @@
-# @virtual-planet/schema
+# @world-lab/schema
 
 Schema / type-system extension for the scene model.
 

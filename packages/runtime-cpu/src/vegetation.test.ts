@@ -36,7 +36,7 @@ function twoPeakSamplers(): VegetationFieldSamplers {
 	};
 }
 
-describe('@virtual-planet/runtime-cpu vegetation', () => {
+describe('@world-lab/runtime-cpu vegetation', () => {
 	it('is deterministic and emits known peaks in stable grid order', () => {
 		const first = generateVegetationCandidates(PATCH, CONFIG, twoPeakSamplers());
 		const second = generateVegetationCandidates(PATCH, CONFIG, twoPeakSamplers());

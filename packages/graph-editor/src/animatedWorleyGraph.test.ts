@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument, validateGraph, validateGraphFull } from '@virtual-planet/graph';
+import { effectiveGraphDocument, validateGraph, validateGraphFull } from '@world-lab/graph';
 
 import { animatedWorleyPipelineGraph } from './graphBuilders.js';
 import { enumeratePreviewBuffers } from './previewBuffers.js';

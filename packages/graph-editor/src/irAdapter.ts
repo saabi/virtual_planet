@@ -10,8 +10,8 @@ import {
 	type PortSpec,
 	type ValidationIssue,
 	type ValidationResult
-} from '@virtual-planet/graph';
-import { Value, type TSchema } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { Value, type TSchema } from '@world-lab/schema';
 import { collectEdgeIds, collectNodeIds, mintEdgeId, mintNodeId } from './graphIds.js';
 import { inputHandleId, outputHandleId } from './portHandles.js';
 

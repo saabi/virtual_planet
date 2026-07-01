@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/runtime-cpu",
+	"name": "@world-lab/runtime-cpu",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -18,8 +18,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/schema": "*"
+		"@world-lab/graph": "*",
+		"@world-lab/schema": "*"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

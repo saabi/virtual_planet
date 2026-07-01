@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 
 import {
 	describeNode,
@@ -34,9 +34,9 @@ function minimalValidGraph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/mcp-server', () => {
+describe('@world-lab/mcp-server', () => {
 	it('exports its package identity', () => {
-		expect(MCP_SERVER_PACKAGE).toBe('@virtual-planet/mcp-server');
+		expect(MCP_SERVER_PACKAGE).toBe('@world-lab/mcp-server');
 	});
 
 	it('listPrimitives returns at least 15 registered primitives', () => {

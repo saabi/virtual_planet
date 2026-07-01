@@ -3,14 +3,14 @@ import {
 	annotationsOf,
 	fields,
 	type TSchema
-} from '@virtual-planet/schema';
+} from '@world-lab/schema';
 import {
 	getPrimitive,
 	type NodePrimitive,
 	type PortSpec
-} from '@virtual-planet/graph';
-import { loadWgslPrimitive, textLinker } from '@virtual-planet/compiler';
-import '@virtual-planet/graph';
+} from '@world-lab/graph';
+import { loadWgslPrimitive, textLinker } from '@world-lab/compiler';
+import '@world-lab/graph';
 
 import {
 	MATH_REMAP_GROUP,

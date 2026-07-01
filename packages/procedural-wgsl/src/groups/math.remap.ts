@@ -1,5 +1,5 @@
-import { quantity, Type } from '@virtual-planet/schema';
-import type { GroupDefinition } from '@virtual-planet/graph';
+import { quantity, Type } from '@world-lab/schema';
+import type { GroupDefinition } from '@world-lab/graph';
 
 import { mathBinaryNode } from './buildGroupModule.js';
 

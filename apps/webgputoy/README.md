@@ -5,7 +5,7 @@ A standalone procedural-graph editor and WebGPU playground: wire typed nodes int
 watch the compiled WGSL update live, and preview one or more render targets from a single
 shared-frame executor.
 
-This app is a thin SvelteKit shell over the reusable `@virtual-planet/graph-editor` package —
+This app is a thin SvelteKit shell over the reusable `@world-lab/graph-editor` package —
 almost all editor logic (and its test suite) lives there, not here.
 
 **Public deployment domain:** `webgputoy.ferreyrapons.com`.
@@ -22,7 +22,7 @@ pins `strictPort: true`, so a second `npm run dev` fails loudly ("port in use") 
 silently spawning a duplicate. See `AGENTS.md` §Dev server.
 
 This app has no dedicated test script — its tests live in
-[`packages/graph-editor`](../../packages/graph-editor) (`npm test -w @virtual-planet/graph-editor`
+[`packages/graph-editor`](../../packages/graph-editor) (`npm test -w @world-lab/graph-editor`
 from the repo root, or `npm test` from that package directory).
 
 ## Production build and run

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { getPrimitive, listPrimitives, registerPrimitive } from './registry.js';
 import { contractOf, swapFamily, listSwapFamily } from './contract.js';
-import { Type } from '@virtual-planet/schema';
+import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from './primitive.js';
 import './primitives/index.js'; // side-effect: registers all primitives
 
-describe('@virtual-planet/graph contract & swap families', () => {
+describe('@world-lab/graph contract & swap families', () => {
 	it('contractOf returns a normalized port signature', () => {
 		const add = getPrimitive('math.add')!;
 		expect(contractOf(add)).toBe('f32,f32->f32');

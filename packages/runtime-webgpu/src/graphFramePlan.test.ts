@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@world-lab/graph';
 
 import { buildPassOrder } from './frameGraph/order.js';
 import { buildIndependentPassGraph, planIndependentGraphFramePasses } from './graphFramePlan.js';

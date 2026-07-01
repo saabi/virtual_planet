@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Value } from '@virtual-planet/schema';
+import { Value } from '@world-lab/schema';
 
 import { getPrimitive } from '../../registry.js';
 import '../index.js';

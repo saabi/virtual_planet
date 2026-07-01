@@ -1,5 +1,5 @@
 {
-	"name": "@virtual-planet/procedural-wgsl",
+	"name": "@world-lab/procedural-wgsl",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
@@ -11,9 +11,9 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@virtual-planet/compiler": "*",
-		"@virtual-planet/graph": "*",
-		"@virtual-planet/schema": "*"
+		"@world-lab/compiler": "*",
+		"@world-lab/graph": "*",
+		"@world-lab/schema": "*"
 	},
 	"exports": {
 		".": "./src/index.ts"

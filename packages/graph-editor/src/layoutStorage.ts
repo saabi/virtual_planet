@@ -1,4 +1,4 @@
-import { parseLayoutDocument, type LayoutDocument } from '@virtual-planet/subdivide';
+import { parseLayoutDocument, type LayoutDocument } from '@world-lab/subdivide';
 
 import type { PreviewFamily } from './previewBuffers.js';
 import type { PreviewRenderer } from './previewBackend.js';

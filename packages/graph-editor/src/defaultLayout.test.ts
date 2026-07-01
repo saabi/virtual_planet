@@ -5,7 +5,7 @@ import {
 	defaultGraphEditorLayout
 } from './defaultLayout.js';
 
-describe('@virtual-planet/graph-editor defaultGraphEditorLayout', () => {
+describe('@world-lab/graph-editor defaultGraphEditorLayout', () => {
 	it('includes the v2 default zones and omits optional compiled/markup panes', () => {
 		const layout = defaultGraphEditorLayout();
 		const zones = collectLayoutZones(layout.root);

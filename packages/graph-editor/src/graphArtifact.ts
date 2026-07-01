@@ -1,5 +1,5 @@
-import { deserializeGraph, serializeGraph, type GraphDocument } from '@virtual-planet/graph';
-import { parseLayoutDocument, type LayoutDocument } from '@virtual-planet/subdivide';
+import { deserializeGraph, serializeGraph, type GraphDocument } from '@world-lab/graph';
+import { parseLayoutDocument, type LayoutDocument } from '@world-lab/subdivide';
 
 import { dedupeGraphIds } from './graphIds.js';
 import { resyncGraphPortMetadata } from './graphSync.js';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, listPrimitives, replacePrimitive, type NodePrimitive } from '@virtual-planet/graph';
+import { getPrimitive, listPrimitives, replacePrimitive, type NodePrimitive } from '@world-lab/graph';
 
-describe('@virtual-planet/graph replacePrimitive', () => {
+describe('@world-lab/graph replacePrimitive', () => {
 	it('replaces an existing registration without changing list order', () => {
 		const before = getPrimitive('math.clamp')!;
 		const replacement: NodePrimitive = {

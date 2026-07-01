@@ -6,8 +6,8 @@ import {
 	type GraphDocument,
 	type Node,
 	type PortRef
-} from '@virtual-planet/graph';
-import { Value } from '@virtual-planet/schema';
+} from '@world-lab/graph';
+import { Value } from '@world-lab/schema';
 
 export interface EvalGraphSample {
 	/** Procedural inputs for this sample (e.g. uv: [u, v]). */

@@ -1,4 +1,4 @@
-import { createPaneId, type LayoutDocument, type LayoutNode } from '@virtual-planet/subdivide';
+import { createPaneId, type LayoutDocument, type LayoutNode } from '@world-lab/subdivide';
 
 /** Optional zones (compiled, markup) are omitted — open via pane context menus. */
 export const DEFAULT_GRAPH_EDITOR_ZONES = [

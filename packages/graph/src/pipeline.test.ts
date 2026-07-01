@@ -116,7 +116,7 @@ function s0PipelineGraph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/graph pipeline output reconciliation', () => {
+describe('@world-lab/graph pipeline output reconciliation', () => {
 	it('treats target.display as a pipeline render target', () => {
 		const display = s0PipelineGraph().nodes.find((node) => node.primitive === 'target.display');
 		expect(display).toBeDefined();
@@ -158,7 +158,7 @@ describe('@virtual-planet/graph pipeline output reconciliation', () => {
 	});
 });
 
-describe('@virtual-planet/graph pipeline consumer derivation', () => {
+describe('@world-lab/graph pipeline consumer derivation', () => {
 	it('derives a fragment image consumer from a wired display target', () => {
 		const graph: GraphDocument = {
 			...s0PipelineGraph(),

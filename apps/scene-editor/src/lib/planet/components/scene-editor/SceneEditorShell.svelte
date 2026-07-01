@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { LayoutDocument } from '@virtual-planet/subdivide';
+	import type { LayoutDocument } from '@world-lab/subdivide';
 	import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
 	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
@@ -85,7 +85,7 @@
 </script>
 
 <script lang="ts">
-	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
+	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
 	import OutlinerPanel from './OutlinerPanel.svelte';
 	import PropertiesPanel from './PropertiesPanel.svelte';
 	import RenderSettingsPanel from './RenderSettingsPanel.svelte';

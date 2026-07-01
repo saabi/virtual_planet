@@ -1,14 +1,14 @@
 ---
-"@virtual-planet/schema": patch
-"@virtual-planet/graph": patch
-"@virtual-planet/compiler": patch
-"@virtual-planet/runtime-cpu": patch
-"@virtual-planet/runtime-webgpu": patch
-"@virtual-planet/procedural-wgsl": patch
-"@virtual-planet/graph-editor": patch
-"@virtual-planet/mcp-server": patch
-"@virtual-planet/subdivide": patch
-"@virtual-planet/editor-ui": patch
+"@world-lab/schema": patch
+"@world-lab/graph": patch
+"@world-lab/compiler": patch
+"@world-lab/runtime-cpu": patch
+"@world-lab/runtime-webgpu": patch
+"@world-lab/procedural-wgsl": patch
+"@world-lab/graph-editor": patch
+"@world-lab/mcp-server": patch
+"@world-lab/subdivide": patch
+"@world-lab/editor-ui": patch
 ---
 
 Add `repository.directory` package metadata in preparation for eventual npm publishing. No

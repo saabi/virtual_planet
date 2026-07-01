@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 
 import { defaultPreviewGraph } from './defaultGraph.js';
 import { computeGraphCompileSignature } from './graphCompileSignature.js';

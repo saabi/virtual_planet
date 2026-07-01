@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Section from '@virtual-planet/editor-ui/Section.svelte';
-	import Subsection from '@virtual-planet/editor-ui/Subsection.svelte';
-	import { listPrimitives, type NodePrimitive } from '@virtual-planet/graph';
+	import Section from '@world-lab/editor-ui/Section.svelte';
+	import Subsection from '@world-lab/editor-ui/Subsection.svelte';
+	import { listPrimitives, type NodePrimitive } from '@world-lab/graph';
 
 	import {
 		filterPaletteGroups,

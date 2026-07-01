@@ -5,7 +5,7 @@ import {
 	type DataType,
 	type GraphDocument,
 	type PortRef
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 
 import { outputPortDataType } from './graphBuilders.js';
 

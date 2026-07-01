@@ -73,7 +73,7 @@ function pipelineEdge(fromType: DataType, toType: DataType): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/graph IR', () => {
+describe('@world-lab/graph IR', () => {
 	it('round-trips through serialize/deserialize', () => {
 		const doc = twoNodeGraph();
 		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);

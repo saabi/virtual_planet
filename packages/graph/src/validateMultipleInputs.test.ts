@@ -10,7 +10,7 @@ function textureOut(id = 'texture') {
 	return { id, name: id, direction: 'out' as const, dataType: 'texture' as const };
 }
 
-describe('@virtual-planet/graph validateGraph multiple-inputs', () => {
+describe('@world-lab/graph validateGraph multiple-inputs', () => {
 	it('flags more than one incoming edge on a non-list input', () => {
 		const doc: GraphDocument = {
 			version: '1',

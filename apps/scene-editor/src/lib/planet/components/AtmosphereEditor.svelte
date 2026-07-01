@@ -2,8 +2,8 @@
 	import { bodyAtmosphereSliders } from '../params/paramEditorSchema.js';
 	import { resolveBodyAtmosphere } from '../scene/bodyAtmosphere.js';
 	import type { BodyAtmosphere, BodyNode } from '../scene/types.js';
-	import { SliderRow } from '@virtual-planet/editor-ui';
-	import '@virtual-planet/editor-ui/controls/sliderList.css';
+	import { SliderRow } from '@world-lab/editor-ui';
+	import '@world-lab/editor-ui/controls/sliderList.css';
 
 	// Per-body atmosphere *design* editor (planet/moon). Atmosphere is body data
 	// (body-vs-viewport-state.md); the ray-march step count is render quality, edited

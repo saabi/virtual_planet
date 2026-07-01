@@ -1,10 +1,10 @@
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 import {
 	GraphFrameExecutor,
 	planIndependentGraphFramePasses,
 	requestGpuDevice,
 	type PreviewPointer
-} from '@virtual-planet/runtime-webgpu';
+} from '@world-lab/runtime-webgpu';
 
 export type { PreviewPointer };
 

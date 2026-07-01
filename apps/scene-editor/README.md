@@ -71,7 +71,7 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## Roadmap
 
 Mid-term, this app's shaping pipeline is intended to migrate onto the procedural-graph
-engine (`@virtual-planet/graph` + friends, currently developed in `apps/webgputoy`)
+engine (`@world-lab/graph` + friends, currently developed in `apps/webgputoy`)
 incrementally — gated so the live rendering gates here never regress. See the root
 [ROADMAP.md](../../ROADMAP.md) and `AGENTS.md`'s wave-integration rules for the gate
 checklist this app's changes are held to.

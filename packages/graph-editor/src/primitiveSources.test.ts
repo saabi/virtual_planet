@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { getPrimitive, listPrimitives } from '@virtual-planet/graph';
+import { getPrimitive, listPrimitives } from '@world-lab/graph';
 
 import {
 	cloneBuiltinPrimitive,
@@ -14,7 +14,7 @@ import {
 } from './primitiveSources.js';
 import { resetUserPrimitives } from './userPrimitives.js';
 
-describe('@virtual-planet/graph-editor primitiveSources', () => {
+describe('@world-lab/graph-editor primitiveSources', () => {
 	beforeEach(() => {
 		resetPrimitiveSources();
 		resetUserPrimitives();

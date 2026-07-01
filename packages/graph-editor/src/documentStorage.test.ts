@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { serializeGraph } from '@virtual-planet/graph';
+import { serializeGraph } from '@world-lab/graph';
 
 import { defaultPreviewGraph } from './defaultGraph.js';
 import { defaultGraphEditorLayout } from './defaultLayout.js';
@@ -36,7 +36,7 @@ function createStorageMock() {
 	} satisfies Storage;
 }
 
-describe('@virtual-planet/graph-editor graphArtifact', () => {
+describe('@world-lab/graph-editor graphArtifact', () => {
 	it('round-trips a bare GraphDocument through parseGraphFile', () => {
 		const doc = defaultPreviewGraph();
 		const parsed = parseGraphFile(serializeGraph(doc));
@@ -58,7 +58,7 @@ describe('@virtual-planet/graph-editor graphArtifact', () => {
 	});
 });
 
-describe('@virtual-planet/graph-editor documentStorage', () => {
+describe('@world-lab/graph-editor documentStorage', () => {
 	beforeEach(() => {
 		vi.stubGlobal('localStorage', createStorageMock());
 		clearDocumentRegistry();

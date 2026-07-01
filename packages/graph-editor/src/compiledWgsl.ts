@@ -1,17 +1,17 @@
-import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@virtual-planet/compiler';
+import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@world-lab/compiler';
 import {
 	effectiveGraphDocument,
 	type GraphDocument,
 	type PortRef,
 	type ProceduralConsumer
-} from '@virtual-planet/graph';
+} from '@world-lab/graph';
 import {
 	assembleFullscreenFragmentModuleAsync,
 	buildParamsStructWgsl,
 	createStandardLibraryResolver,
 	emitGraphScalarEval,
 	type GraphParamField
-} from '@virtual-planet/runtime-webgpu';
+} from '@world-lab/runtime-webgpu';
 
 import { outputPortDataType, primaryPreviewOutput } from './graphBuilders.js';
 import { fullValidation, incompleteGraphMessage } from './graphValidation.js';

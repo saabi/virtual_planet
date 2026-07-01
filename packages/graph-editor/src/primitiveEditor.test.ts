@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { getPrimitive } from '@virtual-planet/graph';
+import { getPrimitive } from '@world-lab/graph';
 import { defaultPreviewGraph } from './defaultGraph.js';
 import { NOISE_PERLIN3D_SOURCE } from './fixtures/perlin3d.source.js';
 import { applyPrimitiveSource } from './primitiveEditor.js';
@@ -30,7 +30,7 @@ function perlinTestGraph() {
 	};
 }
 
-describe('@virtual-planet/graph-editor applyPrimitiveSource', () => {
+describe('@world-lab/graph-editor applyPrimitiveSource', () => {
 	beforeEach(() => {
 		resetPrimitiveSources();
 		resetUserPrimitives();

@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@world-lab/graph';
 import {
 	assembleFullscreenFragmentModuleAsync,
 	executeFullscreenFragment
@@ -130,7 +130,7 @@ async function validateWgslModule(code: string): Promise<string | null> {
 	}
 }
 
-describe('@virtual-planet/runtime-webgpu shadertoyUniforms', () => {
+describe('@world-lab/runtime-webgpu shadertoyUniforms', () => {
 	it('packs iResolution and iTime at the expected offsets', () => {
 		const buffer = packShaderToyUniforms({
 			width: 320,
@@ -152,7 +152,7 @@ describe('@virtual-planet/runtime-webgpu shadertoyUniforms', () => {
 	});
 });
 
-describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
+describe('@world-lab/runtime-webgpu fullscreenFragment assembly', () => {
 	it('includes node-driven vertex grid, fragment entry, uniform block, and cosine_palette call', async () => {
 		const graph = cosinePaletteEffectGraph();
 		const output = cosinePaletteEffectOutput();
@@ -209,7 +209,7 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 	});
 });
 
-describe('@virtual-planet/runtime-webgpu executeFullscreenFragment', () => {
+describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 	it.skipIf(!hasWebGPU)('returns RGBA8 matching cosine palette at origin when iTime=0', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();

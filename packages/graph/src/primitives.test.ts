@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getPrimitive, listPrimitives } from './registry.js';
 import './primitives/index.js'; // registers the standard set
 
-describe('@virtual-planet/graph primitives', () => {
+describe('@world-lab/graph primitives', () => {
 	it('registers and looks up primitives', () => {
 		expect(getPrimitive('math.remap')).toBeDefined();
 		expect(getPrimitive('procedural.uv')).toBeDefined();

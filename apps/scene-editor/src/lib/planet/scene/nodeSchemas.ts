@@ -1,9 +1,9 @@
-import { Type, bulkOf, fields, quantity, ref, X_BULK, type TSchema } from '@virtual-planet/schema';
+import { Type, bulkOf, fields, quantity, ref, X_BULK, type TSchema } from '@world-lab/schema';
 import type { DriverSpec, SceneNode } from './types.js';
 
 const DEG = Math.PI / 180;
 
-// Schema descriptions of scene-node types, built with @virtual-planet/schema. These
+// Schema descriptions of scene-node types, built with @world-lab/schema. These
 // are the *target* model (forward-looking, authoring-friendly units) for the
 // self-describing scene graph: each is introspectable (drives a form), validatable,
 // and serializable. They're the bridge from the schema package to the scene model;

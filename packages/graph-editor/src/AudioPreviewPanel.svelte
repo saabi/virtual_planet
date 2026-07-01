@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+	import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 	interface Props {
 		graph: GraphDocument;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { NodePrimitive } from '@virtual-planet/graph';
+import type { NodePrimitive } from '@world-lab/graph';
 import {
 	annotationsOf,
 	check,
@@ -12,7 +12,7 @@ import {
 	X_UNIT,
 	X_WIDGET,
 	type TSchema,
-} from '@virtual-planet/schema';
+} from '@world-lab/schema';
 import {
 	loadWgslPrimitive,
 	textWgslSignatureReader,
@@ -122,7 +122,7 @@ const EXPECTED_PERLIN: NodePrimitive = {
 	},
 };
 
-describe('@virtual-planet/compiler loadWgslPrimitive', () => {
+describe('@world-lab/compiler loadWgslPrimitive', () => {
 	it('loads the example primitive to the hand-written NodePrimitive shape', () => {
 		const loaded = loadWgslPrimitive({
 			moduleId: 'noise.perlin3d',

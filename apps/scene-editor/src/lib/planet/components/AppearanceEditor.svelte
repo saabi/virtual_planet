@@ -4,8 +4,8 @@
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { BodyAppearance, BodyNode } from '../scene/types.js';
-	import { SliderRow, Subsection } from '@virtual-planet/editor-ui';
-	import '@virtual-planet/editor-ui/controls/sliderList.css';
+	import { SliderRow, Subsection } from '@world-lab/editor-ui';
+	import '@world-lab/editor-ui/controls/sliderList.css';
 
 	interface Props {
 		body: BodyNode;

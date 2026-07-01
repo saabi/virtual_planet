@@ -1,5 +1,5 @@
-import type { GraphDocument } from '@virtual-planet/graph';
-import type { WgslModuleResolver } from '@virtual-planet/compiler';
+import type { GraphDocument } from '@world-lab/graph';
+import type { WgslModuleResolver } from '@world-lab/compiler';
 
 import type { ShaderToyHostInputs } from './consumers/fullscreenFragment.js';
 import { planIndependentGraphFramePasses } from './graphFramePlan.js';

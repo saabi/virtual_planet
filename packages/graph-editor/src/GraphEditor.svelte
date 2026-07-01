@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Subdivide from '@virtual-planet/subdivide/Subdivide.svelte';
-	import type { LayoutDocument } from '@virtual-planet/subdivide';
-	import { effectiveGraphDocument, type GraphDocument } from '@virtual-planet/graph';
+	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
+	import type { LayoutDocument } from '@world-lab/subdivide';
+	import { effectiveGraphDocument, type GraphDocument } from '@world-lab/graph';
 
 	import PreviewZone from './PreviewZone.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
@@ -45,7 +45,7 @@
 		type PreviewPaneSelection
 	} from './previewPaneSelection.js';
 	import { createPreviewFrameLoop, type PreviewFrameLoop } from './previewFrameLoop.js';
-	import { planIndependentGraphFramePasses } from '@virtual-planet/runtime-webgpu';
+	import { planIndependentGraphFramePasses } from '@world-lab/runtime-webgpu';
 	import { listSampleArtifacts } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import { computeGraphCompileSignature } from './graphCompileSignature.js';

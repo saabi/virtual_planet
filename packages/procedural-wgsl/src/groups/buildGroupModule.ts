@@ -1,5 +1,5 @@
-import type { GroupDefinition, Node } from '@virtual-planet/graph';
-import { groupToFunction, loadWgslPrimitive, type WgslModule } from '@virtual-planet/compiler';
+import type { GroupDefinition, Node } from '@world-lab/graph';
+import { groupToFunction, loadWgslPrimitive, type WgslModule } from '@world-lab/compiler';
 
 /** Build a standard-library module from a canonical group definition. */
 export function buildGroupModule(def: GroupDefinition): WgslModule {

@@ -1,5 +1,5 @@
-import { generateWgsl, sliceGraph } from '@virtual-planet/compiler';
-import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+import { generateWgsl, sliceGraph } from '@world-lab/compiler';
+import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 import {
 	alignTo,

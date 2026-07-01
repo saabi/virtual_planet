@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { registerPrimitive } from '@virtual-planet/graph';
-import type { GraphDocument } from '@virtual-planet/graph';
-import { Type } from '@virtual-planet/schema';
+import { registerPrimitive } from '@world-lab/graph';
+import type { GraphDocument } from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import { compileGraph } from './compileGraph.js';
 import type { WgslModule, WgslModuleResolver } from './codegen.js';
 
@@ -47,7 +47,7 @@ function graph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/compiler compileGraph', () => {
+describe('@world-lab/compiler compileGraph', () => {
 	it('compiles one shader per consumer with its stage', async () => {
 		const r = await compileGraph(graph(), resolver);
 		expect(r.shaders.map((s) => s.consumerId).sort()).toEqual(['albedo', 'height', 'peaks']);

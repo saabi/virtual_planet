@@ -1,5 +1,5 @@
-import { getPrimitive, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@virtual-planet/graph';
-import { Type } from '@virtual-planet/schema';
+import { getPrimitive, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
 import { emitGraphScalarEval, emitGraphVec4Eval } from './emitGraphEval.js';
 
@@ -56,7 +56,7 @@ function previewGraph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/runtime-webgpu emitGraphScalarEval', () => {
+describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 	it('emits evaluate body for uv → perlin → remap', () => {
 		const graph = previewGraph();
 		const emitted = emitGraphScalarEval(graph, { node: 'n_remap', port: 'value' });

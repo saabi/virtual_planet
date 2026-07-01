@@ -6,7 +6,7 @@ function shader(stage: string, code: string, outputs = ['color']): ConsumerShade
 	return { consumerId: stage + '-c', stage, outputs, code, moduleIds: [] };
 }
 
-describe('@virtual-planet/compiler assembleStageEntry', () => {
+describe('@world-lab/compiler assembleStageEntry', () => {
 	it('wraps a fragment consumer in @fragment fs_main calling its output fn', () => {
 		const s = shader('fragment', 'fn cosine_palette(uv: vec2f, res: vec2f, t: f32) -> vec4f { return vec4f(0.0); }');
 		const m = assembleStageEntry(s, {

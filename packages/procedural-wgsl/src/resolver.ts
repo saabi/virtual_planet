@@ -1,4 +1,4 @@
-import type { WgslModule, WgslModuleResolver } from '@virtual-planet/compiler';
+import type { WgslModule, WgslModuleResolver } from '@world-lab/compiler';
 
 import { STANDARD_LIBRARY_MODULES } from './modules/index.js';
 

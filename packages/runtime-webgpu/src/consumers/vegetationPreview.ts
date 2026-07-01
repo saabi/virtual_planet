@@ -1,5 +1,5 @@
-import { generateWgsl, sliceGraph, type WgslModuleResolver } from '@virtual-planet/compiler';
-import type { GraphDocument, PortRef } from '@virtual-planet/graph';
+import { generateWgsl, sliceGraph, type WgslModuleResolver } from '@world-lab/compiler';
+import type { GraphDocument, PortRef } from '@world-lab/graph';
 
 import { alignTo, createStorageBuffer } from '../buffers.js';
 import {

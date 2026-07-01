@@ -24,7 +24,7 @@ export default defineConfig({
 		exclude: ['@xyflow/svelte', '@xyflow/system']
 	},
 	ssr: {
-		noExternal: [/^@virtual-planet\//],
+		noExternal: [/^@world-lab\//],
 		external: ['@xyflow/svelte', '@xyflow/system']
 	}
 });

@@ -17,7 +17,7 @@ function chainGraph(): PassGraph {
 	};
 }
 
-describe('@virtual-planet/runtime-webgpu frameGraph order', () => {
+describe('@world-lab/runtime-webgpu frameGraph order', () => {
 	it('orders a three-target chain and keeps the display target alive', () => {
 		const result = buildPassOrder(chainGraph());
 

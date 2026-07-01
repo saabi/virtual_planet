@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { repairStalePortRefs, resyncGraphPortMetadata } from './graphSync.js';
 import { defaultPreviewGraph } from './defaultGraph.js';
 
-describe('@virtual-planet/graph-editor graphSync', () => {
+describe('@world-lab/graph-editor graphSync', () => {
 	it('repairs a single-output edge after the port name changes on the node', () => {
 		const doc = defaultPreviewGraph();
 		const perlin = doc.nodes.find((node) => node.id === 'n_perlin')!;

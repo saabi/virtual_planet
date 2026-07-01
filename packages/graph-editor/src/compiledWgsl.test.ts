@@ -1,7 +1,7 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 /// <reference types="@webgpu/types" />
 import { describe, expect, it } from 'vitest';
-import type { GraphDocument } from '@virtual-planet/graph';
+import type { GraphDocument } from '@world-lab/graph';
 
 import { cosinePaletteEffectGraph, defaultPreviewGraph } from './graphBuilders.js';
 import { compiledGraphWgsl } from './compiledWgsl.js';
@@ -32,7 +32,7 @@ function incompleteGraph(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/graph-editor compiledGraphWgsl', () => {
+describe('@world-lab/graph-editor compiledGraphWgsl', () => {
 	it('returns cosine palette fragment shader with real geometry vertex grid and node functions', async () => {
 		const results = await compiledGraphWgsl(cosinePaletteEffectGraph());
 		expect(results).toHaveLength(1);

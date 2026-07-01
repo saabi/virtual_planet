@@ -3,7 +3,7 @@ import './primitives/index.js';
 import { validateGraphCompleteness } from './validate.js';
 import type { GraphDocument } from './types.js';
 
-describe('@virtual-planet/graph validateGraphCompleteness port defaults', () => {
+describe('@world-lab/graph validateGraphCompleteness port defaults', () => {
 	it('does not warn for unconnected inputs that declare a default', () => {
 		const doc: GraphDocument = {
 			version: '1',

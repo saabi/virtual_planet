@@ -1,4 +1,4 @@
-import type { TSchema } from '@virtual-planet/schema';
+import type { TSchema } from '@world-lab/schema';
 
 import type { CoordinateSpace, DataType } from './types.js';
 import type { PortDefaultValue } from './dataType.js';

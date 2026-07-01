@@ -25,7 +25,7 @@ function docWithDuplicateNodeId(): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/graph validateGraph duplicate-id', () => {
+describe('@world-lab/graph validateGraph duplicate-id', () => {
 	it('reports duplicate node ids', () => {
 		const result = validateGraph(docWithDuplicateNodeId());
 		expect(result.ok).toBe(false);

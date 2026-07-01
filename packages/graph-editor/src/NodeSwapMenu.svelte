@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { listSwapFamily, type NodePrimitive } from '@virtual-planet/graph';
+	import { listSwapFamily, type NodePrimitive } from '@world-lab/graph';
 	import { filterPrimitives } from './nodePaletteModel.js';
 
 	interface Props {

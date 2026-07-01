@@ -1,4 +1,4 @@
-import { create } from '@virtual-planet/schema';
+import { create } from '@world-lab/schema';
 import type { BodyNode, BodyType, NodeDisplay, PlanetScene, Quat, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
 import { bodySchema } from './nodeSchemas.js';

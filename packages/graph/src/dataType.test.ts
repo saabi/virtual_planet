@@ -9,7 +9,7 @@ import {
 } from './dataType.js';
 import { compatibleDataTypes } from './ports.js';
 
-describe('@virtual-planet/graph canonicalDataType', () => {
+describe('@world-lab/graph canonicalDataType', () => {
 	it('folds WGSL long-form and alias spellings to short aliases', () => {
 		expect(canonicalDataType('vec2<f32>')).toBe('vec2f');
 		expect(canonicalDataType('vec2< f32 >')).toBe('vec2f');
@@ -35,7 +35,7 @@ describe('@virtual-planet/graph canonicalDataType', () => {
 	});
 });
 
-describe('@virtual-planet/graph primitive port canonical guard', () => {
+describe('@world-lab/graph primitive port canonical guard', () => {
 	it('registers every primitive port dataType in canonical form', () => {
 		for (const primitive of listPrimitives()) {
 			for (const port of [...primitive.inputs, ...primitive.outputs]) {

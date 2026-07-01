@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument, pipelineFieldOutput } from '@virtual-planet/graph';
+import { effectiveGraphDocument, pipelineFieldOutput } from '@world-lab/graph';
 
 import { assembleFullscreenFragmentModuleAsync } from '../src/consumers/fullscreenFragment.js';
 import { assemblePlaneScalarPreviewShader } from '../src/consumers/planeScalarPreview.js';

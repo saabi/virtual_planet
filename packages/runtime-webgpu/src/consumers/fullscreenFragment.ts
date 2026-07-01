@@ -1,5 +1,5 @@
-import { assembleStageEntry, compileGraph, type BindingDecl, type WgslModuleResolver } from '@virtual-planet/compiler';
-import type { GraphDocument, PortRef, ProceduralConsumer } from '@virtual-planet/graph';
+import { assembleStageEntry, compileGraph, type BindingDecl, type WgslModuleResolver } from '@world-lab/compiler';
+import type { GraphDocument, PortRef, ProceduralConsumer } from '@world-lab/graph';
 
 import { alignTo, rgba8BufferByteLength } from '../buffers.js';
 import {

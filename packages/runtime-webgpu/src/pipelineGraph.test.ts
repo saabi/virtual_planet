@@ -1,6 +1,6 @@
-import '@virtual-planet/graph';
+import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@virtual-planet/graph';
+import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@world-lab/graph';
 
 import {
 	geometryCacheFingerprint,
@@ -169,7 +169,7 @@ function pipelineGraph(params?: Record<string, unknown>): GraphDocument {
 	};
 }
 
-describe('@virtual-planet/runtime-webgpu pipeline graph', () => {
+describe('@world-lab/runtime-webgpu pipeline graph', () => {
 	it('plans the S0 pipeline via the generic geometry source role', () => {
 		expect(planPipelineGraph(pipelineGraph())).toEqual({
 			geometryNode: 'n_plane',
