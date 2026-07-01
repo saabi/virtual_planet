@@ -12,6 +12,7 @@
 
 	let searchQuery = $state('');
 	let inputEl = $state<HTMLInputElement | null>(null);
+	let menuRoot = $state<HTMLDivElement | null>(null);
 
 	const candidates = $derived(listSwapFamily(currentPrimitiveId));
 	const filtered = $derived(filterPrimitives(candidates, searchQuery));
@@ -20,6 +21,20 @@
 		if (inputEl) {
 			inputEl.focus();
 		}
+	});
+
+	$effect(() => {
+		const root = menuRoot;
+		if (!root) return;
+
+		const onPointerDown = (event: PointerEvent) => {
+			const target = event.target;
+			if (target instanceof Node && root.contains(target)) return;
+			onclose?.();
+		};
+
+		window.addEventListener('pointerdown', onPointerDown, true);
+		return () => window.removeEventListener('pointerdown', onPointerDown, true);
 	});
 
 	function select(primitive: NodePrimitive) {
@@ -40,7 +55,13 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="swap-menu nodrag nopan" role="dialog" aria-label="Replace node" onkeydown={onKeydown}>
+<div
+	bind:this={menuRoot}
+	class="swap-menu nodrag nopan"
+	role="dialog"
+	aria-label="Replace node"
+	onkeydown={onKeydown}
+>
 	<input
 		bind:this={inputEl}
 		class="search nodrag nopan"

@@ -21,14 +21,9 @@ is still open.
 
 ## Active
 
-_(none claimed — add tasks below as briefs are pinned.)_
+- **Swap menu closes on click-outside** — Claimed by: Auto · Status: DONE _(pending commit)_
 
 ## Ready to route
-
-- **Swap menu closes on click-outside** — the node-swap menu only closes on Escape/select;
-  add a capture-phase `window` pointerdown listener that closes it on an outside click. Owns
-  `NodeSwapMenu.svelte`.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-swap-menu-click-outside.md`  ·  Claimed by: Auto
 
 - **Vector combine/append primitives** — nodes to build larger vectors from smaller ones +
   scalars (`vec3f,f32 → vec4f`, `vec2f,f32 → vec3f`, `vec2f,vec2f → vec4f`, `vec2f,f32,f32 →
