@@ -165,6 +165,84 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 		expect(doc.edges).toHaveLength(1);
 	});
 
+	it('replaces an existing edge when connecting to an occupied non-list input', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 100, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 200, y: 0 }
+		});
+
+		const first = doc.nodes[0]!;
+		const second = doc.nodes[1]!;
+		const third = doc.nodes[2]!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: first.id, port: 'value' },
+			to: { node: second.id, port: 'x' }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: third.id, port: 'value' },
+			to: { node: second.id, port: 'x' }
+		});
+
+		expect(doc.edges).toHaveLength(1);
+		expect(doc.edges[0]?.from).toEqual({ node: third.id, port: 'value' });
+		expect(doc.edges[0]?.to).toEqual({ node: second.id, port: 'x' });
+	});
+
+	it('keeps multiple edges on list inputs when adding connections', () => {
+		let doc = emptyDoc();
+		doc = {
+			...doc,
+			nodes: [
+				{
+					id: 'n_a',
+					primitive: 'constant.f32',
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_b',
+					primitive: 'constant.f32',
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_sum',
+					primitive: 'test.listSum',
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'list<f32>' }],
+					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
+				}
+			]
+		};
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: 'n_a', port: 'value' },
+			to: { node: 'n_sum', port: 'vals' }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: 'n_b', port: 'value' },
+			to: { node: 'n_sum', port: 'vals' }
+		});
+
+		expect(doc.edges).toHaveLength(2);
+		expect(doc.edges.every((edge) => edge.to.port === 'vals')).toBe(true);
+	});
+
 	it('removes edges when removing a node', () => {
 		let doc = applyEditIntent(emptyDoc(), {
 			kind: 'add-node',

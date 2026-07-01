@@ -50,4 +50,12 @@ describe('graphValidation', () => {
 		expect(issueFocusTarget(issue)).toEqual({ nodeId: 'n1' });
 		expect(countValidationSeverity([issue])).toEqual({ errors: 1, warnings: 0 });
 	});
+
+	it('formats multiple-inputs issues and highlights the port', () => {
+		const issue = { kind: 'multiple-inputs' as const, node: 'n_display', port: 'color', count: 2 };
+		expect(formatValidationIssue(issue)).toContain('n_display.color');
+		expect(issueFocusTarget(issue)).toEqual({ nodeId: 'n_display' });
+		const index = buildValidationHighlightIndex([issue]);
+		expect(index.ports.get('n_display:color')).toBe('error');
+	});
 });

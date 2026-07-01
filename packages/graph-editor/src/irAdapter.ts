@@ -294,9 +294,18 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 					`Invalid connection: ${validation.issues.map((issue) => issue.kind).join(', ')}`
 				);
 			}
+			const toNode = doc.nodes.find((node) => node.id === intent.to.node);
+			const toPort = toNode?.inputs.find((port) => port.id === intent.to.port);
+			const edges =
+				toPort && !toPort.dataType.startsWith('list<')
+					? doc.edges.filter(
+							(edge) =>
+								!(edge.to.node === intent.to.node && edge.to.port === intent.to.port)
+						)
+					: doc.edges;
 			return {
 				...doc,
-				edges: [...doc.edges, { id: nextEdgeId(), from: intent.from, to: intent.to }]
+				edges: [...edges, { id: nextEdgeId(), from: intent.from, to: intent.to }]
 			};
 		}
 		case 'remove-edge': {

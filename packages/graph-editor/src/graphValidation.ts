@@ -84,6 +84,10 @@ export function buildValidationHighlightIndex(issues: ValidationIssue[]): Valida
 			case 'bad-direction':
 				edges.add(issue.edge);
 				break;
+			case 'multiple-inputs':
+				markPort(issue.node, issue.port, severity);
+				markNode(issue.node, severity);
+				break;
 			default: {
 				const _exhaustive: never = issue;
 				void _exhaustive;
@@ -114,6 +118,8 @@ export function formatValidationIssue(issue: ValidationIssue): string {
 			return `Edge ${issue.edge}: space mismatch ${issue.from} → ${issue.to}`;
 		case 'bad-direction':
 			return `Edge ${issue.edge}: invalid ${issue.end} port direction`;
+		case 'multiple-inputs':
+			return `Input ${issue.node}.${issue.port} has ${issue.count} incoming edges (max 1)`;
 		default: {
 			const _exhaustive: never = issue;
 			return String(_exhaustive);
@@ -129,6 +135,7 @@ export function issueFocusTarget(
 		case 'unresolved-primitive':
 		case 'dangling-node':
 		case 'no-output-path':
+		case 'multiple-inputs':
 			return { nodeId: issue.node };
 		case 'unknown-node':
 		case 'unknown-port':

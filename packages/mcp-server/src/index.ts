@@ -61,6 +61,8 @@ function formatValidationIssue(issue: ValidationIssue): string {
 			return `no-output-path: output ${issue.output}, ${issue.node}.${issue.port}`;
 		case 'dangling-node':
 			return `dangling-node: node ${issue.node}`;
+		case 'multiple-inputs':
+			return `multiple-inputs: node ${issue.node}, port ${issue.port}, count ${issue.count}`;
 		default:
 			return JSON.stringify(issue);
 	}
