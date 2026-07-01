@@ -212,11 +212,11 @@ export class WaterPass {
 			]
 		});
 		this.depthDebugBindGroup = device.createBindGroup({
+			// fs_depth_debug only samples scene_depth (group 1); it never reads `eclipse`,
+			// so binding 1 isn't part of this pipeline's auto-derived @group(0) layout —
+			// only include what's actually referenced (binding 0, vertex-only).
 			layout: this.depthDebugPipeline.getBindGroupLayout(0),
-			entries: [
-				{ binding: 0, resource: { buffer: this.ubuf } },
-				{ binding: 1, resource: { buffer: this.eclipseBuf } }
-			]
+			entries: [{ binding: 0, resource: { buffer: this.ubuf } }]
 		});
 	}
 
