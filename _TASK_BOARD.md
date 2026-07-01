@@ -25,6 +25,13 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
+- **🔴 Unique node/edge ids** — `nextNodeId`/`nextEdgeId` use module-global counters never
+  seeded from a loaded graph → add/paste after load mints colliding ids (observed duplicate
+  `n_noise_worley2d_4` + edge ids). Mint doc-aware unique ids; re-id duplicates on load;
+  `duplicate-id` validation rule. Owns `irAdapter.ts`, `documentStorage.ts`, `graph/validate.ts`,
+  issue formatters. **Coordinate `irAdapter.ts`.**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-unique-node-edge-ids.md`  ·  Claimed by: UNCLAIMED
+
 - **🔴 Multi-target consumer/output derivation** — `f858fe4` fixed the preview *list* but
   `effectiveConsumers`/`effectiveOutputs` still collapse two `target.display` sinks into one
   (shared `pipeline_image` name → identical `consumerKey`). Name the derived output/consumer
