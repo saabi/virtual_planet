@@ -4,6 +4,12 @@ const GRAPH_CANVAS_CONTEXT = Symbol('graph-canvas-context');
 
 export interface GraphCanvasContext {
 	onReplacePrimitive: (nodeId: string, primitiveId: string) => void;
+	onAddConnectedNode: (args: {
+		source: { node: string; port: string };
+		sourceDirection: 'in' | 'out';
+		primitiveId: string;
+		position: { x: number; y: number };
+	}) => void;
 }
 
 export function setGraphCanvasContext(context: GraphCanvasContext): void {

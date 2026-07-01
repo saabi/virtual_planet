@@ -16,6 +16,7 @@ export * from './dataType.js';
 export * from './portDefaults.js';
 export * from './paramInputs.js';
 export * from './contract.js';
+export * from './portMatch.js';
 export {
 	PIPELINE_IMAGE_OUTPUT_NAME,
 	derivePipelineConsumers,

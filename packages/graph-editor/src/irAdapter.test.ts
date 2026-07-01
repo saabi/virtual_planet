@@ -498,4 +498,50 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 		});
 		expect(doc.edges).toHaveLength(3);
 	});
+
+	it('add-connected-node wires downstream from an output port', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'vector.vec4f',
+			position: { x: 0, y: 0 }
+		});
+		const source = doc.nodes[0]!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-connected-node',
+			primitiveId: 'vector.vec4f.x',
+			position: { x: 220, y: 0 },
+			source: { node: source.id, port: 'value' },
+			sourceDirection: 'out'
+		});
+
+		expect(doc.nodes).toHaveLength(2);
+		expect(doc.edges).toHaveLength(1);
+		expect(doc.edges[0]?.from).toEqual({ node: source.id, port: 'value' });
+		expect(doc.edges[0]?.to.port).toBe('value');
+		expect(fullValidation(doc).ok).toBe(true);
+	});
+
+	it('add-connected-node wires upstream from an input port', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 220, y: 0 }
+		});
+		const target = doc.nodes[0]!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-connected-node',
+			primitiveId: 'constant.f32',
+			position: { x: 0, y: 0 },
+			source: { node: target.id, port: 'x' },
+			sourceDirection: 'in'
+		});
+
+		expect(doc.nodes).toHaveLength(2);
+		expect(doc.edges).toHaveLength(1);
+		expect(doc.edges[0]?.from.port).toBe('value');
+		expect(doc.edges[0]?.to).toEqual({ node: target.id, port: 'x' });
+		expect(fullValidation(doc).ok).toBe(true);
+	});
 });

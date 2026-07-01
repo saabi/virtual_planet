@@ -50,6 +50,17 @@
 			onchange?.(
 				applyEditIntent(graph, { kind: 'replace-node-primitive', nodeId, primitiveId })
 			);
+		},
+		onAddConnectedNode({ source, sourceDirection, primitiveId, position }) {
+			onchange?.(
+				applyEditIntent(graph, {
+					kind: 'add-connected-node',
+					primitiveId,
+					position,
+					source,
+					sourceDirection
+				})
+			);
 		}
 	});
 

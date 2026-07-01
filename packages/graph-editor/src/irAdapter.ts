@@ -38,7 +38,14 @@ export type GraphEditIntent =
 	| { kind: 'remove-edge'; edgeId: string }
 	| { kind: 'move-node'; nodeId: string; position: { x: number; y: number } }
 	| { kind: 'set-params'; nodeId: string; params: Record<string, unknown> }
-	| { kind: 'replace-node-primitive'; nodeId: string; primitiveId: string };
+	| { kind: 'replace-node-primitive'; nodeId: string; primitiveId: string }
+	| {
+			kind: 'add-connected-node';
+			primitiveId: string;
+			position: { x: number; y: number };
+			source: PortRef;
+			sourceDirection: 'in' | 'out';
+	  };
 
 let nodeCounter = 0;
 let edgeCounter = 0;
@@ -343,6 +350,71 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const validOutputPorts = new Set(replaced.outputs.map((port) => port.id));
 			const { outputs, consumers } = pruneOutputsAndConsumers(nextDoc, intent.nodeId, validOutputPorts);
 			return { ...nextDoc, edges, outputs, consumers };
+		}
+		case 'add-connected-node': {
+			const sourceNode = doc.nodes.find((node) => node.id === intent.source.node);
+			if (!sourceNode) {
+				throw new Error(`Unknown node: ${intent.source.node}`);
+			}
+
+			const node = createNode(intent.primitiveId, intent.position);
+			const nextDoc: GraphDocument = { ...doc, nodes: [...doc.nodes, node] };
+
+			let from: PortRef;
+			let to: PortRef;
+
+			if (intent.sourceDirection === 'out') {
+				const sourcePort = findOutputPort(sourceNode, intent.source.port);
+				if (!sourcePort) {
+					throw new Error(`Unknown port: ${intent.source.port} on ${intent.source.node}`);
+				}
+				const targetPort = node.inputs.find((port) =>
+					compatibleDataTypes(sourcePort.dataType, port.dataType)
+				);
+				if (!targetPort) {
+					throw new Error(
+						`No compatible input on ${intent.primitiveId} for ${sourcePort.dataType}`
+					);
+				}
+				from = intent.source;
+				to = { node: node.id, port: targetPort.id };
+			} else {
+				const sourcePort = findInputPort(sourceNode, intent.source.port);
+				if (!sourcePort) {
+					throw new Error(`Unknown port: ${intent.source.port} on ${intent.source.node}`);
+				}
+				const targetPort = node.outputs.find((port) =>
+					compatibleDataTypes(port.dataType, sourcePort.dataType)
+				);
+				if (!targetPort) {
+					throw new Error(
+						`No compatible output on ${intent.primitiveId} for ${sourcePort.dataType}`
+					);
+				}
+				from = { node: node.id, port: targetPort.id };
+				to = intent.source;
+			}
+
+			const validation = validateConnection(nextDoc, from, to);
+			if (!validation.ok) {
+				throw new Error(
+					`Invalid connection: ${validation.issues.map((issue) => issue.kind).join(', ')}`
+				);
+			}
+
+			const toNode = nextDoc.nodes.find((candidate) => candidate.id === to.node);
+			const toPort = toNode?.inputs.find((port) => port.id === to.port);
+			const edges =
+				toPort && !toPort.dataType.startsWith('list<')
+					? nextDoc.edges.filter(
+							(edge) => !(edge.to.node === to.node && edge.to.port === to.port)
+						)
+					: nextDoc.edges;
+
+			return {
+				...nextDoc,
+				edges: [...edges, { id: nextEdgeId(), from, to }]
+			};
 		}
 		default: {
 			const _exhaustive: never = intent;

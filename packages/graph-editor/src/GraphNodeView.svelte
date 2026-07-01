@@ -1,20 +1,36 @@
 <script module lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
+	import {
+		compatibleConsumers,
+		compatibleProducers,
+		type PortMatch
+	} from '@virtual-planet/graph';
 	import type { FlowNodeData } from './irAdapter.js';
 </script>
 
 <script lang="ts">
 	import NodeSwapMenu from './NodeSwapMenu.svelte';
+	import PortConnectMenu from './PortConnectMenu.svelte';
 	import { getGraphCanvasContext } from './graphCanvasContext.js';
 	import { inputHandleId, outputHandleId } from './portHandles.js';
 
-	let { id, data, selected }: NodeProps = $props();
+	const CONNECT_OFFSET_X = 220;
+
+	let { id, data, selected, position }: NodeProps = $props();
 
 	const nodeData = $derived(data as FlowNodeData);
 	const canvasContext = getGraphCanvasContext();
 
 	let menuOpen = $state(false);
 	let titlePointerDown: { x: number; y: number } | null = $state(null);
+
+	type ConnectMenuState = {
+		portId: string;
+		direction: 'in' | 'out';
+		matches: PortMatch[];
+	};
+
+	let connectMenu = $state<ConnectMenuState | null>(null);
 
 	function onTitlePointerDown(event: PointerEvent) {
 		titlePointerDown = { x: event.clientX, y: event.clientY };
@@ -27,6 +43,7 @@
 		titlePointerDown = null;
 		if (dx * dx + dy * dy > 9) return;
 		event.stopPropagation();
+		connectMenu = null;
 		menuOpen = !menuOpen;
 	}
 
@@ -34,6 +51,7 @@
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			event.stopPropagation();
+			connectMenu = null;
 			menuOpen = !menuOpen;
 		}
 	}
@@ -42,8 +60,44 @@
 		menuOpen = false;
 	}
 
+	function closeConnectMenu() {
+		connectMenu = null;
+	}
+
 	function replacePrimitive(primitiveId: string) {
 		canvasContext.onReplacePrimitive(id, primitiveId);
+	}
+
+	function onPortContextMenu(
+		event: MouseEvent,
+		portId: string,
+		direction: 'in' | 'out',
+		dataType: string
+	) {
+		event.preventDefault();
+		event.stopPropagation();
+		menuOpen = false;
+		const matches =
+			direction === 'out'
+				? compatibleConsumers(dataType)
+				: compatibleProducers(dataType);
+		connectMenu = { portId, direction, matches };
+	}
+
+	function connectPrimitive(primitiveId: string) {
+		if (!connectMenu) return;
+		const nodePosition = position ?? { x: 0, y: 0 };
+		const placement =
+			connectMenu.direction === 'out'
+				? { x: nodePosition.x + CONNECT_OFFSET_X, y: nodePosition.y }
+				: { x: nodePosition.x - CONNECT_OFFSET_X, y: nodePosition.y };
+		canvasContext.onAddConnectedNode({
+			source: { node: id, port: connectMenu.portId },
+			sourceDirection: connectMenu.direction,
+			primitiveId,
+			position: placement
+		});
+		closeConnectMenu();
 	}
 </script>
 
@@ -78,33 +132,57 @@
 	<div class="ports">
 		<div class="inputs">
 			{#each nodeData.inputs as input (input.id)}
-				<div
-					class="port in"
-					class:issue-error={nodeData.inputIssues?.[input.id] === 'error'}
-					class:issue-warning={nodeData.inputIssues?.[input.id] === 'warning'}
-				>
-					<Handle
-						type="target"
-						position={Position.Left}
-						id={inputHandleId(input.id)}
-						style="top: auto; position: relative; transform: none;"
-					/>
-					<span>{input.name}</span>
-					<span class="type">{input.dataType}</span>
+				<div class="port-wrap">
+					<div
+						class="port in"
+						class:issue-error={nodeData.inputIssues?.[input.id] === 'error'}
+						class:issue-warning={nodeData.inputIssues?.[input.id] === 'warning'}
+						oncontextmenu={(event) =>
+							onPortContextMenu(event, input.id, 'in', input.dataType)}
+					>
+						<Handle
+							type="target"
+							position={Position.Left}
+							id={inputHandleId(input.id)}
+							style="top: auto; position: relative; transform: none;"
+						/>
+						<span>{input.name}</span>
+						<span class="type">{input.dataType}</span>
+					</div>
+					{#if connectMenu?.portId === input.id && connectMenu.direction === 'in'}
+						<PortConnectMenu
+							matches={connectMenu.matches}
+							onselect={connectPrimitive}
+							onclose={closeConnectMenu}
+						/>
+					{/if}
 				</div>
 			{/each}
 		</div>
 		<div class="outputs">
 			{#each nodeData.outputs as output (output.id)}
-				<div class="port out">
-					<span class="type">{output.dataType}</span>
-					<span>{output.name}</span>
-					<Handle
-						type="source"
-						position={Position.Right}
-						id={outputHandleId(output.id)}
-						style="top: auto; position: relative; transform: none;"
-					/>
+				<div class="port-wrap">
+					<div
+						class="port out"
+						oncontextmenu={(event) =>
+							onPortContextMenu(event, output.id, 'out', output.dataType)}
+					>
+						<span class="type">{output.dataType}</span>
+						<span>{output.name}</span>
+						<Handle
+							type="source"
+							position={Position.Right}
+							id={outputHandleId(output.id)}
+							style="top: auto; position: relative; transform: none;"
+						/>
+					</div>
+					{#if connectMenu?.portId === output.id && connectMenu.direction === 'out'}
+						<PortConnectMenu
+							matches={connectMenu.matches}
+							onselect={connectPrimitive}
+							onclose={closeConnectMenu}
+						/>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -182,10 +260,15 @@
 		gap: 6px;
 	}
 
+	.port-wrap {
+		position: relative;
+	}
+
 	.port {
 		display: flex;
 		align-items: center;
 		gap: 4px;
+		cursor: context-menu;
 	}
 
 	.port.in {
