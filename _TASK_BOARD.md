@@ -32,6 +32,12 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `graph-editor`/`mcp-server`. **Coordinate `irAdapter.ts` with port-quick-connect.**
   Brief: `_docs/architecture/procedural-graph/briefs/M-single-input-fan-in.md`  ·  Claimed by: UNCLAIMED
 
+- **Preview lists every render target** — a graph with two `target.display` sinks lists only
+  one preview buffer: `enumeratePreviewBuffers` keys by field-output, so two targets sharing a
+  field collapse. Key pipeline buffers by the sink node id (one buffer per sink). Owns
+  `previewBuffers.ts`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-multi-target.md`  ·  Claimed by: UNCLAIMED
+
 - **Port quick-connect (right-click a port → add compatible connected node)** — right-click an
   output port → menu of type-compatible consumers; input port → compatible producers; select →
   node added and wired. New `compatibleConsumers`/`compatibleProducers` (graph) +
