@@ -6,7 +6,7 @@
 multi-target derivation ✅ (`b49d897`) · **Design authority:** `pipeline-as-graph.md` ·
 **Contract author:** Opus · **Recommended executor:** Cursor.
 
-**Status:** DONE `<hash>`
+**Status:** DONE `628da75`
 
 ## Problem
 
