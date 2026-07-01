@@ -8,6 +8,69 @@ import {
 	planPipelineGraph
 } from './pipelineGraph.js';
 
+function dualTargetPipelineGraph(): GraphDocument {
+	const fieldA = portRef('n_field_a', 'vector.vec4f', 'out', 0);
+	const fieldB = portRef('n_field_b', 'vector.vec4f', 'out', 0);
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_plane', 'geometry.fullscreenPlane'),
+			snapshotNode('n_persist', 'buffer.persist'),
+			snapshotNode('n_vertex', 'stage.vertex'),
+			snapshotNode('n_fragment_a', 'stage.fragment'),
+			snapshotNode('n_fragment_b', 'stage.fragment'),
+			snapshotNode('n_display_a', 'target.display'),
+			snapshotNode('n_display_b', 'target.display'),
+			snapshotNode('n_field_a', 'vector.vec4f'),
+			snapshotNode('n_field_b', 'vector.vec4f')
+		],
+		edges: [
+			{
+				id: 'e_plane_persist',
+				from: portRef('n_plane', 'geometry.fullscreenPlane', 'out', 0),
+				to: portRef('n_persist', 'buffer.persist', 'in', 0)
+			},
+			{
+				id: 'e_persist_vertex',
+				from: portRef('n_persist', 'buffer.persist', 'out', 0),
+				to: portRef('n_vertex', 'stage.vertex', 'in', 0)
+			},
+			{
+				id: 'e_vertex_fragment_a',
+				from: portRef('n_vertex', 'stage.vertex', 'out', 0),
+				to: portRef('n_fragment_a', 'stage.fragment', 'in', 0)
+			},
+			{
+				id: 'e_vertex_fragment_b',
+				from: portRef('n_vertex', 'stage.vertex', 'out', 0),
+				to: portRef('n_fragment_b', 'stage.fragment', 'in', 0)
+			},
+			{
+				id: 'e_field_a_fragment_a',
+				from: fieldA,
+				to: portRef('n_fragment_a', 'stage.fragment', 'in', 1)
+			},
+			{
+				id: 'e_field_b_fragment_b',
+				from: fieldB,
+				to: portRef('n_fragment_b', 'stage.fragment', 'in', 1)
+			},
+			{
+				id: 'e_fragment_a_display_a',
+				from: portRef('n_fragment_a', 'stage.fragment', 'out', 0),
+				to: portRef('n_display_a', 'target.display', 'in', 0)
+			},
+			{
+				id: 'e_fragment_b_display_b',
+				from: portRef('n_fragment_b', 'stage.fragment', 'out', 0),
+				to: portRef('n_display_b', 'target.display', 'in', 0)
+			}
+		],
+		outputs: [],
+		consumers: []
+	};
+}
+
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
 		id: spec.name,
@@ -116,6 +179,34 @@ describe('@virtual-planet/runtime-webgpu pipeline graph', () => {
 			fragmentStageNode: 'n_fragment',
 			displayTargetNode: 'n_display',
 			fieldOutput: { node: 'n_effect', port: 'color' }
+		});
+	});
+
+	it('plans the first display target by default on a multi-target graph', () => {
+		const graph = dualTargetPipelineGraph();
+		expect(planPipelineGraph(graph)).toMatchObject({
+			displayTargetNode: 'n_display_a',
+			fragmentStageNode: 'n_fragment_a',
+			fieldOutput: { node: 'n_field_a', port: 'value' }
+		});
+	});
+
+	it('plans the requested output field on a multi-target graph', () => {
+		const graph = dualTargetPipelineGraph();
+		const fieldB = { node: 'n_field_b', port: 'value' };
+		expect(planPipelineGraph(graph, { output: fieldB })).toMatchObject({
+			displayTargetNode: 'n_display_b',
+			fragmentStageNode: 'n_fragment_b',
+			fieldOutput: fieldB
+		});
+	});
+
+	it('plans the requested display sink on a multi-target graph', () => {
+		const graph = dualTargetPipelineGraph();
+		expect(planPipelineGraph(graph, { displayNodeId: 'n_display_b' })).toMatchObject({
+			displayTargetNode: 'n_display_b',
+			fragmentStageNode: 'n_fragment_b',
+			fieldOutput: { node: 'n_field_b', port: 'value' }
 		});
 	});
 

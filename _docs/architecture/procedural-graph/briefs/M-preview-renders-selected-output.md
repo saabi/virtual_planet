@@ -6,6 +6,8 @@
 multi-target derivation ✅ (`b49d897`) · **Design authority:** `pipeline-as-graph.md` ·
 **Contract author:** Opus · **Recommended executor:** Cursor.
 
+**Status:** DONE `<hash>`
+
 ## Problem
 
 Per-pane buffer **selection** works (each pane's tab is independent), but every pane renders

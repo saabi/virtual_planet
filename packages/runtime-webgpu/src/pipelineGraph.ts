@@ -1,5 +1,5 @@
 import type { GraphDocument, Node, PortRef } from '@virtual-planet/graph';
-import { getPrimitive, validateGraph } from '@virtual-planet/graph';
+import { derivePipelinePresentations, getPrimitive, validateGraph } from '@virtual-planet/graph';
 import type { WgslModuleResolver } from '@virtual-planet/compiler';
 
 import {
@@ -20,9 +20,18 @@ export interface PipelineGraphPlan {
 	fieldOutput: PortRef;
 }
 
+export interface PlanPipelineGraphOptions {
+	/** Field colour port to render (the fragment stage `color` input source). */
+	output?: PortRef;
+	/** Display sink node id — alternative to `output`. */
+	displayNodeId?: string;
+}
+
 export interface PipelineGraphInput {
 	device: GPUDevice;
 	graph: GraphDocument;
+	/** When set, render this field instead of the first pipeline display target. */
+	output?: PortRef;
 	resolver?: WgslModuleResolver;
 	width: number;
 	height: number;
@@ -100,7 +109,104 @@ function findPipelineGeometrySource(doc: GraphDocument, persist: Node): Node {
 	return geometry;
 }
 
-export function planPipelineGraph(doc: GraphDocument): PipelineGraphPlan {
+function portRefKey(ref: PortRef): string {
+	return `${ref.node}:${ref.port}`;
+}
+
+function resolveVertexForFragment(doc: GraphDocument, fragmentStageNode: string): Node {
+	const varyingsEdge = incoming(doc, fragmentStageNode, 'varyings');
+	if (!varyingsEdge) {
+		throw new Error(`Pipeline fragment ${fragmentStageNode} is missing its varyings input`);
+	}
+	const vertex = doc.nodes.find((candidate) => candidate.id === varyingsEdge.from.node);
+	if (!vertex || vertex.primitive !== 'stage.vertex') {
+		throw new Error(`Pipeline graph is missing stage.vertex for fragment ${fragmentStageNode}`);
+	}
+	return vertex;
+}
+
+function resolvePipelineTarget(
+	doc: GraphDocument,
+	options: PlanPipelineGraphOptions = {}
+): { displayTargetNode: string; fragmentStageNode: string; fieldOutput: PortRef } {
+	if (options.output || options.displayNodeId) {
+		const presentations = derivePipelinePresentations(doc);
+		const match = options.displayNodeId
+			? presentations.find((candidate) => candidate.displayNodeId === options.displayNodeId)
+			: presentations.find(
+					(candidate) => portRefKey(candidate.fieldOutput) === portRefKey(options.output!)
+				);
+
+		if (match) {
+			const toDisplay = incoming(doc, match.displayNodeId, 'color');
+			if (!toDisplay || toDisplay.from.port !== 'texture') {
+				throw new Error(`Pipeline display ${match.displayNodeId} is missing its fragment texture input`);
+			}
+			return {
+				displayTargetNode: match.displayNodeId,
+				fragmentStageNode: toDisplay.from.node,
+				fieldOutput: match.fieldOutput
+			};
+		}
+
+		if (options.output) {
+			const colorEdge = doc.edges.find(
+				(edge) =>
+					edge.to.port === 'color' && portRefKey(edge.from) === portRefKey(options.output!)
+			);
+			if (!colorEdge) {
+				throw new Error(`No pipeline fragment consumes output ${portRefKey(options.output)}`);
+			}
+			const displayEdge = doc.edges.find(
+				(edge) => edge.from.node === colorEdge.to.node && edge.from.port === 'texture'
+			);
+			if (!displayEdge) {
+				throw new Error(`Pipeline fragment ${colorEdge.to.node} is not wired to a display target`);
+			}
+			return {
+				displayTargetNode: displayEdge.to.node,
+				fragmentStageNode: colorEdge.to.node,
+				fieldOutput: options.output
+			};
+		}
+
+		throw new Error(`No pipeline presentation for display ${options.displayNodeId}`);
+	}
+
+	const presentation = derivePipelinePresentations(doc)[0];
+	if (presentation) {
+		const toDisplay = incoming(doc, presentation.displayNodeId, 'color');
+		if (!toDisplay || toDisplay.from.port !== 'texture') {
+			throw new Error(`Pipeline display ${presentation.displayNodeId} is missing its fragment texture input`);
+		}
+		return {
+			displayTargetNode: presentation.displayNodeId,
+			fragmentStageNode: toDisplay.from.node,
+			fieldOutput: presentation.fieldOutput
+		};
+	}
+
+	const display = findNode(doc, 'target.display');
+	const toDisplay = incoming(doc, display.id, 'color');
+	if (!toDisplay || toDisplay.from.port !== 'texture') {
+		throw new Error('Pipeline display is missing its fragment texture input');
+	}
+	const fragmentStageNode = toDisplay.from.node;
+	const fieldEdge = incoming(doc, fragmentStageNode, 'color');
+	if (!fieldEdge) {
+		throw new Error('Pipeline graph fragment stage is missing its field color input');
+	}
+	return {
+		displayTargetNode: display.id,
+		fragmentStageNode,
+		fieldOutput: fieldEdge.from
+	};
+}
+
+export function planPipelineGraph(
+	doc: GraphDocument,
+	options: PlanPipelineGraphOptions = {}
+): PipelineGraphPlan {
 	const validation = validateGraph(doc);
 	if (!validation.ok) {
 		throw new Error(`Pipeline graph failed validation: ${validation.issues[0]?.kind ?? 'unknown'}`);
@@ -108,19 +214,22 @@ export function planPipelineGraph(doc: GraphDocument): PipelineGraphPlan {
 
 	const persist = findNode(doc, 'buffer.persist');
 	const geometry = findPipelineGeometrySource(doc, persist);
-	const vertex = findNode(doc, 'stage.vertex');
-	const fragment = findNode(doc, 'stage.fragment');
-	const display = findNode(doc, 'target.display');
+	const target = resolvePipelineTarget(doc, options);
+	const vertex = resolveVertexForFragment(doc, target.fragmentStageNode);
+	const fragment = doc.nodes.find((candidate) => candidate.id === target.fragmentStageNode);
+	if (!fragment || fragment.primitive !== 'stage.fragment') {
+		throw new Error(`Pipeline graph is missing stage.fragment for display ${target.displayTargetNode}`);
+	}
 
 	requireEdge(doc, { node: geometry.id, port: 'mesh' }, { node: persist.id, port: 'in' });
 	requireEdge(doc, { node: persist.id, port: 'out' }, { node: vertex.id, port: 'mesh' });
 	requireEdge(doc, { node: vertex.id, port: 'varyings' }, { node: fragment.id, port: 'varyings' });
-	requireEdge(doc, { node: fragment.id, port: 'texture' }, { node: display.id, port: 'color' });
-
-	const fieldEdge = incoming(doc, fragment.id, 'color');
-	if (!fieldEdge) {
-		throw new Error('Pipeline graph fragment stage is missing its field color input');
-	}
+	requireEdge(
+		doc,
+		{ node: fragment.id, port: 'texture' },
+		{ node: target.displayTargetNode, port: 'color' }
+	);
+	requireEdge(doc, target.fieldOutput, { node: fragment.id, port: 'color' });
 
 	return {
 		geometryNode: geometry.id,
@@ -128,8 +237,8 @@ export function planPipelineGraph(doc: GraphDocument): PipelineGraphPlan {
 		persistNode: persist.id,
 		vertexStageNode: vertex.id,
 		fragmentStageNode: fragment.id,
-		displayTargetNode: display.id,
-		fieldOutput: fieldEdge.from
+		displayTargetNode: target.displayTargetNode,
+		fieldOutput: target.fieldOutput
 	};
 }
 
@@ -137,7 +246,10 @@ export class PipelineGraphExecutor {
 	readonly cache = new PipelineGraphResourceCache();
 
 	async execute(input: PipelineGraphInput): Promise<FullscreenFragmentResult> {
-		const plan = planPipelineGraph(input.graph);
+		const plan = planPipelineGraph(
+			input.graph,
+			input.output ? { output: input.output } : {}
+		);
 		this.cache.realizeGeometry(geometryCacheFingerprint(input.graph, plan));
 		return executeFullscreenFragment({
 			device: input.device,

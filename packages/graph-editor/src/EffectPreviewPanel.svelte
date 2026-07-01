@@ -50,6 +50,7 @@
 		void refreshEpoch;
 		void compileSignature;
 		void graph;
+		void output;
 		startTime = performance.now();
 
 		if (!canvas || !output || blockMessage) return;
@@ -85,6 +86,7 @@
 						const result = await executor.execute({
 							device,
 							graph,
+							output,
 							width: size,
 							height: size,
 							host
