@@ -53,7 +53,7 @@ describe('graph-editor samples registry', () => {
 		const graph = getGraphSample('pipeline-worley-time')!.build();
 		expect(validateGraph(graph).ok).toBe(true);
 		expect(graph.nodes.some((node) => node.primitive === 'noise.worley2d')).toBe(true);
-		expect(graph.edges.some((edge) => edge.id === 'e_mul_add_a')).toBe(true);
+		expect(graph.edges.some((edge) => edge.id === 'e_worley_v4_2x')).toBe(true);
 	});
 });
 

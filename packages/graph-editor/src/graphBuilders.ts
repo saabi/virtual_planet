@@ -2,6 +2,7 @@ import '@virtual-planet/graph';
 import {
 	getPrimitive,
 	pipelineFieldOutput,
+	type Edge,
 	type GraphDocument,
 	type Node,
 	type Port,
@@ -52,102 +53,83 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 	return { node: nodeId, port: port.name };
 }
 
+function edge(
+	id: string,
+	fromNode: string,
+	fromPrimitive: string,
+	toNode: string,
+	toPrimitive: string,
+	fromIndex: number,
+	toIndex: number
+): Edge {
+	return {
+		id,
+		from: portRef(fromNode, fromPrimitive, 'out', fromIndex),
+		to: portRef(toNode, toPrimitive, 'in', toIndex)
+	};
+}
+
 /** ShaderToy-style pipeline: scaled fragCoord + iTime → Worley → vec4 fragment color. */
 export function animatedWorleyPipelineGraph(): GraphDocument {
 	return {
 		version: '1',
 		nodes: [
-			snapshotNode('n_plane', 'geometry.plane', { x: 49.24, y: -44.89 }, { resU: 2, resV: 2 }),
-			snapshotNode('n_persist', 'buffer.persist', { x: 261.07, y: -46.62 }),
-			snapshotNode('n_vertex', 'stage.vertex', { x: 634, y: 19.35 }),
-			snapshotNode('n_fragment', 'stage.fragment', { x: 840.28, y: 85.54 }),
-			snapshotNode('n_display', 'target.display', { x: 1034.73, y: 113.82 }),
-			snapshotNode('n_frag', 'host.fragCoord', { x: -207.46, y: 23.94 }),
-			snapshotNode('n_vector_vec4f_2', 'vector.vec4f', { x: 632.67, y: 98.23 }),
-			snapshotNode('n_constant_f32_1', 'constant.f32', { x: 431.65, y: 172.5 }, { value: 1 }),
-			snapshotNode('n_noise_worley2d_4', 'noise.worley2d', { x: 432.78, y: 85.81 }),
-			snapshotNode('n_constant_f32_5', 'constant.f32', { x: -207.78, y: 91.47 }, { value: 0.01 }),
-			snapshotNode('n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', { x: 32.68, y: 24.76 }),
-			snapshotNode('n_host_iTime_7', 'host.iTime', { x: -198.51, y: 169.09 }),
-			snapshotNode('n_vector_vec2f_8', 'vector.vec2f', { x: 30.24, y: 122.01 }),
-			snapshotNode('n_vector_add_vec2f_1', 'vector.add.vec2f', { x: 233.17, y: 76.9 })
+			snapshotNode('n_plane', 'geometry.plane', { x: 361, y: -74 }, { resU: 2, resV: 2 }),
+			snapshotNode('n_persist', 'buffer.persist', { x: 573, y: -48 }),
+			snapshotNode('n_vertex', 'stage.vertex', { x: 815, y: 32 }),
+			snapshotNode('n_fragment', 'stage.fragment', { x: 1046, y: 140 }),
+			snapshotNode('n_display', 'target.display', { x: 1242, y: 169 }),
+			snapshotNode('n_frag', 'host.fragCoord', { x: -192, y: 36 }),
+			snapshotNode('n_vector_vec4f_2', 'vector.vec4f', { x: 815, y: 180 }),
+			snapshotNode('n_constant_f32_1', 'constant.f32', { x: 586, y: 313 }, { value: 1 }),
+			snapshotNode('n_noise_worley2d_4', 'noise.worley2d', { x: 588, y: 84 }),
+			snapshotNode('n_constant_f32_5', 'constant.f32', { x: -198, y: 123 }, { value: 0.02 }),
+			snapshotNode('n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', { x: 11, y: 35 }),
+			snapshotNode('n_host_iTime_7', 'host.iTime', { x: -187, y: 345 }),
+			snapshotNode('n_vector_vec2f_8', 'vector.vec2f', { x: 11, y: 122 }),
+			snapshotNode('n_vector_add_vec2f_1', 'vector.add.vec2f', { x: 392, y: 58 }),
+			snapshotNode('n_noise_perlin2d_5', 'noise.perlin2d', { x: 589, y: 158 }),
+			snapshotNode('n_noise_perlin3d_3', 'noise.perlin3d', { x: 588, y: 233 }),
+			snapshotNode('n_vector_vec2f_6', 'vector.vec2f', { x: 14, y: 212 }),
+			snapshotNode('n_vector_add_vec2f_7', 'vector.add.vec2f', { x: 396, y: 149 }),
+			snapshotNode('n_vector_vec3f_9', 'vector.vec3f', { x: 400, y: 327 }),
+			snapshotNode('n_vector_vec2f_x_10', 'vector.vec2f.x', { x: 217, y: 232 }),
+			snapshotNode('n_vector_vec2f_y_11', 'vector.vec2f.y', { x: 217, y: 305 }),
+			snapshotNode('n_stage_fragment_12', 'stage.fragment', { x: 1043, y: 260 }),
+			snapshotNode('n_vector_vec4f_3', 'vector.vec4f', { x: 815, y: 323 }),
+			snapshotNode('n_target_display_1', 'target.display', { x: 1249, y: 289 })
 		],
 		edges: [
-			{
-				id: 'e_plane_persist',
-				from: portRef('n_plane', 'geometry.plane', 'out', 0),
-				to: portRef('n_persist', 'buffer.persist', 'in', 0)
-			},
-			{
-				id: 'e_persist_vertex',
-				from: portRef('n_persist', 'buffer.persist', 'out', 0),
-				to: portRef('n_vertex', 'stage.vertex', 'in', 0)
-			},
-			{
-				id: 'e_vertex_fragment',
-				from: portRef('n_vertex', 'stage.vertex', 'out', 0),
-				to: portRef('n_fragment', 'stage.fragment', 'in', 0)
-			},
-			{
-				id: 'e_frag_mul',
-				from: portRef('n_frag', 'host.fragCoord', 'out', 0),
-				to: portRef('n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'in', 0)
-			},
-			{
-				id: 'e_scale_mul',
-				from: portRef('n_constant_f32_5', 'constant.f32', 'out', 0),
-				to: portRef('n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'in', 1)
-			},
-			{
-				id: 'e_time_vec2_x',
-				from: portRef('n_host_iTime_7', 'host.iTime', 'out', 0),
-				to: portRef('n_vector_vec2f_8', 'vector.vec2f', 'in', 0)
-			},
-			{
-				id: 'e_time_vec2_y',
-				from: portRef('n_host_iTime_7', 'host.iTime', 'out', 0),
-				to: portRef('n_vector_vec2f_8', 'vector.vec2f', 'in', 1)
-			},
-			{
-				id: 'e_mul_add_a',
-				from: portRef('n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'out', 0),
-				to: portRef('n_vector_add_vec2f_1', 'vector.add.vec2f', 'in', 0)
-			},
-			{
-				id: 'e_vec2_add_b',
-				from: portRef('n_vector_vec2f_8', 'vector.vec2f', 'out', 0),
-				to: portRef('n_vector_add_vec2f_1', 'vector.add.vec2f', 'in', 1)
-			},
-			{
-				id: 'e_add_worley',
-				from: portRef('n_vector_add_vec2f_1', 'vector.add.vec2f', 'out', 0),
-				to: portRef('n_noise_worley2d_4', 'noise.worley2d', 'in', 0)
-			},
-			{
-				id: 'e_worley_vec4_x',
-				from: portRef('n_noise_worley2d_4', 'noise.worley2d', 'out', 0),
-				to: portRef('n_vector_vec4f_2', 'vector.vec4f', 'in', 0)
-			},
-			{
-				id: 'e_worley_vec4_y',
-				from: portRef('n_noise_worley2d_4', 'noise.worley2d', 'out', 0),
-				to: portRef('n_vector_vec4f_2', 'vector.vec4f', 'in', 1)
-			},
-			{
-				id: 'e_alpha_vec4_w',
-				from: portRef('n_constant_f32_1', 'constant.f32', 'out', 0),
-				to: portRef('n_vector_vec4f_2', 'vector.vec4f', 'in', 3)
-			},
-			{
-				id: 'e_vec4_fragment',
-				from: portRef('n_vector_vec4f_2', 'vector.vec4f', 'out', 0),
-				to: portRef('n_fragment', 'stage.fragment', 'in', 1)
-			},
-			{
-				id: 'e_fragment_display',
-				from: portRef('n_fragment', 'stage.fragment', 'out', 0),
-				to: portRef('n_display', 'target.display', 'in', 0)
-			}
+			edge('e_plane_persist', 'n_plane', 'geometry.plane', 'n_persist', 'buffer.persist', 0, 0),
+			edge('e_persist_vertex', 'n_persist', 'buffer.persist', 'n_vertex', 'stage.vertex', 0, 0),
+			edge('e_vertex_frag1', 'n_vertex', 'stage.vertex', 'n_fragment', 'stage.fragment', 0, 0),
+			edge('e_frag_mul', 'n_frag', 'host.fragCoord', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 0, 0),
+			edge('e_scale_mul', 'n_constant_f32_5', 'constant.f32', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 0, 1),
+			edge('e_mul_add1_a', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'n_vector_add_vec2f_1', 'vector.add.vec2f', 0, 0),
+			edge('e_time_v2_8x', 'n_host_iTime_7', 'host.iTime', 'n_vector_vec2f_8', 'vector.vec2f', 0, 0),
+			edge('e_v2_8_add1_b', 'n_vector_vec2f_8', 'vector.vec2f', 'n_vector_add_vec2f_1', 'vector.add.vec2f', 0, 1),
+			edge('e_add1_worley', 'n_vector_add_vec2f_1', 'vector.add.vec2f', 'n_noise_worley2d_4', 'noise.worley2d', 0, 0),
+			edge('e_worley_v4_2x', 'n_noise_worley2d_4', 'noise.worley2d', 'n_vector_vec4f_2', 'vector.vec4f', 0, 0),
+			edge('e_time_v2_6y', 'n_host_iTime_7', 'host.iTime', 'n_vector_vec2f_6', 'vector.vec2f', 0, 1),
+			edge('e_v2_6_add7_b', 'n_vector_vec2f_6', 'vector.vec2f', 'n_vector_add_vec2f_7', 'vector.add.vec2f', 0, 1),
+			edge('e_mul_add7_a', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'n_vector_add_vec2f_7', 'vector.add.vec2f', 0, 0),
+			edge('e_add7_perlin2d', 'n_vector_add_vec2f_7', 'vector.add.vec2f', 'n_noise_perlin2d_5', 'noise.perlin2d', 0, 0),
+			edge('e_perlin2d_v4_2y', 'n_noise_perlin2d_5', 'noise.perlin2d', 'n_vector_vec4f_2', 'vector.vec4f', 0, 1),
+			edge('e_mul_v2x', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'n_vector_vec2f_x_10', 'vector.vec2f.x', 0, 0),
+			edge('e_mul_v2y', 'n_vector_mulScalar_vec2f_6', 'vector.mulScalar.vec2f', 'n_vector_vec2f_y_11', 'vector.vec2f.y', 0, 0),
+			edge('e_v2x_v3_9x', 'n_vector_vec2f_x_10', 'vector.vec2f.x', 'n_vector_vec3f_9', 'vector.vec3f', 0, 0),
+			edge('e_v2y_v3_9y', 'n_vector_vec2f_y_11', 'vector.vec2f.y', 'n_vector_vec3f_9', 'vector.vec3f', 0, 1),
+			edge('e_time_v3_9z', 'n_host_iTime_7', 'host.iTime', 'n_vector_vec3f_9', 'vector.vec3f', 0, 2),
+			edge('e_v3_9_perlin3d', 'n_vector_vec3f_9', 'vector.vec3f', 'n_noise_perlin3d_3', 'noise.perlin3d', 0, 0),
+			edge('e_perlin3d_v4_2z', 'n_noise_perlin3d_3', 'noise.perlin3d', 'n_vector_vec4f_2', 'vector.vec4f', 0, 2),
+			edge('e_alpha_v4_2w', 'n_constant_f32_1', 'constant.f32', 'n_vector_vec4f_2', 'vector.vec4f', 0, 3),
+			edge('e_v4_2_frag1', 'n_vector_vec4f_2', 'vector.vec4f', 'n_fragment', 'stage.fragment', 0, 1),
+			edge('e_frag1_display', 'n_fragment', 'stage.fragment', 'n_display', 'target.display', 0, 0),
+			edge('e_vertex_frag2', 'n_vertex', 'stage.vertex', 'n_stage_fragment_12', 'stage.fragment', 0, 0),
+			edge('e_perlin3d_v4_3z', 'n_noise_perlin3d_3', 'noise.perlin3d', 'n_vector_vec4f_3', 'vector.vec4f', 0, 2),
+			edge('e_alpha_v4_3w', 'n_constant_f32_1', 'constant.f32', 'n_vector_vec4f_3', 'vector.vec4f', 0, 3),
+			edge('e_v4_3_frag2', 'n_vector_vec4f_3', 'vector.vec4f', 'n_stage_fragment_12', 'stage.fragment', 0, 1),
+			edge('e_frag2_display2', 'n_stage_fragment_12', 'stage.fragment', 'n_target_display_1', 'target.display', 0, 0)
 		],
 		outputs: [],
 		consumers: []
