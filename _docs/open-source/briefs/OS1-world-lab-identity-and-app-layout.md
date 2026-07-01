@@ -1,7 +1,7 @@
 # Brief OS1 - World Lab identity and app layout
 
 **Type:** repository migration. **Scope:** root workspace, active apps, docs,
-deployment paths. **Depends on:** OS1 execution slot. **Status:** name decisions confirmed.
+deployment paths. **Depends on:** OS1 execution slot. **Status:** ✅ Landed `274f7f2`.
 
 ## Objective
 
