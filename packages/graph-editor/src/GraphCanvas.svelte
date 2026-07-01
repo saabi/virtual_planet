@@ -13,6 +13,7 @@
 	import GraphNodeView from './GraphNodeView.svelte';
 	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
 	import { setGraphCanvasContext } from './graphCanvasContext.js';
+	import type { NodeColorMode } from './nodeAccentColor.js';
 	import { inputHandleId, outputHandleId, portIdFromHandle } from './portHandles.js';
 	import {
 		applyEditIntent,
@@ -31,6 +32,7 @@
 		onselectnode?: (nodeId: string | null) => void;
 		onselectedge?: (edgeId: string | null) => void;
 		onregisterfitview?: (api: { fitView: () => void }) => void;
+		nodeColorMode?: NodeColorMode;
 	}
 
 	let {
@@ -40,7 +42,8 @@
 		onchange,
 		onselectnode,
 		onselectedge,
-		onregisterfitview
+		onregisterfitview,
+		nodeColorMode = 'category'
 	}: Props = $props();
 
 	const nodeTypes = { graphNode: GraphNodeView };
@@ -61,7 +64,8 @@
 					sourceDirection
 				})
 			);
-		}
+		},
+		getNodeColorMode: () => nodeColorMode
 	});
 
 	let nodes = $state.raw<Node<FlowNodeData>[]>([]);

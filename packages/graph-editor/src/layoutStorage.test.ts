@@ -46,6 +46,15 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		expect(loadedPaletteCol?.type === 'group' && loadedPaletteCol.size).toBe(0.22);
 	});
 
+	it('round-trips nodeColorMode chrome', () => {
+		saveEditorChrome({
+			version: 1,
+			layout: defaultGraphEditorLayout(),
+			nodeColorMode: 'contract'
+		});
+		expect(loadEditorChrome()?.nodeColorMode).toBe('contract');
+	});
+
 	it('still loads legacy previewMode chrome', () => {
 		saveEditorChrome({ version: 1, layout: defaultGraphEditorLayout(), previewMode: 'gpu' });
 		expect(loadEditorChrome()?.previewMode).toBe('gpu');

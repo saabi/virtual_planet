@@ -2,7 +2,7 @@
 
 **Type:** editor UX (quick win) · **Packages:** `@virtual-planet/graph-editor`
 (`GraphNodeView.svelte` + a color map) · **Depends on:** nothing · **Design authority:**
-`editor.md` · **Contract author:** Opus · **Recommended executor:** Cursor.
+`editor.md` · **Contract author:** Opus · **Recommended executor:** Cursor · **Status:** DONE `52b1ce9`
 
 ## Goal
 

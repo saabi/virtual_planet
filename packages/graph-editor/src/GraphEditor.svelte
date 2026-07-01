@@ -28,6 +28,7 @@
 	import { animatedWorleyPipelineGraph } from './defaultGraph.js';
 	import { defaultGraphEditorLayout } from './defaultLayout.js';
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
+	import type { NodeColorMode } from './nodeAccentColor.js';
 	import {
 		resolvePreviewRenderer,
 		type PreviewRenderer
@@ -70,6 +71,7 @@
 	let selectedPreviewBufferId = $state<string | null>(null);
 	let previewFamilyOverride = $state<PreviewFamily | null>(null);
 	let previewRendererOverride = $state<PreviewRenderer | null>(null);
+	let nodeColorMode = $state<NodeColorMode>('category');
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -188,6 +190,7 @@
 			layout: LayoutDocument;
 			selectedPreviewBufferId?: string | null;
 			previewFamilyOverride?: PreviewFamily | null;
+			nodeColorMode?: NodeColorMode;
 		}) => {
 			saveEditorChrome(chrome);
 		},
@@ -199,8 +202,14 @@
 			version: 1,
 			layout: layoutDoc,
 			selectedPreviewBufferId,
-			previewFamilyOverride
+			previewFamilyOverride,
+			nodeColorMode
 		});
+	}
+
+	function onNodeColorModeChange(mode: NodeColorMode) {
+		nodeColorMode = mode;
+		scheduleChromeSave();
 	}
 
 	function onLayoutChange(event: { layout: LayoutDocument }) {
@@ -248,6 +257,9 @@
 			}
 			if (chrome.previewFamilyOverride !== undefined) {
 				previewFamilyOverride = chrome.previewFamilyOverride;
+			}
+			if (chrome.nodeColorMode) {
+				nodeColorMode = chrome.nodeColorMode;
 			}
 			if (chrome.previewMode === 'vegetation') {
 				previewRendererOverride = 'vegetation';
@@ -466,6 +478,7 @@
 		{graph}
 		{selectedNodeId}
 		{selectedEdgeId}
+		{nodeColorMode}
 		onchange={updateGraph}
 		onregisterfitview={(api) => {
 			canvasFitView = () => api.fitView();
@@ -622,6 +635,20 @@
 				{/each}
 			</select>
 		</label>
+		<label class="node-color-mode">
+			<span>Node tint</span>
+			<select
+				value={nodeColorMode}
+				onchange={(event) =>
+					onNodeColorModeChange(
+						(event.currentTarget as HTMLSelectElement).value as NodeColorMode
+					)}
+			>
+				<option value="category">Category</option>
+				<option value="contract">Contract</option>
+				<option value="off">Off</option>
+			</select>
+		</label>
 		<button
 			type="button"
 			disabled={!selectedNodeId && !selectedEdgeId}
@@ -711,6 +738,23 @@
 	}
 
 	.sample-picker select {
+		font-size: 11px;
+		padding: 4px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
+	}
+
+	.node-color-mode {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		margin-left: 4px;
+	}
+
+	.node-color-mode select {
 		font-size: 11px;
 		padding: 4px 8px;
 		border: 1px solid rgba(255, 255, 255, 0.15);

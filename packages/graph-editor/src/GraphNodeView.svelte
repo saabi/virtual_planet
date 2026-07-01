@@ -12,6 +12,7 @@
 	import NodeSwapMenu from './NodeSwapMenu.svelte';
 	import PortConnectMenu from './PortConnectMenu.svelte';
 	import { getGraphCanvasContext } from './graphCanvasContext.js';
+	import { nodeAccentColor } from './nodeAccentColor.js';
 	import { inputHandleId, outputHandleId } from './portHandles.js';
 
 	const CONNECT_OFFSET_X = 220;
@@ -20,6 +21,9 @@
 
 	const nodeData = $derived(data as FlowNodeData);
 	const canvasContext = getGraphCanvasContext();
+	const accentColor = $derived(
+		nodeAccentColor(nodeData.primitiveId, canvasContext.getNodeColorMode())
+	);
 
 	let menuOpen = $state(false);
 	let titlePointerDown: { x: number; y: number } | null = $state(null);
@@ -104,8 +108,10 @@
 <div
 	class="graph-node"
 	class:selected
+	class:has-accent={accentColor !== null && !nodeData.nodeIssue}
 	class:issue-error={nodeData.nodeIssue === 'error'}
 	class:issue-warning={nodeData.nodeIssue === 'warning'}
+	style:--node-accent={accentColor ?? undefined}
 >
 	<div class="label-wrap">
 		<button
@@ -199,6 +205,16 @@
 		background: #1f2433;
 		color: #eef2ff;
 		font-size: 11px;
+	}
+
+	.graph-node.has-accent {
+		border-left: 3px solid var(--node-accent);
+		padding-left: 6px;
+	}
+
+	.graph-node.has-accent .label-wrap {
+		background: color-mix(in srgb, var(--node-accent) 24%, #1f2433);
+		border-radius: 4px;
 	}
 
 	.graph-node.selected {

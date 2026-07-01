@@ -1,5 +1,7 @@
 import { getContext, setContext } from 'svelte';
 
+import type { NodeColorMode } from './nodeAccentColor.js';
+
 const GRAPH_CANVAS_CONTEXT = Symbol('graph-canvas-context');
 
 export interface GraphCanvasContext {
@@ -10,6 +12,7 @@ export interface GraphCanvasContext {
 		primitiveId: string;
 		position: { x: number; y: number };
 	}) => void;
+	getNodeColorMode: () => NodeColorMode;
 }
 
 export function setGraphCanvasContext(context: GraphCanvasContext): void {

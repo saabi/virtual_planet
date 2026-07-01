@@ -1,6 +1,7 @@
 import { parseLayoutDocument, type LayoutDocument } from '@virtual-planet/subdivide';
 
 import type { PreviewFamily } from './previewBuffers.js';
+import type { NodeColorMode } from './nodeAccentColor.js';
 
 export const GRAPH_EDITOR_LAYOUT_KEY = 'virtual-planet:graph-editor-layout:v2';
 
@@ -11,6 +12,7 @@ export interface StoredEditorChrome {
 	previewMode?: 'cpu' | 'gpu' | 'mesh' | 'vegetation' | 'effect';
 	selectedPreviewBufferId?: string;
 	previewFamilyOverride?: PreviewFamily | null;
+	nodeColorMode?: NodeColorMode;
 }
 
 function storage(): Storage {
@@ -69,6 +71,13 @@ export function loadEditorChrome(
 		} else {
 			const family = parsePreviewFamily(parsed.previewFamilyOverride);
 			if (family) chrome.previewFamilyOverride = family;
+		}
+		if (
+			parsed.nodeColorMode === 'category' ||
+			parsed.nodeColorMode === 'contract' ||
+			parsed.nodeColorMode === 'off'
+		) {
+			chrome.nodeColorMode = parsed.nodeColorMode;
 		}
 		return chrome;
 	} catch {
