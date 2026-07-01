@@ -3,6 +3,11 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "Typed Graph IR: nodes, ports (data + coordinate-space), validation, serialization.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/saabi/virtual_planet.git",
+		"directory": "packages/graph"
+	},
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts"

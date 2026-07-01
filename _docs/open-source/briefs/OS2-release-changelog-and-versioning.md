@@ -2,7 +2,16 @@
 
 **Type:** release-engineering setup. **Scope:** changelogs, package metadata,
 workspace scripts, Changesets. **Depends on:** OS1 app layout migration.
-**Status:** draft.
+**Status:** ✅ Landed.
+
+> **Note on `repository` metadata:** the GitHub repo has **not** been renamed to `world-lab`
+> yet (this brief explicitly says not to do that here). All `repository.url` fields (root +
+> every package) point at the **current actual remote**,
+> `https://github.com/saabi/virtual_planet.git`, which is accurate today. **Expected follow-up
+> (external, not part of any brief):** once the GitHub repo is renamed to `world-lab`, do a
+> one-pass find/replace of that URL across `package.json` (root + `packages/*` + `apps/*`) —
+> GitHub's own redirect would keep old clones working, but the metadata should point at the
+> new canonical name.
 
 ## Objective
 

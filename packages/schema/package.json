@@ -3,6 +3,11 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "Schema/type-system extension for the scene model: a functional, plain-data layer over TypeBox (introspectable JSON-Schema + static inference) plus domain annotations (units, extents, path refs).",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/saabi/virtual_planet.git",
+		"directory": "packages/schema"
+	},
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts"
