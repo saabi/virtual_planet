@@ -180,8 +180,8 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 		// pass it — `position.xy` in the body is otherwise out of scope (invalid WGSL).
 		expect(code).toContain('fn graph_eval_image(position: vec4f)');
 		expect(code).toContain('graph_eval_image(position)');
-		expect(code).toContain('struct GraphParams');
-		expect(code).toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
+		expect(code).not.toContain('struct GraphParams');
+		expect(code).not.toContain('@group(0) @binding(1) var<uniform> params: GraphParams;');
 	});
 
 	it('declares GraphParams for a constant.f32 param node and device-compiles', async () => {

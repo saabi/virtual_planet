@@ -85,6 +85,18 @@ async function createComputePipeline(device: GPUDevice, shaderCode: string): Pro
 	});
 }
 
+/** Assemble the WGSL shader a plane-scalar preview consumer would device-compile. */
+export async function assemblePlaneScalarPreviewShader(
+	graph: GraphDocument,
+	output: PortRef
+): Promise<string> {
+	const outputName = findOutputName(graph, output);
+	const slice = sliceGraph(graph, { outputs: [outputName] });
+	const generated = await generateWgsl(slice, createStandardLibraryResolver());
+	const emitted = emitGraphScalarEval(graph, output);
+	return buildComputeShader(generated.code, emitted.body, emitted.resultExpr, emitted.params);
+}
+
 export async function executePlaneScalarPreview(
 	input: ConsumerExecuteInput
 ): Promise<ScalarFieldResult> {
@@ -93,11 +105,8 @@ export async function executePlaneScalarPreview(
 		throw new RangeError('width and height must be positive');
 	}
 
-	const outputName = findOutputName(graph, output);
-	const slice = sliceGraph(graph, { outputs: [outputName] });
-	const generated = await generateWgsl(slice, createStandardLibraryResolver());
+	const shaderCode = await assemblePlaneScalarPreviewShader(graph, output);
 	const emitted = emitGraphScalarEval(graph, output);
-	const shaderCode = buildComputeShader(generated.code, emitted.body, emitted.resultExpr, emitted.params);
 
 	const pipeline = await createComputePipeline(device, shaderCode);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);

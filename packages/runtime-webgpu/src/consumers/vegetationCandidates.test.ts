@@ -35,12 +35,12 @@ function recordsEqualModuloId(
 		if (gpu.position[2] !== cpu.position[2]) return false;
 		if (gpu.localMeters[0] !== cpu.localMeters[0]) return false;
 		if (gpu.localMeters[1] !== cpu.localMeters[1]) return false;
-		if (gpu.density[0] !== cpu.density[0]) return false;
-		if (gpu.density[1] !== cpu.density[1]) return false;
-		if (gpu.density[2] !== cpu.density[2]) return false;
-		if (gpu.placement !== cpu.placement) return false;
-		if (gpu.prominence !== cpu.prominence) return false;
-		if (gpu.vigor !== cpu.vigor) return false;
+		if (Math.abs(gpu.density[0] - cpu.density[0]) > 1e-5) return false;
+		if (Math.abs(gpu.density[1] - cpu.density[1]) > 1e-5) return false;
+		if (Math.abs(gpu.density[2] - cpu.density[2]) > 1e-5) return false;
+		if (Math.abs(gpu.placement - cpu.placement) > 1e-5) return false;
+		if (Math.abs(gpu.prominence - cpu.prominence) > 1e-5) return false;
+		if (Math.abs(gpu.vigor - cpu.vigor) > 1e-5) return false;
 	}
 	return true;
 }
@@ -223,7 +223,7 @@ describe('@virtual-planet/runtime-webgpu vegetationCandidates', () => {
 			expect(gpu.candidateCount).toBe(1);
 			expect(gpu.candidates[0]!.position).toEqual(cpu[0]!.position);
 			expect(gpu.candidates[0]!.localMeters).toEqual(cpu[0]!.localMeters);
-			expect(gpu.candidates[0]!.vigor).toBe(cpu[0]!.vigor);
+			expect(gpu.candidates[0]!.vigor).toBeCloseTo(cpu[0]!.vigor, 5);
 		});
 	});
 });

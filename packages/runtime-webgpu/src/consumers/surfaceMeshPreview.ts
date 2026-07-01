@@ -9,7 +9,7 @@ export interface SurfaceMeshPreviewInput {
 
 type Mat4 = Float32Array;
 
-const MESH_SHADER = `
+export const SURFACE_MESH_PREVIEW_SHADER = `
 struct Uniforms {
 	viewProj: mat4x4<f32>,
 };
@@ -151,7 +151,7 @@ function packInterleavedVertices(mesh: SurfaceMesh): Float32Array {
 }
 
 function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat): GPURenderPipeline {
-	const module = device.createShaderModule({ label: 'surface-mesh-preview', code: MESH_SHADER });
+	const module = device.createShaderModule({ label: 'surface-mesh-preview', code: SURFACE_MESH_PREVIEW_SHADER });
 	return device.createRenderPipeline({
 		label: 'surface-mesh-preview',
 		layout: 'auto',

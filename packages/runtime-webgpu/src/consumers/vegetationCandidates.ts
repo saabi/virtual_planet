@@ -234,11 +234,19 @@ function packPatchUniforms(
 function buildComputeShader(
 	moduleCode: string,
 	paramsStruct: string,
+	mergedParams: GraphParamField[],
 	densityBody: string[],
 	densityResultExpr: string,
 	placementBody: string[],
 	placementResultExpr: string
 ): string {
+	const hasGraphParams = mergedParams.length > 0;
+	const metaBinding = hasGraphParams ? 2 : 1;
+	const candidatesBinding = hasGraphParams ? 3 : 2;
+	const graphParamsBlock = hasGraphParams
+		? `${paramsStruct}\n@group(0) @binding(1) var<uniform> graph_params: GraphParams;\n`
+		: '';
+
 	return `${moduleCode}
 
 struct VegetationPatchParams {
@@ -284,12 +292,10 @@ struct VegetationResultMeta {
 	_pad1: u32,
 }
 
-${paramsStruct}
-
+${graphParamsBlock}
 @group(0) @binding(0) var<uniform> patch_params: VegetationPatchParams;
-@group(0) @binding(1) var<uniform> graph_params: GraphParams;
-@group(0) @binding(2) var<storage, read_write> meta: VegetationResultMeta;
-@group(0) @binding(3) var<storage, read_write> candidates: array<VegetationCandidateGpu>;
+@group(0) @binding(${metaBinding}) var<storage, read_write> result_meta: VegetationResultMeta;
+@group(0) @binding(${candidatesBinding}) var<storage, read_write> candidates: array<VegetationCandidateGpu>;
 
 fn evaluate_density(position: vec3<f32>) -> vec3<f32> {
 ${densityBody.map((line) => `\t${line}`).join('\n')}
@@ -308,12 +314,12 @@ fn patch_position(x: f32, y: f32) -> vec3<f32> {
 fn append_candidate(record: VegetationCandidateGpu) {
 	let cap = patch_params.max_candidates;
 	loop {
-		let index = atomicLoad(&meta.candidate_count);
+		let index = atomicLoad(&result_meta.candidate_count);
 		if (index >= cap) {
-			atomicStore(&meta.overflowed, 1u);
+			atomicStore(&result_meta.overflowed, 1u);
 			return;
 		}
-		let exchanged = atomicCompareExchangeWeak(&meta.candidate_count, index, index + 1u);
+		let exchanged = atomicCompareExchangeWeak(&result_meta.candidate_count, index, index + 1u);
 		if (exchanged.exchanged) {
 			candidates[index] = record;
 			return;
@@ -394,18 +400,11 @@ async function createComputePipeline(device: GPUDevice, shaderCode: string): Pro
 	});
 }
 
-export async function executeVegetationCandidateCompute(
-	input: VegetationCandidateComputeOptions
-): Promise<VegetationCandidateComputeResult> {
-	const { device, patch, config, density, placement, maxCandidates, moduleResolver } = input;
-
-	validatePatch(patch);
-	validateConfig(config);
-	if (!Number.isInteger(maxCandidates) || maxCandidates < 0) {
-		throw new RangeError('maxCandidates must be a non-negative integer');
-	}
-
-	const { gridWidth, gridHeight } = computeVegetationGridSize(patch, config.spacingMeters);
+/** Assemble the WGSL shader the vegetation-candidates consumer would device-compile. */
+export async function assembleVegetationCandidatesShader(
+	input: Pick<VegetationCandidateComputeOptions, 'density' | 'placement' | 'moduleResolver'>
+): Promise<{ code: string; mergedParams: GraphParamField[] }> {
+	const { density, placement, moduleResolver } = input;
 	const resolver = moduleResolver ?? createStandardLibraryResolver();
 
 	const densityOutputName = findOutputName(density.graph, density.output);
@@ -425,14 +424,38 @@ export async function executeVegetationCandidateCompute(
 	const mergedParams = mergeGraphParamFields(densityEmitted.params, placementEmitted.params);
 	const moduleCode = await mergeModuleSources(densityGenerated, placementGenerated, resolver);
 	const paramsStruct = buildParamsStructWgsl(mergedParams);
-	const shaderCode = buildComputeShader(
-		moduleCode,
-		paramsStruct,
-		densityEmitted.body,
-		densityEmitted.resultExpr,
-		placementEmitted.body,
-		placementEmitted.resultExpr
-	);
+	return {
+		mergedParams,
+		code: buildComputeShader(
+			moduleCode,
+			paramsStruct,
+			mergedParams,
+			densityEmitted.body,
+			densityEmitted.resultExpr,
+			placementEmitted.body,
+			placementEmitted.resultExpr
+		)
+	};
+}
+
+export async function executeVegetationCandidateCompute(
+	input: VegetationCandidateComputeOptions
+): Promise<VegetationCandidateComputeResult> {
+	const { device, patch, config, density, placement, maxCandidates, moduleResolver } = input;
+
+	validatePatch(patch);
+	validateConfig(config);
+	if (!Number.isInteger(maxCandidates) || maxCandidates < 0) {
+		throw new RangeError('maxCandidates must be a non-negative integer');
+	}
+
+	const { gridWidth, gridHeight } = computeVegetationGridSize(patch, config.spacingMeters);
+
+	const { code: shaderCode, mergedParams } = await assembleVegetationCandidatesShader({
+		density,
+		placement,
+		moduleResolver
+	});
 
 	const pipeline = await createComputePipeline(device, shaderCode);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -448,19 +471,30 @@ export async function executeVegetationCandidateCompute(
 		packPatchUniforms(patch, config, gridWidth, gridHeight, maxCandidates)
 	);
 
-	const graphUniformData = packGraphParams(mergedParams, [density.graph, placement.graph]);
-	const graphUniformBuffer = device.createBuffer({
-		label: 'vegetation-graph-uniforms',
-		size: alignTo(graphUniformData.byteLength, 16),
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	});
-	device.queue.writeBuffer(
-		graphUniformBuffer,
-		0,
-		graphUniformData.buffer,
-		graphUniformData.byteOffset,
-		graphUniformData.byteLength
-	);
+	const graphUniformBuffer =
+		mergedParams.length > 0
+			? device.createBuffer({
+					label: 'vegetation-graph-uniforms',
+					size: alignTo(
+						packGraphParams(mergedParams, [density.graph, placement.graph]).byteLength,
+						16
+					),
+					usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+				})
+			: null;
+	if (graphUniformBuffer) {
+		const graphUniformData = packGraphParams(mergedParams, [density.graph, placement.graph]);
+		device.queue.writeBuffer(
+			graphUniformBuffer,
+			0,
+			graphUniformData.buffer,
+			graphUniformData.byteOffset,
+			graphUniformData.byteLength
+		);
+	}
+
+	const metaBinding = mergedParams.length > 0 ? 2 : 1;
+	const candidatesBinding = mergedParams.length > 0 ? 3 : 2;
 
 	const metaBuffer = createStorageBuffer(device, {
 		label: 'vegetation-meta',
@@ -472,7 +506,7 @@ export async function executeVegetationCandidateCompute(
 	const candidateBytes = vegetationCandidateBufferByteLength(maxCandidates);
 	const candidatesBuffer = createStorageBuffer(device, {
 		label: 'vegetation-candidates',
-		size: Math.max(candidateBytes, VEGETATION_CANDIDATE_STRIDE),
+		size: candidateBytes,
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
 	});
 
@@ -480,9 +514,11 @@ export async function executeVegetationCandidateCompute(
 		layout: bindGroupLayout,
 		entries: [
 			{ binding: 0, resource: { buffer: patchUniformBuffer } },
-			{ binding: 1, resource: { buffer: graphUniformBuffer } },
-			{ binding: 2, resource: { buffer: metaBuffer } },
-			{ binding: 3, resource: { buffer: candidatesBuffer } }
+			...(graphUniformBuffer
+				? [{ binding: 1, resource: { buffer: graphUniformBuffer } }]
+				: []),
+			{ binding: metaBinding, resource: { buffer: metaBuffer } },
+			{ binding: candidatesBinding, resource: { buffer: candidatesBuffer } }
 		]
 	});
 
@@ -498,7 +534,7 @@ export async function executeVegetationCandidateCompute(
 		size: META_BYTE_LENGTH,
 		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
 	});
-	const candidateReadbackBytes = Math.max(candidateBytes, VEGETATION_CANDIDATE_STRIDE);
+	const candidateReadbackBytes = candidateBytes;
 	const candidatesReadback = device.createBuffer({
 		label: 'vegetation-candidates-readback',
 		size: candidateReadbackBytes,
@@ -520,7 +556,7 @@ export async function executeVegetationCandidateCompute(
 	candidatesReadback.unmap();
 
 	patchUniformBuffer.destroy();
-	graphUniformBuffer.destroy();
+	graphUniformBuffer?.destroy();
 	metaBuffer.destroy();
 	candidatesBuffer.destroy();
 	metaReadback.destroy();

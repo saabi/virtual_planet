@@ -2,9 +2,14 @@ import { alignTo } from './buffers.js';
 import type { Density3, VegetationCandidateGpuRecord, VegetationChannel } from './vegetationTypes.js';
 
 export const VEGETATION_CANDIDATE_STRIDE = 64;
+/** WGSL `VegetationCandidateGpu` storage struct size (GPU min binding size). */
+export const VEGETATION_CANDIDATE_GPU_STRIDE = 80;
 
 export function vegetationCandidateBufferByteLength(maxCandidates: number): number {
-	return alignTo(maxCandidates * VEGETATION_CANDIDATE_STRIDE, 4);
+	return Math.max(
+		alignTo(maxCandidates * VEGETATION_CANDIDATE_STRIDE, 4),
+		VEGETATION_CANDIDATE_GPU_STRIDE
+	);
 }
 
 export function encodeVegetationCandidate(
@@ -22,12 +27,12 @@ export function encodeVegetationCandidate(
 	view.setFloat32(offset + 28, 0, true);
 	view.setFloat32(offset + 32, record.localMeters[0], true);
 	view.setFloat32(offset + 36, record.localMeters[1], true);
-	view.setFloat32(offset + 40, record.density[0], true);
-	view.setFloat32(offset + 44, record.density[1], true);
-	view.setFloat32(offset + 48, record.density[2], true);
-	view.setFloat32(offset + 52, record.placement, true);
-	view.setFloat32(offset + 56, record.prominence, true);
-	view.setFloat32(offset + 60, record.vigor, true);
+	view.setFloat32(offset + 48, record.density[0], true);
+	view.setFloat32(offset + 52, record.density[1], true);
+	view.setFloat32(offset + 56, record.density[2], true);
+	view.setFloat32(offset + 60, record.placement, true);
+	view.setFloat32(offset + 64, record.prominence, true);
+	view.setFloat32(offset + 68, record.vigor, true);
 }
 
 export function decodeVegetationCandidates(
@@ -37,7 +42,7 @@ export function decodeVegetationCandidates(
 	const view = new DataView(data);
 	const results: VegetationCandidateGpuRecord[] = [];
 	for (let index = 0; index < count; index += 1) {
-		const base = index * VEGETATION_CANDIDATE_STRIDE;
+		const base = index * VEGETATION_CANDIDATE_GPU_STRIDE;
 		results.push({
 			ix: view.getUint32(base + 0, true),
 			iy: view.getUint32(base + 4, true),
@@ -52,13 +57,13 @@ export function decodeVegetationCandidates(
 				view.getFloat32(base + 36, true)
 			],
 			density: [
-				view.getFloat32(base + 40, true),
-				view.getFloat32(base + 44, true),
-				view.getFloat32(base + 48, true)
+				view.getFloat32(base + 48, true),
+				view.getFloat32(base + 52, true),
+				view.getFloat32(base + 56, true)
 			] as Density3,
-			placement: view.getFloat32(base + 52, true),
-			prominence: view.getFloat32(base + 56, true),
-			vigor: view.getFloat32(base + 60, true)
+			placement: view.getFloat32(base + 60, true),
+			prominence: view.getFloat32(base + 64, true),
+			vigor: view.getFloat32(base + 68, true)
 		});
 	}
 	return results;

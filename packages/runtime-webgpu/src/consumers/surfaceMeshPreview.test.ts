@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { buildSurfaceMesh } from '../surfaceMesh.js';
 import { renderSurfaceMeshPreview } from './surfaceMeshPreview.js';
-
-const hasWebGPU =
-	typeof globalThis.navigator !== 'undefined' &&
-	'gpu' in globalThis.navigator &&
-	globalThis.navigator.gpu !== undefined;
+import { shouldSkipWebGpuCanvasTest } from '../testSupport/webgpuTestEnv.js';
 
 describe('@virtual-planet/runtime-webgpu surfaceMeshPreview', () => {
-	it.skipIf(!hasWebGPU)('renders plane and cube-sphere meshes with different topology', async () => {
+	it.skipIf(shouldSkipWebGpuCanvasTest())('renders plane and cube-sphere meshes with different topology', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();

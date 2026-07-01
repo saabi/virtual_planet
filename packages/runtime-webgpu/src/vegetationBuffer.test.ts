@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	VEGETATION_CANDIDATE_GPU_STRIDE,
 	VEGETATION_CANDIDATE_STRIDE,
 	decodeVegetationCandidates,
 	encodeVegetationCandidate,
@@ -19,8 +20,8 @@ describe('vegetationBuffer', () => {
 		expect(length % 4).toBe(0);
 	});
 
-	it('vegetationCandidateBufferByteLength(0) is zero', () => {
-		expect(vegetationCandidateBufferByteLength(0)).toBe(0);
+	it('vegetationCandidateBufferByteLength(0) meets GPU min binding size', () => {
+		expect(vegetationCandidateBufferByteLength(0)).toBe(80);
 	});
 
 	it('round-trips a synthetic candidate record', () => {
@@ -36,7 +37,7 @@ describe('vegetationBuffer', () => {
 			vigor: 0.19
 		};
 
-		const buffer = new ArrayBuffer(VEGETATION_CANDIDATE_STRIDE);
+		const buffer = new ArrayBuffer(VEGETATION_CANDIDATE_GPU_STRIDE);
 		const view = new DataView(buffer);
 		encodeVegetationCandidate(record, view, 0);
 

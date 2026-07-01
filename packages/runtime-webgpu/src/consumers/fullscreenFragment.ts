@@ -1,4 +1,4 @@
-import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@virtual-planet/compiler';
+import { assembleStageEntry, compileGraph, type BindingDecl, type WgslModuleResolver } from '@virtual-planet/compiler';
 import type { GraphDocument, PortRef, ProceduralConsumer } from '@virtual-planet/graph';
 
 import { alignTo, rgba8BufferByteLength } from '../buffers.js';
@@ -137,34 +137,28 @@ export async function assembleFullscreenFragmentModuleAsync(
 	const evalFn = buildGraphEvalFn(outputName, emitted.body, emitted.resultExpr);
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
 	const usesShaderToyHost = wgslReferencesShaderToyUniform(libraryWithEval);
+	const hasGraphParams = emitted.params.length > 0;
 	const paramsBinding = usesShaderToyHost ? 1 : 0;
 
-	const bindings = usesShaderToyHost
-		? [
-				{
-					group: 0,
-					binding: 0,
-					name: 'u',
-					kind: 'uniform' as const,
-					wgslType: 'ShaderToyUniforms'
-				},
-				{
-					group: 0,
-					binding: paramsBinding,
-					name: 'params',
-					kind: 'uniform' as const,
-					wgslType: 'GraphParams'
-				}
-			]
-		: [
-				{
-					group: 0,
-					binding: paramsBinding,
-					name: 'params',
-					kind: 'uniform' as const,
-					wgslType: 'GraphParams'
-				}
-			];
+	const bindings: BindingDecl[] = [];
+	if (usesShaderToyHost) {
+		bindings.push({
+			group: 0,
+			binding: 0,
+			name: 'u',
+			kind: 'uniform',
+			wgslType: 'ShaderToyUniforms'
+		});
+	}
+	if (hasGraphParams) {
+		bindings.push({
+			group: 0,
+			binding: paramsBinding,
+			name: 'params',
+			kind: 'uniform',
+			wgslType: 'GraphParams'
+		});
+	}
 
 	const stage = assembleStageEntry(
 		{ ...consumerShader, code: libraryWithEval },
@@ -175,11 +169,11 @@ export async function assembleFullscreenFragmentModuleAsync(
 		}
 	);
 
-	const paramsStruct = buildParamsStructWgsl(emitted.params);
+	const paramsStruct = hasGraphParams ? buildParamsStructWgsl(emitted.params) : '';
 	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
 	const codeParts = usesShaderToyHost
-		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code]
-		: [paramsStruct, vertexWgsl, stage.code];
+		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code].filter(Boolean)
+		: [paramsStruct, vertexWgsl, stage.code].filter(Boolean);
 	const code = codeParts.join('\n\n');
 
 	return { code, outputName, vertexCount, params: emitted.params, usesShaderToyHost };
@@ -238,23 +232,25 @@ export async function executeFullscreenFragment(
 		bindGroupEntries.push({ binding: 0, resource: { buffer: uniformBuffer } });
 	}
 
-	const graphParamsData = packGraphParams(width, height, params, graph);
-	graphParamsBuffer = device.createBuffer({
-		label: 'fullscreen-fragment-graph-params',
-		size: alignTo(graphParamsData.byteLength, 16),
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	});
-	device.queue.writeBuffer(
-		graphParamsBuffer,
-		0,
-		graphParamsData.buffer,
-		graphParamsData.byteOffset,
-		graphParamsData.byteLength
-	);
-	bindGroupEntries.push({
-		binding: usesShaderToyHost ? 1 : 0,
-		resource: { buffer: graphParamsBuffer }
-	});
+	if (params.length > 0) {
+		const graphParamsData = packGraphParams(width, height, params, graph);
+		graphParamsBuffer = device.createBuffer({
+			label: 'fullscreen-fragment-graph-params',
+			size: alignTo(graphParamsData.byteLength, 16),
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+		device.queue.writeBuffer(
+			graphParamsBuffer,
+			0,
+			graphParamsData.buffer,
+			graphParamsData.byteOffset,
+			graphParamsData.byteLength
+		);
+		bindGroupEntries.push({
+			binding: usesShaderToyHost ? 1 : 0,
+			resource: { buffer: graphParamsBuffer }
+		});
+	}
 
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,

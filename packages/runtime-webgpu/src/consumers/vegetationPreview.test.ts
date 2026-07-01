@@ -9,11 +9,7 @@ import {
 	PARITY_PLACEMENT_GRAPH,
 	parityResolver
 } from '../fixtures/vegetationParity.js';
-
-const hasWebGPU =
-	typeof globalThis.navigator !== 'undefined' &&
-	'gpu' in globalThis.navigator &&
-	globalThis.navigator.gpu !== undefined;
+import { shouldSkipWebGpuCanvasTest } from '../testSupport/webgpuTestEnv.js';
 
 describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
 	it('throws RangeError for invalid patch dimensions', async () => {
@@ -50,7 +46,7 @@ describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
 		).rejects.toThrow(RangeError);
 	});
 
-	it.skipIf(!hasWebGPU)('runs successfully in none mode (altitude >= 2000)', async () => {
+	it.skipIf(shouldSkipWebGpuCanvasTest())('runs successfully in none mode (altitude >= 2000)', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();
@@ -82,7 +78,7 @@ describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
 		}
 	});
 
-	it.skipIf(!hasWebGPU)('runs successfully in statistical mode (500 <= altitude < 2000)', async () => {
+	it.skipIf(shouldSkipWebGpuCanvasTest())('runs successfully in statistical mode (500 <= altitude < 2000)', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();
@@ -112,7 +108,7 @@ describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
 		}
 	});
 
-	it.skipIf(!hasWebGPU)('runs successfully in impostor mode (150 <= altitude < 500)', async () => {
+	it.skipIf(shouldSkipWebGpuCanvasTest())('runs successfully in impostor mode (150 <= altitude < 500)', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();
@@ -143,7 +139,7 @@ describe('@virtual-planet/runtime-webgpu renderVegetationPreview', () => {
 		}
 	});
 
-	it.skipIf(!hasWebGPU)('runs successfully in full mode (altitude < 150)', async () => {
+	it.skipIf(shouldSkipWebGpuCanvasTest())('runs successfully in full mode (altitude < 150)', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();
