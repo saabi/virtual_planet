@@ -37,6 +37,15 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `geometry.plane` primitive (graph) + plane WGSL (procedural-wgsl).
   Brief: `_docs/architecture/procedural-graph/briefs/M-plane-orientation-dimensions.md`  ·  Claimed by: UNCLAIMED
 
+### Architecture direction (near-term; sequences existing briefs)
+
+- **Unified preview execution** — one graph render loop per frame evaluating ALL live outputs
+  with shared uniforms; **preview panes are views** (display a target texture), not independent
+  shaders; **feedback** (output → next-frame input) needs the single shared-frame loop. Vehicle:
+  `M-pass-graph-executor` (GPU executor) + a preview-as-views slice. `M-shared-preview-clock` is
+  phase 0. **Guardrail: don't add per-pane independent-render infra.**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-unified-preview-execution.md`
+
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU
 binds, mesh-gen consumer, node-swap/groups/tooltips UX) · Tier 3 (transforms, colorlab
 remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-plan.md`.

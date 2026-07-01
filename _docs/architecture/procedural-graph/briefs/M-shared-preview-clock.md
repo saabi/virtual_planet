@@ -55,3 +55,8 @@ play/pause/restart transport (separate); syncing non-Effect previews (Cpu/Gpu do
 
 → Preview panes share one animation clock by default, so multi-pane inspection shows coherent
 motion; the clock abstraction leaves room for a per-pane unsync toggle later.
+
+**Phase 0 of `M-unified-preview-execution`.** This shared clock is the **single-loop clock** in
+the target architecture (one graph execution per frame, panes as views, feedback). Build it as a
+**graph-level shared source**, not pane-local — the later frame-graph GPU executor drives it.
+Do not couple the clock to a single pane's render loop.
