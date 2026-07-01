@@ -25,19 +25,12 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **🔴 Unique node/edge ids** — `nextNodeId`/`nextEdgeId` use module-global counters never
-  seeded from a loaded graph → add/paste after load mints colliding ids (observed duplicate
-  `n_noise_worley2d_4` + edge ids). Mint doc-aware unique ids; re-id duplicates on load;
-  `duplicate-id` validation rule. Owns `irAdapter.ts`, `documentStorage.ts`, `graph/validate.ts`,
-  issue formatters. **Coordinate `irAdapter.ts`.**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-unique-node-edge-ids.md`  ·  Claimed by: UNCLAIMED
-
-- **🔴 Multi-target consumer/output derivation** — `f858fe4` fixed the preview *list* but
-  `effectiveConsumers`/`effectiveOutputs` still collapse two `target.display` sinks into one
-  (shared `pipeline_image` name → identical `consumerKey`). Name the derived output/consumer
-  uniquely per sink. Owns `graph/pipeline.ts` (+ restore the softened Worley test assertion).
-  Surfaced by the Animated Worley two-target sample (`053fd41`).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-multi-target-consumer-derivation.md`  ·  Claimed by: UNCLAIMED
+- **Independent output buffer per preview pane** — two preview panes share one
+  `selectedPreviewBufferId`, so changing the output on one changes both. Subdivide passes the
+  pane id to zone snippets (`Pane.svelte`); extract `PreviewZone.svelte` with per-pane selection
+  persisted by pane id. Owns `subdivide/Pane.svelte` + zones type, `graph-editor` new
+  `PreviewZone.svelte` + `GraphEditor.svelte`. **Coordinate `GraphEditor.svelte`.**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-per-pane-preview-buffer.md`  ·  Claimed by: UNCLAIMED
 
 - **Unified graph document system** (supersedes per-graph-layout) — one `GraphArtifact` wrapper
   (graph + layout + name) for named save/load, uploads, and samples; document-list UI; layout
@@ -105,3 +98,5 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Port quick-connect** — right-click port → searchable compatible-node menu; add-connected-node intent — `f82bf92`
 - **Device-compile test hardening** — Node `webgpu` binding + consumer device-compile coverage; fixes GPU-rejected WGSL — `94d0629`
 - **Image preview opaque RGB** — previously fixed (2026-06-27): blank preview resolved; unconnected vec4f `w` defaults to 1 (`1f1bee4`) — dedicated `putImageData` alpha-forcing brief was superseded
+- **Unique node/edge ids** — doc-aware minting (`graphIds.ts`), dedupe-on-load, `duplicate-id` validation error — `fb12ee4`
+- **Multi-target consumer/output derivation** — unique per-sink pipeline output/consumer names; fixes preview collapse on the effective doc — `b49d897`
