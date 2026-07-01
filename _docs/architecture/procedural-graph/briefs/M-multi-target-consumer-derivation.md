@@ -22,6 +22,16 @@ consumer, and the compiled-WGSL view / any compile-all-consumers path only sees 
 (Repro: the Animated Worley sample, `053fd41` — two `target.display` sinks; its test documents
 the collapse.)
 
+**Same root cause defeats the preview buffer list on the effective doc.** The editor enumerates
+buffers from `effectiveGraphDocument(graph)` (`GraphEditor.svelte:115`), not the raw doc. On the
+effective doc `effectiveOutputs` yields **two outputs both named `pipeline_image`**; the
+name-dedup in `enumeratePreviewBuffers` (`seenDeclaredNames` keyed by `output.name`) keeps one
+**and** the sink loop then skips both sinks (their fields are in `declaredPipelineOutputs`) →
+**one** `pipeline_image` buffer. Reproduced deterministically:
+`enumeratePreviewBuffers(rawDoc)` = 2, but `enumeratePreviewBuffers(effectiveGraphDocument(doc))`
+= 1. This is *the* "only one preview tab for two targets" symptom — `f858fe4`'s sink-keying only
+holds on the raw doc.
+
 ## Fix
 
 Make the derived **output name unique per sink** (presentation) when there is no matching
@@ -44,8 +54,12 @@ name — pick one and update any test asserting the literal `'pipeline_image'`).
 1. **graph:** for a two-`target.display` graph, `effectiveGraphDocument(doc).consumers` has
    **two** `type:'image'` consumers with distinct ids, and `effectiveOutputs` has two
    distinctly-named outputs; a single-target graph still derives one. Test.
-2. Restore the stronger assertion in `animatedWorleyGraph.test.ts` (two image consumers) that
-   is currently softened with a NOTE.
+2. **Preview buffers on the effective doc:** `enumeratePreviewBuffers(effectiveGraphDocument(
+   twoTargetGraph))` returns **two** image buffers (one per sink) — not one `pipeline_image`.
+   This is the user-visible gate; assert it directly. (The unique per-sink name removes the
+   `seenDeclaredNames` collapse; simplify the enumeration if needed so sink identity wins.)
+3. Restore the stronger assertion in `animatedWorleyGraph.test.ts` (two image consumers **and**
+   two effective-doc preview buffers) that is currently softened with a NOTE.
 3. `check` **and** `test` green for `graph` (+ `graph-editor` if names change); keep all prior
    tests green.
 4. **Visual ⚠:** the compiled-WGSL view / preview for the two-target Worley sample resolves
