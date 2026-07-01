@@ -25,12 +25,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Vector combine/append primitives** — nodes to build larger vectors from smaller ones +
-  scalars (`vec3f,f32 → vec4f`, `vec2f,f32 → vec3f`, `vec2f,vec2f → vec4f`, `vec2f,f32,f32 →
-  vec4f`); appended-scalar port defaults (z=0, w=1) double as promote-with-default. Owns the
-  vector modules in `procedural-wgsl` + `graph` — disjoint, parallel-safe.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-vector-combine-primitives.md`  ·  Claimed by: Auto
-
 - **Port quick-connect (right-click a port → add compatible connected node)** — right-click an
   output port → menu of type-compatible consumers; input port → compatible producers; select →
   node added and wired. New `compatibleConsumers`/`compatibleProducers` (graph) +
@@ -82,3 +76,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Same-named port direction fix** — xyflow handle ids (`in:`/`out:`) + direction-aware port lookup in validate/codegen — `cb6fa21`
 - **Animated Worley pipeline sample** — replaces Noise field (scalar); default/New graph uses it — `b23b9a1`
 - **Swap menu closes on click-outside** — capture-phase pointerdown dismisses NodeSwapMenu — `f92b052`
+- **Vector combine/append primitives** — vec2f+scalar→vec3f/vec4f, vec3f+w→vec4f (w default 1) — `3e5961b`
