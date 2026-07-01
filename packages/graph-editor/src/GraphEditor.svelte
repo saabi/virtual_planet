@@ -17,12 +17,19 @@
 	import MarkupView from './MarkupView.svelte';
 	import CodeView from './CodeView.svelte';
 	import CompiledWgslPanel from './CompiledWgslPanel.svelte';
+	import DocumentList from './DocumentList.svelte';
 	import {
-		clearGraphStorage,
+		createGraphArtifact,
+		deleteDocument,
 		formatGraphForDownload,
-		loadGraphFromStorage,
-		parseGraphFile,
-		saveGraphToStorage
+		listDocuments,
+		loadActiveDocument,
+		loadDocument,
+		parseGraphArtifact,
+		renameDocument,
+		saveDocument,
+		setActiveDocumentName,
+		type GraphArtifact
 	} from './documentStorage.js';
 	import { applyEditIntent } from './irAdapter.js';
 	import { animatedWorleyPipelineGraph } from './defaultGraph.js';
@@ -40,7 +47,7 @@
 		resolvePreviewBufferPort,
 		type PreviewFamily
 	} from './previewBuffers.js';
-	import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
+	import { listSampleArtifacts } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import { computeGraphCompileSignature } from './graphCompileSignature.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
@@ -72,6 +79,10 @@
 	let previewFamilyOverride = $state<PreviewFamily | null>(null);
 	let previewRendererOverride = $state<PreviewRenderer | null>(null);
 	let nodeColorMode = $state<NodeColorMode>('category');
+	let loadDocumentLayout = $state(true);
+	let activeDocumentName = $state<string | null>(null);
+	let documentReadOnly = $state(false);
+	let documentRevision = $state(0);
 	let previewRefreshEpoch = $state(0);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
@@ -129,6 +140,11 @@
 		})
 	);
 	const compileSignature = $derived(computeGraphCompileSignature(graph));
+	const savedDocuments = $derived.by(() => {
+		void documentRevision;
+		return listDocuments();
+	});
+	const sampleDocuments = listSampleArtifacts();
 
 	$effect(() => {
 		void compileSignature;
@@ -191,6 +207,7 @@
 			selectedPreviewBufferId?: string | null;
 			previewFamilyOverride?: PreviewFamily | null;
 			nodeColorMode?: NodeColorMode;
+			loadDocumentLayout?: boolean;
 		}) => {
 			saveEditorChrome(chrome);
 		},
@@ -203,8 +220,44 @@
 			layout: layoutDoc,
 			selectedPreviewBufferId,
 			previewFamilyOverride,
-			nodeColorMode
+			nodeColorMode,
+			loadDocumentLayout
 		});
+	}
+
+	function onLoadDocumentLayoutChange(enabled: boolean) {
+		loadDocumentLayout = enabled;
+		scheduleChromeSave();
+	}
+
+	function buildCurrentArtifact(name: string, sample = documentReadOnly): GraphArtifact {
+		return createGraphArtifact(name, graph, {
+			layout,
+			sample
+		});
+	}
+
+	function persistActiveDocument(name: string) {
+		const artifact = buildCurrentArtifact(name, false);
+		saveDocument(artifact);
+		activeDocumentName = name;
+		documentReadOnly = false;
+		documentRevision++;
+		storageMessage = `Saved ${name}`;
+	}
+
+	function applyArtifact(artifact: GraphArtifact) {
+		activeDocumentName = artifact.name;
+		documentReadOnly = artifact.meta?.sample === true;
+		if (loadDocumentLayout && artifact.layout) {
+			layout = artifact.layout;
+		}
+		selectedNodeId = null;
+		selectedEdgeId = null;
+		updateGraph(artifact.graph, false);
+		syncPreviewSelectionForGraph(artifact.graph, true);
+		scheduleChromeSave();
+		storageMessage = artifact.meta?.sample ? `Example: ${artifact.name}` : `Loaded ${artifact.name}`;
 	}
 
 	function onNodeColorModeChange(mode: NodeColorMode) {
@@ -243,8 +296,9 @@
 		codeSaveError = null;
 		syncPreviewSelectionForGraph(next);
 		onchange?.(next);
-		if (persist) {
-			saveGraphToStorage(next);
+		if (persist && activeDocumentName && !documentReadOnly) {
+			saveDocument(buildCurrentArtifact(activeDocumentName, false));
+			documentRevision++;
 		}
 	}
 
@@ -261,6 +315,9 @@
 			if (chrome.nodeColorMode) {
 				nodeColorMode = chrome.nodeColorMode;
 			}
+			if (chrome.loadDocumentLayout === false) {
+				loadDocumentLayout = false;
+			}
 			if (chrome.previewMode === 'vegetation') {
 				previewRendererOverride = 'vegetation';
 			} else if (chrome.previewMode === 'mesh') {
@@ -270,9 +327,9 @@
 			}
 		}
 
-		const stored = loadGraphFromStorage();
+		const stored = loadActiveDocument();
 		if (stored) {
-			updateGraph(stored, false);
+			applyArtifact(stored);
 		} else {
 			syncPreviewSelectionForGraph(graph, true);
 		}
@@ -280,50 +337,66 @@
 
 	function newGraph() {
 		const next = animatedWorleyPipelineGraph();
-		clearGraphStorage();
+		activeDocumentName = null;
+		documentReadOnly = false;
+		setActiveDocumentName(null);
 		clearSelection();
-		updateGraph(next);
+		updateGraph(next, false);
 		storageMessage = 'New graph';
 	}
 
-	function loadSample(sampleId: string) {
-		const sample = getGraphSample(sampleId);
-		if (!sample) {
-			storageMessage = 'Unknown sample';
+	function saveCurrentDocument() {
+		if (documentReadOnly || !activeDocumentName) {
+			storageMessage = 'Use Save As for examples and unnamed graphs';
 			return;
 		}
-		clearGraphStorage();
-		clearSelection();
-		const next = sample.build();
-		updateGraph(next);
-		syncPreviewSelectionForGraph(next, true);
-		scheduleChromeSave();
-		storageMessage = sample.label;
+		persistActiveDocument(activeDocumentName);
 	}
 
-	function saveGraph() {
-		saveGraphToStorage(graph);
-		storageMessage = 'Saved';
+	function saveDocumentAs(name: string) {
+		persistActiveDocument(name);
 	}
 
-	function loadGraph() {
-		const stored = loadGraphFromStorage();
-		if (!stored) {
-			storageMessage = 'Nothing saved';
+	function loadSavedDocument(name: string) {
+		const artifact = loadDocument(name);
+		if (!artifact) {
+			storageMessage = 'Document not found';
 			return;
 		}
-		selectedNodeId = null;
-		selectedEdgeId = null;
-		updateGraph(stored, false);
-		storageMessage = 'Loaded';
+		applyArtifact(artifact);
+		documentRevision++;
+	}
+
+	function loadSampleDocument(artifact: GraphArtifact) {
+		applyArtifact(artifact);
+	}
+
+	function renameSavedDocument(fromName: string, toName: string) {
+		renameDocument(fromName, toName);
+		if (activeDocumentName === fromName) {
+			activeDocumentName = toName;
+		}
+		documentRevision++;
+		storageMessage = `Renamed to ${toName}`;
+	}
+
+	function deleteSavedDocument(name: string) {
+		deleteDocument(name);
+		if (activeDocumentName === name) {
+			activeDocumentName = null;
+			documentReadOnly = false;
+		}
+		documentRevision++;
+		storageMessage = `Deleted ${name}`;
 	}
 
 	function downloadGraph() {
-		const blob = new Blob([formatGraphForDownload(graph)], { type: 'application/json' });
+		const artifact = buildCurrentArtifact(activeDocumentName ?? 'graph');
+		const blob = new Blob([formatGraphForDownload(artifact)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const anchor = document.createElement('a');
 		anchor.href = url;
-		anchor.download = 'graph.json';
+		anchor.download = `${artifact.name.replace(/\s+/g, '-').toLowerCase() || 'graph'}.json`;
 		anchor.click();
 		URL.revokeObjectURL(url);
 		storageMessage = 'Downloaded';
@@ -342,9 +415,10 @@
 		const reader = new FileReader();
 		reader.onload = () => {
 			try {
-				const next = parseGraphFile(String(reader.result ?? ''));
-				clearSelection();
-				updateGraph(next);
+				const artifact = parseGraphArtifact(String(reader.result ?? ''));
+				activeDocumentName = null;
+				documentReadOnly = false;
+				applyArtifact({ ...artifact, meta: { ...artifact.meta, sample: false } });
 				storageMessage = 'Uploaded';
 			} catch (error) {
 				storageMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -621,20 +695,26 @@
 
 <div class="graph-editor">
 	<header class="toolbar">
-		<button type="button" onclick={newGraph}>New</button>
-		<button type="button" onclick={saveGraph}>Save</button>
-		<button type="button" onclick={loadGraph}>Load</button>
-		<button type="button" onclick={downloadGraph}>Download</button>
-		<button type="button" onclick={triggerUpload}>Upload</button>
-		<label class="sample-picker">
-			<span>Samples</span>
-			<select onchange={(event) => loadSample((event.currentTarget as HTMLSelectElement).value)}>
-				<option value="" selected disabled>Load sample…</option>
-				{#each GRAPH_SAMPLES as sample (sample.id)}
-					<option value={sample.id}>{sample.label}</option>
-				{/each}
-			</select>
-		</label>
+		<DocumentList
+			activeName={activeDocumentName}
+			readOnly={documentReadOnly}
+			loadLayout={loadDocumentLayout}
+			{savedDocuments}
+			{sampleDocuments}
+			statusMessage={storageMessage}
+			actions={{
+				onNew: newGraph,
+				onSave: saveCurrentDocument,
+				onSaveAs: saveDocumentAs,
+				onLoadSaved: loadSavedDocument,
+				onLoadSample: loadSampleDocument,
+				onRename: renameSavedDocument,
+				onDelete: deleteSavedDocument,
+				onDownload: downloadGraph,
+				onUpload: triggerUpload,
+				onLoadLayoutChange: onLoadDocumentLayoutChange
+			}}
+		/>
 		<label class="node-color-mode">
 			<span>Node tint</span>
 			<select
@@ -656,9 +736,6 @@
 		>
 			Delete
 		</button>
-		{#if storageMessage}
-			<span class="status">{storageMessage}</span>
-		{/if}
 	</header>
 	<input
 		bind:this={fileInput}
@@ -703,11 +780,16 @@
 
 	.toolbar {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: 6px;
 		padding: 6px 8px;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 		flex: 0 0 auto;
+	}
+
+	.toolbar :global(.document-list) {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.toolbar button {

@@ -13,6 +13,8 @@ export interface StoredEditorChrome {
 	selectedPreviewBufferId?: string;
 	previewFamilyOverride?: PreviewFamily | null;
 	nodeColorMode?: NodeColorMode;
+	/** When true (default), loading a document applies its saved pane layout. */
+	loadDocumentLayout?: boolean;
 }
 
 function storage(): Storage {
@@ -78,6 +80,11 @@ export function loadEditorChrome(
 			parsed.nodeColorMode === 'off'
 		) {
 			chrome.nodeColorMode = parsed.nodeColorMode;
+		}
+		if (parsed.loadDocumentLayout === false) {
+			chrome.loadDocumentLayout = false;
+		} else if (parsed.loadDocumentLayout === true) {
+			chrome.loadDocumentLayout = true;
 		}
 		return chrome;
 	} catch {

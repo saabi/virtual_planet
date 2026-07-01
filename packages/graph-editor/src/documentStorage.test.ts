@@ -1,12 +1,24 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { serializeGraph } from '@virtual-planet/graph';
+
 import { defaultPreviewGraph } from './defaultGraph.js';
+import { defaultGraphEditorLayout } from './defaultLayout.js';
 import {
-	clearGraphStorage,
-	formatGraphForDownload,
-	GRAPH_EDITOR_STORAGE_KEY,
-	loadGraphFromStorage,
+	createGraphArtifact,
+	parseGraphArtifact,
 	parseGraphFile,
+	serializeGraphArtifact
+} from './graphArtifact.js';
+import {
+	clearDocumentRegistry,
+	deleteDocument,
+	formatGraphForDownload,
+	listDocuments,
+	loadActiveDocument,
+	loadDocument,
+	loadGraphFromStorage,
+	renameDocument,
+	saveDocument,
 	saveGraphToStorage
 } from './documentStorage.js';
 
@@ -24,50 +36,71 @@ function createStorageMock() {
 	} satisfies Storage;
 }
 
-describe('@virtual-planet/graph-editor documentStorage', () => {
-	beforeEach(() => {
-		vi.stubGlobal('localStorage', createStorageMock());
-	});
-
-	it('round-trips default preview graph through parseGraphFile', () => {
+describe('@virtual-planet/graph-editor graphArtifact', () => {
+	it('round-trips a bare GraphDocument through parseGraphFile', () => {
 		const doc = defaultPreviewGraph();
 		const parsed = parseGraphFile(serializeGraph(doc));
 		expect(parsed).toEqual(doc);
 	});
 
-	it('formatGraphForDownload matches serializeGraph', () => {
+	it('round-trips a GraphArtifact wrapper with layout and name', () => {
 		const doc = defaultPreviewGraph();
-		expect(formatGraphForDownload(doc)).toBe(serializeGraph(doc));
-	});
-
-	it('persists and restores through localStorage', () => {
-		const doc = defaultPreviewGraph();
-		saveGraphToStorage(doc);
-		expect(loadGraphFromStorage()).toEqual(doc);
-	});
-
-	it('returns null when storage is empty', () => {
-		expect(loadGraphFromStorage()).toBeNull();
-	});
-
-	it('clearGraphStorage removes the saved document', () => {
-		saveGraphToStorage(defaultPreviewGraph());
-		clearGraphStorage();
-		expect(loadGraphFromStorage()).toBeNull();
+		const layout = defaultGraphEditorLayout();
+		const artifact = createGraphArtifact('My graph', doc, { layout });
+		const parsed = parseGraphArtifact(serializeGraphArtifact(artifact));
+		expect(parsed.name).toBe('My graph');
+		expect(parsed.graph).toEqual(doc);
+		expect(parsed.layout).toEqual(layout);
 	});
 
 	it('rejects invalid JSON', () => {
-		expect(() => parseGraphFile('not json')).toThrow(/invalid graph json/i);
+		expect(() => parseGraphArtifact('not json')).toThrow(/invalid graph json/i);
+	});
+});
+
+describe('@virtual-planet/graph-editor documentStorage', () => {
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', createStorageMock());
+		clearDocumentRegistry();
 	});
 
-	it('rejects non-object JSON', () => {
-		expect(() => parseGraphFile('[]')).toThrow(/must be an object/i);
-	});
-
-	it('uses custom storage keys', () => {
+	it('save/load/list/delete/rename named documents', () => {
 		const doc = defaultPreviewGraph();
-		saveGraphToStorage(doc, 'custom-key');
-		expect(loadGraphFromStorage('custom-key')).toEqual(doc);
-		expect(loadGraphFromStorage(GRAPH_EDITOR_STORAGE_KEY)).toBeNull();
+		const layout = defaultGraphEditorLayout();
+		saveDocument(createGraphArtifact('Alpha', doc, { layout }));
+		saveDocument(createGraphArtifact('Beta', doc));
+
+		expect(listDocuments().map((entry) => entry.name).sort()).toEqual(['Alpha', 'Beta']);
+		expect(loadDocument('Alpha')?.layout).toEqual(layout);
+		expect(loadActiveDocument()?.name).toBe('Beta');
+
+		renameDocument('Alpha', 'Alpha renamed');
+		expect(loadDocument('Alpha renamed')?.graph).toEqual(doc);
+		expect(loadDocument('Alpha')).toBeNull();
+
+		deleteDocument('Beta');
+		expect(listDocuments().map((entry) => entry.name)).toEqual(['Alpha renamed']);
+	});
+
+	it('migrates the legacy single-slot graph into a named document', () => {
+		const doc = defaultPreviewGraph();
+		localStorage.setItem('virtual-planet:graph-editor:v1', serializeGraph(doc));
+
+		expect(loadGraphFromStorage()).toEqual(doc);
+		expect(listDocuments().some((entry) => entry.name === 'Migrated session')).toBe(true);
+		expect(localStorage.getItem('virtual-planet:graph-editor:v1')).toBeNull();
+	});
+
+	it('formatGraphForDownload emits the artifact wrapper', () => {
+		const artifact = createGraphArtifact('Download me', defaultPreviewGraph());
+		const parsed = parseGraphArtifact(formatGraphForDownload(artifact));
+		expect(parsed.name).toBe('Download me');
+		expect(parsed.graph).toEqual(artifact.graph);
+	});
+
+	it('persists through deprecated saveGraphToStorage for compatibility', () => {
+		const doc = defaultPreviewGraph();
+		saveGraphToStorage(doc);
+		expect(loadGraphFromStorage()).toEqual(doc);
 	});
 });

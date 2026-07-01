@@ -5,6 +5,7 @@ import {
 	cosinePaletteEffectGraph,
 	defaultPreviewGraph
 } from './graphBuilders.js';
+import { createGraphArtifact, type GraphArtifact } from './graphArtifact.js';
 
 export interface GraphSample {
 	id: string;
@@ -28,4 +29,22 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 
 export function getGraphSample(id: string): GraphSample | undefined {
 	return GRAPH_SAMPLES.find((sample) => sample.id === id);
+}
+
+/** Read-only bundled examples as unified `GraphArtifact`s. */
+export function listSampleArtifacts(): GraphArtifact[] {
+	return GRAPH_SAMPLES.map((sample) =>
+		createGraphArtifact(sample.label, sample.build(), { sample: true })
+	);
+}
+
+export function getSampleArtifact(id: string): GraphArtifact | undefined {
+	const sample = getGraphSample(id);
+	if (!sample) return undefined;
+	return createGraphArtifact(sample.label, sample.build(), { sample: true });
+}
+
+/** Internal scalar preview graph (not listed in the samples UI). */
+export function defaultPreviewSampleArtifact(): GraphArtifact {
+	return createGraphArtifact('Default preview', defaultPreviewGraph(), { sample: true });
 }

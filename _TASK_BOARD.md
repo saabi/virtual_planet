@@ -32,16 +32,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `PreviewZone.svelte` + `GraphEditor.svelte`. **Coordinate `GraphEditor.svelte`.**
   Brief: `_docs/architecture/procedural-graph/briefs/M-per-pane-preview-buffer.md`  ·  Claimed by: UNCLAIMED
 
-- **Unified graph document system** (supersedes per-graph-layout) — one `GraphArtifact` wrapper
-  (graph + layout + name) for named save/load, uploads, and samples; document-list UI; layout
-  rides the artifact with a load toggle. Phased. Owns `documentStorage.ts`, `samples.ts`,
-  `GraphEditor.svelte`, new `DocumentList`.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-document-system.md`  ·  Claimed by: UNCLAIMED
-
-- **Node color-coding by category/contract** (quick win) — tint nodes by `category` or
-  `swapFamily`, toggle in chrome. Owns `GraphNodeView.svelte` + a color-map module.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-node-color-coding.md`  ·  Claimed by: UNCLAIMED
-
 - **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
   deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
   (graph-editor) + sdf primitives (graph).
@@ -60,15 +50,9 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 
 ## Deferred — needs orchestrator review
 
-- **Save pane layout with each graph + load toggle** — **DEFERRED** (2026-06-27). Do not route
-  until the managing agent reviews and expands scope. Current brief (`M-per-graph-layout.md`)
-  only wraps `LayoutDocument` in the save artifact + adds a load toggle; user wants this folded
-  into a **proper named document save/load system** integrated with **samples** (not ad-hoc
-  localStorage keys + one-off upload). Orchestrator should: (1) audit `documentStorage.ts`,
-  sample loading in `GraphEditor.svelte` / `samples.ts`, and session vs named-doc patterns;
-  (2) expand or supersede the brief so layout persistence, named saves, and sample graphs share
-  one coherent artifact format and UX; (3) re-pin on the ready queue when the contract is clear.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-per-graph-layout.md`  ·  Claimed by: DEFERRED
+- **Save pane layout with each graph + load toggle** — **DEFERRED → SUPERSEDED** by unified document
+  system (`M-document-system.md`, landed). Original brief retained for history only.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-per-graph-layout.md`  ·  Claimed by: SUPERSEDED
 
 ---
 
@@ -100,3 +84,5 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Image preview opaque RGB** — previously fixed (2026-06-27): blank preview resolved; unconnected vec4f `w` defaults to 1 (`1f1bee4`) — dedicated `putImageData` alpha-forcing brief was superseded
 - **Unique node/edge ids** — doc-aware minting (`graphIds.ts`), dedupe-on-load, `duplicate-id` validation error — `fb12ee4`
 - **Multi-target consumer/output derivation** — unique per-sink pipeline output/consumer names; fixes preview collapse on the effective doc — `b49d897`
+- **Node color-coding by category/contract** — tint nodes by category or contract; toolbar toggle persisted in chrome — `61b6359`
+- **Unified graph document system** — `GraphArtifact` wrapper, named save/load/list, samples in document list, layout in artifact + load toggle — `985d7d8`

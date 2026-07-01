@@ -55,6 +55,15 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		expect(loadEditorChrome()?.nodeColorMode).toBe('contract');
 	});
 
+	it('round-trips loadDocumentLayout chrome', () => {
+		saveEditorChrome({
+			version: 1,
+			layout: defaultGraphEditorLayout(),
+			loadDocumentLayout: false
+		});
+		expect(loadEditorChrome()?.loadDocumentLayout).toBe(false);
+	});
+
 	it('still loads legacy previewMode chrome', () => {
 		saveEditorChrome({ version: 1, layout: defaultGraphEditorLayout(), previewMode: 'gpu' });
 		expect(loadEditorChrome()?.previewMode).toBe('gpu');

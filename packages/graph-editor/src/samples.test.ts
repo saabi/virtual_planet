@@ -1,10 +1,10 @@
 import '@virtual-planet/graph';
 import { describe, expect, it } from 'vitest';
-import { validateGraph } from '@virtual-planet/graph';
+import { validateGraph, validateGraphFull } from '@virtual-planet/graph';
 
 import { defaultPreviewGraph } from './graphBuilders.js';
 import { inferPreviewBackend } from './previewBackend.js';
-import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
+import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js';
 
 describe('graph-editor samples registry', () => {
 	it('contains the Worley pipeline and cosine-palette samples', () => {
@@ -54,6 +54,13 @@ describe('graph-editor samples registry', () => {
 		expect(validateGraph(graph).ok).toBe(true);
 		expect(graph.nodes.some((node) => node.primitive === 'noise.worley2d')).toBe(true);
 		expect(graph.edges.some((edge) => edge.id === 'e_worley_v4_2x')).toBe(true);
+	});
+
+	it('exposes every sample as a read-only GraphArtifact that validates', () => {
+		for (const artifact of listSampleArtifacts()) {
+			expect(artifact.meta?.sample).toBe(true);
+			expect(validateGraphFull(artifact.graph).ok).toBe(true);
+		}
 	});
 });
 
