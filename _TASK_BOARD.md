@@ -25,6 +25,13 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
+- **🔴 Single fan-in on non-list input ports** — a `target.display.color` (any non-list input)
+  can take multiple incoming edges → ambiguous. `add-edge` should replace an occupied non-list
+  input; `validateGraph` flags >1 incoming edge as `multiple-inputs` error (list inputs still
+  multi). Owns `graph/validate.ts`, `irAdapter.ts` (add-edge), issue formatters in
+  `graph-editor`/`mcp-server`. **Coordinate `irAdapter.ts` with port-quick-connect.**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-single-input-fan-in.md`  ·  Claimed by: UNCLAIMED
+
 - **Port quick-connect (right-click a port → add compatible connected node)** — right-click an
   output port → menu of type-compatible consumers; input port → compatible producers; select →
   node added and wired. New `compatibleConsumers`/`compatibleProducers` (graph) +
