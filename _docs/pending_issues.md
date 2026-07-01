@@ -1,12 +1,12 @@
 # Pending Issues
 
-## /fe
+## /apps/scene-editor
 
 - camera near/far should include all objects visible on screen, with considerations for next item
 - when close to the surface and looking up, sometimes the planet dissappears
-- should move from fe/ to apps/scene-editor
+- ~~should move from fe/ to apps/scene-editor~~ ✅ done — OS1 world-lab identity + app-layout migration (`fe/` → `apps/scene-editor/`, `apps/graph-editor/` → `apps/webgputoy/`)
 
-## /apps/graph_editor
+## /apps/webgputoy (procedural-graph editor; formerly `apps/graph-editor`)
 
 > Resolved (see `_TASK_BOARD.md` archive): preview rerender-on-edit, preview lists outputs
 > (buffer list), collapsible palette sections, node-swap UX, S0 pipeline render, unified named

@@ -4,7 +4,7 @@
 // (with Bruce Webster's approval); the Resurrection distribution / DB are never
 // committed.
 //
-// Usage (from fe/):
+// Usage (from apps/scene-editor/):
 //   npm run sundog:export                 # uses $SUNDOG_DB or the default path
 //   SUNDOG_DB=/path/to/sundog.db npm run sundog:export
 //   node --experimental-strip-types scripts/sundog/export-catalog.ts [dbPath]

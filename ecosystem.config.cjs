@@ -3,7 +3,7 @@ module.exports = {
 	apps: [
 		{
 			name: 'virtual-planet-fe',
-			cwd: './fe',
+			cwd: './apps/scene-editor',
 			script: 'build/index.js',
 			instances: 1,
 			exec_mode: 'fork',

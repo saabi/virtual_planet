@@ -1,19 +1,22 @@
-# virtual_planet
+# World Lab
 
-Procedural planet renderer — **SvelteKit 2 + Svelte 5** monorepo.
+WebGPU-first world-authoring monorepo — **SvelteKit 2 + Svelte 5**. Its first app, **Virtual
+Planet**, is a procedural planet renderer; **WebGPUToy** is a WebGPU graph-editor playground.
 
 | Directory | Role |
 |-----------|------|
-| **`fe/`** | Active app (SvelteKit 2, Svelte 5 runes, TypeScript, WebGPU) |
+| **`apps/scene-editor/`** | Virtual Planet — active scene/planet-renderer app (SvelteKit 2, Svelte 5 runes, TypeScript, WebGPU) |
+| **`apps/webgputoy/`** | WebGPUToy — graph editor / WebGPU playground app |
 | **`packages/*`** | Shared libraries (e.g. `@virtual-planet/schema`) |
 | **`fe.old/`** | Archived Sapper / Svelte 3 reference (not a workspace) |
 
 ## Commands
 
-Requires **Node.js ≥ 22** (see `fe/.nvmrc`). Install from repo root; run app commands from **`fe/`**:
+Requires **Node.js ≥ 22** (see `apps/scene-editor/.nvmrc`). Install from repo root; run app
+commands from the app directory, e.g. **`apps/scene-editor/`**:
 
 ```sh
-cd fe
+cd apps/scene-editor
 npm install
 npm run dev
 npm run build

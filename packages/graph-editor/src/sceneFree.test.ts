@@ -2,12 +2,12 @@
 import { describe, expect, it } from 'vitest';
 
 // ADR guard: packages/graph-editor edits FIELD GRAPHS only. It must not import the
-// planet renderer, the scene tree, or any host-app modules ($lib / $app / fe/). It
-// may depend only on the generic @virtual-planet graph stack + UI libs.
+// planet renderer, the scene tree, or any host-app modules ($lib / $app /
+// apps/scene-editor/). It may depend only on the generic @virtual-planet graph stack + UI libs.
 // See _docs/architecture/procedural-graph/editor-and-scene-integration.md.
 
 const ALLOWED_VP = /^@virtual-planet\/(graph|schema|compiler|runtime-cpu|runtime-webgpu|subdivide|editor-ui)(\/|$)/;
-const FORBIDDEN = /\$(lib|app)|(^|\/)fe\/|(^|\/)(planet|scene)(\/|$)/;
+const FORBIDDEN = /\$(lib|app)|(^|\/)apps\/scene-editor\/|(^|\/)(planet|scene)(\/|$)/;
 const IMPORT_RE = /(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g;
 
 // Vite/Vitest-native raw source read — no node builtins (packages stay browser-capable).

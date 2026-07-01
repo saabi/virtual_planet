@@ -1,10 +1,9 @@
 {
-	"name": "virtual-planet-monorepo",
+	"name": "world-lab-monorepo",
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",
 	"workspaces": [
-		"fe",
 		"apps/*",
 		"packages/*"
 	]
