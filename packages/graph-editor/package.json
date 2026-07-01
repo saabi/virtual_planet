@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/graph-editor",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "Reusable Svelte graph-editor components over the Typed Graph IR (no renderer logic).",
 	"repository": {
 		"type": "git",

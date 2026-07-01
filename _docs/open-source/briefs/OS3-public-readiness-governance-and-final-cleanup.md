@@ -1,11 +1,8 @@
 # Brief OS3 - Public readiness, governance, and final cleanup
 
 **Type:** open-source readiness. **Scope:** README, roadmap, governance docs, CI,
-final cleanup. **Depends on:** OS1 and OS2. **Status:** ✅ Landed — **except** the "Final
-pre-public cleanup" section below, which is explicitly deferred (per its own text: "perform
-these only when the owner says the repo is ready to open" — that signal hasn't been given).
-Everything else landed: README/ROADMAP, both app READMEs, governance docs (CONTRIBUTING,
-SECURITY, CODE_OF_CONDUCT, PR template, issue templates), and `.github/workflows/ci.yml`.
+final cleanup. **Depends on:** OS1 and OS2. **Status:** implemented locally; pending push
+and GitHub CI verification.
 
 ## Objective
 
@@ -86,7 +83,7 @@ Do not add npm publish automation until publishing is explicitly enabled.
 
 ## Final pre-public cleanup
 
-Perform these only when the owner says the repo is ready to open:
+Completed after owner approval:
 
 - Add root `LICENSE` with MIT.
 - Remove `fe.old/`.
@@ -112,4 +109,3 @@ Perform these only when the owner says the repo is ready to open:
 - Do not implement new editor/game-dev features.
 - Do not publish packages.
 - Do not claim World Lab is a complete game engine.
-- Do not remove `fe.old/` or add MIT until the explicit final-open-source pass.

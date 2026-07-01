@@ -38,27 +38,27 @@ not an uploaded or baked texture.
 
 | Concern | Current files |
 |---|---|
-| Serializable shape parameters | `fe/src/lib/planet/params/planetParams.ts` |
-| Preset values and radius-relative amplitudes | `fe/src/lib/planet/params/presets.ts` |
-| Runtime layer gating metadata | `fe/src/lib/planet/planet/layers.ts` |
-| Frame assembly | `fe/src/lib/planet/render/buildRenderFrame.ts` |
-| Backend frame contract | `fe/src/lib/planet/render/RenderBackend.ts` |
-| GPU buffer upload | `fe/src/lib/planet/render/passes/terrainPass.ts` |
-| Cube-sphere terrain shader | `fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl` |
-| Surface-patch terrain shader | `fe/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl` |
-| Shape kernel | `fe/src/lib/planet/gpu/wgsl/planet/kernel.wgsl` |
-| Material classification | `fe/src/lib/planet/gpu/wgsl/planet/material.wgsl` |
-| Normal estimation | `fe/src/lib/planet/gpu/wgsl/planet/normal.wgsl` |
-| Terrain self-shadow | `fe/src/lib/planet/gpu/wgsl/planet/shadow.wgsl` |
-| Lighting | `fe/src/lib/planet/gpu/wgsl/planet/lighting.wgsl` |
-| Atmosphere composite | `fe/src/lib/planet/gpu/wgsl/atmosphere/atmosphereFullscreen.wgsl` |
-| WGSL include expansion | `fe/vite-wgsl.ts` |
+| Serializable shape parameters | `apps/scene-editor/src/lib/planet/params/planetParams.ts` |
+| Preset values and radius-relative amplitudes | `apps/scene-editor/src/lib/planet/params/presets.ts` |
+| Runtime layer gating metadata | `apps/scene-editor/src/lib/planet/planet/layers.ts` |
+| Frame assembly | `apps/scene-editor/src/lib/planet/render/buildRenderFrame.ts` |
+| Backend frame contract | `apps/scene-editor/src/lib/planet/render/RenderBackend.ts` |
+| GPU buffer upload | `apps/scene-editor/src/lib/planet/render/passes/terrainPass.ts` |
+| Cube-sphere terrain shader | `apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl` |
+| Surface-patch terrain shader | `apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl` |
+| Shape kernel | `apps/scene-editor/src/lib/planet/gpu/wgsl/planet/kernel.wgsl` |
+| Material classification | `apps/scene-editor/src/lib/planet/gpu/wgsl/planet/material.wgsl` |
+| Normal estimation | `apps/scene-editor/src/lib/planet/gpu/wgsl/planet/normal.wgsl` |
+| Terrain self-shadow | `apps/scene-editor/src/lib/planet/gpu/wgsl/planet/shadow.wgsl` |
+| Lighting | `apps/scene-editor/src/lib/planet/gpu/wgsl/planet/lighting.wgsl` |
+| Atmosphere composite | `apps/scene-editor/src/lib/planet/gpu/wgsl/atmosphere/atmosphereFullscreen.wgsl` |
+| WGSL include expansion | `apps/scene-editor/vite-wgsl.ts` |
 
 ## Current parameter contract
 
 `PlanetParameters` is the shape/material input schema. `toGpuPlanetParams()` copies it
 into the `PlanetParams` uniform block, with `time` appended for shader animation hooks.
-The per-field contract now lives **on the type** (`fe/src/lib/planet/params/planetParams.ts`
+The per-field contract now lives **on the type** (`apps/scene-editor/src/lib/planet/params/planetParams.ts`
 and `atmosphereParams.ts`) so misuse is caught where values are written; this table is
 the prose mirror. Every shape/material field is sampled in the **body frame**
 (`sample_planet(body_dir, …)`). The **scale-behavior** column says how a field survives

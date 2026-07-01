@@ -101,7 +101,7 @@ interface ShaderLinker {
 }
 ```
 
-- First implementation may mirror `fe/vite-wgsl.ts` recursive `#include` expansion
+- First implementation may mirror `apps/scene-editor/vite-wgsl.ts` recursive `#include` expansion
   (textual, no AST).
 - Optional acceleration: **`@use-gpu/shader/wgsl`** behind the adapter (`loadModule`,
   `linkModule`, `linkBundle`, shake via symbol tables). The Lezer `Tree` stays an
@@ -179,7 +179,7 @@ type checking.
 | Use | Allowed | Notes |
 |-----|---------|-------|
 | Reference architecture for composable WGSL functions | ✅ | Inspiration only for `procedural-wgsl` layout |
-| M6 linker adapter implementation | ✅ | `@use-gpu/shader/wgsl` as dev/runtime dep of adapter or `fe/`, not `compiler` core unless brief explicitly adds it for M6 only |
+| M6 linker adapter implementation | ✅ | `@use-gpu/shader/wgsl` as dev/runtime dep of adapter or `apps/scene-editor/`, not `compiler` core unless brief explicitly adds it for M6 only |
 | M3 signature reader | ⚠️ avoid as SoT | Symbol table may diverge from browser WGSL; prefer dedicated signature reader |
 | Compiler IR / codegen target | ❌ | Graph IR remains the IR |
 | Public export from `@virtual-planet/compiler` | ❌ | No Lezer `Tree`, `ParsedModule`, or linker types in compiler package API |
@@ -207,7 +207,7 @@ not on AST shape.
 | `@virtual-planet/graph` | IR, primitives, `WgslSourceRef`; no WGSL parse |
 | `@virtual-planet/compiler` | slice, codegen (text), optional signature reader + linker **interfaces**; implementations per milestone brief |
 | `@virtual-planet/procedural-wgsl` | `.wgsl` source files; stable module ids |
-| `fe/` | `vite-wgsl.ts` include expansion (precursor to linker); GPU compile tests |
+| `apps/scene-editor/` | `vite-wgsl.ts` include expansion (precursor to linker); GPU compile tests |
 
 No WGSL AST types cross package boundaries. Strings and small signature structs only.
 

@@ -1,8 +1,13 @@
 {
 	"name": "world-lab-monorepo",
 	"private": true,
-	"version": "0.0.0",
+	"version": "0.1.0",
+	"license": "MIT",
 	"type": "module",
+	"packageManager": "npm@10.9.7",
+	"engines": {
+		"node": ">=22"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/saabi/world-lab.git"
@@ -22,7 +27,7 @@
 		"test": "npm run test --workspaces --if-present",
 		"ci": "npm run check && npm test && npm run build",
 		"changeset": "changeset",
-		"version": "changeset version",
+		"version:packages": "changeset version",
 		"release": "changeset publish"
 	},
 	"devDependencies": {

@@ -4,12 +4,15 @@ Created: 2026-06-16
 
 ## This repository
 
-Standalone repo at `~/repos/virtual_planet` with **42 commits** of history from Color Lab `test/planet-editor`, branch renamed to **`main`**. No other Color Lab branches are present.
+The standalone repository began at `~/repos/virtual_planet` with **42 commits** of history
+from Color Lab `test/planet-editor`; it is now the **World Lab** monorepo. No other Color Lab
+branches are present.
 
 ## Bootstrap (from colorlab)
 
 ```sh
-cd ~/repos/virtual_planet
+git clone https://github.com/saabi/world-lab.git
+cd world-lab
 git init
 git remote add source /home/ushif/repos/colorlab
 git fetch source refs/remotes/gitlab/test/planet-editor:main
@@ -35,10 +38,10 @@ git remote remove source
 
 | Path | Contents |
 |------|----------|
-| `fe/` | New SvelteKit 2 + Svelte 5 app (active) |
-| `fe.old/` | Legacy Sapper planet editor (archived from repo root) |
+| `apps/scene-editor/` | SvelteKit 2 + Svelte 5 Scene Editor app (active) |
+| `fe.old/` | Legacy Sapper planet editor, removed during open-source cleanup |
 
 ## Next steps
 
-1. Port `PlanetDisplay` + shaders from `fe.old/` into `fe/`.
+1. Port `PlanetDisplay` + shaders from the legacy Sapper app into `apps/scene-editor/`.
 2. Add remote and push when ready.

@@ -5,10 +5,9 @@ This file provides centralized guidance to AI coding assistants when working wit
 ## Layout
 
 **World Lab** — WebGPU-first world-authoring monorepo (repo `world-lab`). Its first app,
-**Virtual Planet**, is a procedural multi-scale planet renderer. The active app is
-**`apps/scene-editor/`** (SvelteKit 2 + Svelte 5 runes + TypeScript, WebGPU-first) — a public
-product name for it is still open, so this doc uses the functional name. **`fe.old/`** is the
-archived Sapper reference (not a workspace). **`_docs/specs/virtual_planet_architecture_plan.md`**
+the **Scene Editor**, includes a procedural multi-scale planet renderer. The active app is
+**`apps/scene-editor/`** (SvelteKit 2 + Svelte 5 runes + TypeScript, WebGPU-first).
+**`_docs/specs/virtual_planet_architecture_plan.md`**
 is the canonical architecture spec for the planet-renderer subsystem. All commands below run
 from `apps/scene-editor/`.
 
@@ -76,8 +75,8 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 
 ## Dev server (shared, single instance)
 
-There is **one** long-running dev server for `apps/webgputoy` (the WebGPUToy graph editor,
-formerly `apps/graph-editor`) at **http://localhost:5173** — agents **share it**, do not
+There is **one** long-running dev server for `apps/webgputoy` (the WebGPUToy graph editor)
+at **http://localhost:5173** — agents **share it**, do not
 launch your own. `vite.config.ts` pins `server: { port: 5173, strictPort: true }`, so a stray
 `npm run dev` now **fails** with "port in use" instead of silently spawning 5174/5175/… (the
 cause of the pile-up). If you need the editor running, use 5173; if it's down, start exactly

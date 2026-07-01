@@ -31,9 +31,9 @@ flowchart LR
 ## Agent workflow
 
 1. Read extracted `game.notes`, stats, and cities for a system in
-   [`sundog-catalog.json`](../../fe/src/lib/planet/sundog/sundog-catalog.json).
-2. Edit or add [`fe/src/lib/planet/sundog/enrichments/<system-id>.ts`](../../fe/src/lib/planet/sundog/enrichments/).
-3. Run `npm run check && npm test` from `fe/`.
+   [`sundog-catalog.json`](../../apps/scene-editor/src/lib/planet/sundog/sundog-catalog.json).
+2. Edit or add [`apps/scene-editor/src/lib/planet/sundog/enrichments/<system-id>.ts`](../../apps/scene-editor/src/lib/planet/sundog/enrichments/).
+3. Run `npm run check && npm test` from `apps/scene-editor/`.
 4. Open `/solar-systems` → select system → **Open in Scene** → verify orbits and appearance.
 
 No CLI or in-browser LLM is required for Tier 1.
@@ -48,11 +48,11 @@ No CLI or in-browser LLM is required for Tier 1.
 - **Inclination:** tilt the orbital plane via `transform.rotation` on the kepler-orbit
   group node (`{bodyId}-orbit`). The kepler driver still runs in local XZ;
   `periapsisAngle` rotates the ellipse within that plane. See
-  [`orbitPlaneRotation.ts`](../../fe/src/lib/planet/sundog/orbitPlaneRotation.ts).
+  [`orbitPlaneRotation.ts`](../../apps/scene-editor/src/lib/planet/sundog/orbitPlaneRotation.ts).
 
 ## Enrichment schema
 
-See [`enrichmentTypes.ts`](../../fe/src/lib/planet/sundog/enrichmentTypes.ts).
+See [`enrichmentTypes.ts`](../../apps/scene-editor/src/lib/planet/sundog/enrichmentTypes.ts).
 
 - **`orbit`:** `eccentricity`, `periapsisAngle` (driver), `inclinationDeg`,
   `ascendingNodeDeg` (kepler-group transform).

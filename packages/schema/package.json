@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/schema",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "Schema/type-system extension for the scene model: a functional, plain-data layer over TypeBox (introspectable JSON-Schema + static inference) plus domain annotations (units, extents, path refs).",
 	"repository": {
 		"type": "git",

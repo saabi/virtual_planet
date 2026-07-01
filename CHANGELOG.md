@@ -6,6 +6,6 @@ changelogs are generated from Changesets once packages are published.
 
 ## Unreleased
 
-## 0.1.0 - Initial public baseline
+## 0.1.0 - 2026-07-01
 
 Initial public source baseline.

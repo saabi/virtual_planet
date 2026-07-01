@@ -25,10 +25,12 @@ platform is headed — it is not a commitment or a schedule.
 
 - Finish public-facing docs and governance (this pass).
 - CI on every push/PR (check + test + build across workspaces).
-- Decide and add the MIT `LICENSE`, remove the archived `fe.old/` reference, and do a final
-  pass over deployment domains/metadata — **only once the repo owner says it's ready to open**.
+- Maintain MIT licensing and deployment metadata for both public apps.
 - Decide npm-publish readiness per package (source-TS exports vs. a built `dist/`) before
   lifting `private: true` on any `packages/*`.
+- Choose a broader npm scope for reusable packages (`@world-lab/*` is preferred if the npm
+  scope is controlled) and complete the external-consumer gates in
+  [`OS4-package-publishing-readiness.md`](_docs/open-source/briefs/OS4-package-publishing-readiness.md).
 - Close the remaining procedural-graph gaps already tracked in
   [`_docs/pending_issues.md`](_docs/pending_issues.md) (params-as-inputs wiring, node-groups
   authoring UX, cross-target/feedback rendering, transform primitives).

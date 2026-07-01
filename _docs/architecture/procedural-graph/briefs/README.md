@@ -1,5 +1,10 @@
 # Milestone briefs
 
+> Historical path note: completed briefs preserve the workspace names that existed when
+> they were executed, including `fe/` and `apps/graph-editor`. Current paths are
+> `apps/scene-editor/` and `apps/webgputoy/`; do not copy commands from completed briefs
+> without translating those paths.
+
 Self-contained, routable specs for executing
 [implementation-plan.md](../implementation-plan.md) milestones. Each brief is a
 **contract a single agent can fulfill**: objective, files, public signatures, the

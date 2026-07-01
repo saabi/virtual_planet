@@ -110,7 +110,7 @@ and source-driven.
 specific shaders from generated/resolved functions: dependency ordering, dup
 elimination, module composition, stage assembly, and WGSL-level dead-code
 elimination. The first implementation stays intentionally minimal (graph-level
-slicing already did the heavy lifting). The repo's current `fe/vite-wgsl.ts`
+slicing already did the heavy lifting). The repo's current `apps/scene-editor/vite-wgsl.ts`
 `#include` expansion is the **textual precursor** this generalizes into typed,
 dependency-ordered module composition — the shaping pipeline already calls for
 emitting an ordered WGSL include list plus `sampleShape()` / `sampleMaterial()` /

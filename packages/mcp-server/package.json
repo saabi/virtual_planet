@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/mcp-server",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "MCP server exposing the Typed Graph IR to AI assistants (documents, sessions, compile, diagnostics).",
 	"repository": {
 		"type": "git",

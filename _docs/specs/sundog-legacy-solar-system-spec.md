@@ -22,20 +22,20 @@ This spec was originally written greenfield; the repo has since grown most of
 the "scene" machinery. Build on it — do **not** introduce a parallel scene
 model.
 
-- **Scene model** — [`lib/planet/scene/types.ts`](../../fe/src/lib/planet/scene/types.ts):
+- **Scene model** — [`lib/planet/scene/types.ts`](../../apps/scene-editor/src/lib/planet/scene/types.ts):
   `PlanetScene = { rootId, nodes: Map<id, SceneNode> }`. `BodyNode` carries
   `bodyType: 'star' | 'planet' | 'gas_giant' | 'moon'`, `radiusMeters`,
   `appearance?: { preset, overrides }`, `atmosphere?`.
-- **Orbits** — [`lib/planet/scene/orbit.ts`](../../fe/src/lib/planet/scene/orbit.ts)
+- **Orbits** — [`lib/planet/scene/orbit.ts`](../../apps/scene-editor/src/lib/planet/scene/orbit.ts)
   + the kepler/sum drivers, composed by the `orbiting()` helper in
-  [`lib/planet/scene/solarSystem.ts`](../../fe/src/lib/planet/scene/solarSystem.ts)
+  [`lib/planet/scene/solarSystem.ts`](../../apps/scene-editor/src/lib/planet/scene/solarSystem.ts)
   (`createToySolarSystemScene`). Eccentric Kepler orbits already work; do not
   regress to circular-only.
-- **Editor route** — [`routes/scene/[...path]/+page.svelte`](../../fe/src/routes/scene/%5B...path%5D/+page.svelte)
+- **Editor route** — [`routes/scene/[...path]/+page.svelte`](../../apps/scene-editor/src/routes/scene/%5B...path%5D/+page.svelte)
   loads ONE active scene from `localStorage['vp.systemScene']` (else the toy
   preset). The `[...path]` segment addresses node **selection**, not different
   scenes.
-- **Serialization** — [`lib/planet/scene/sceneDocument.ts`](../../fe/src/lib/planet/scene/sceneDocument.ts)
+- **Serialization** — [`lib/planet/scene/sceneDocument.ts`](../../apps/scene-editor/src/lib/planet/scene/sceneDocument.ts)
   (`serializeScene` / `deserializeScene`, version-gated).
 - **Authoritative design specs** — [`solar-system-model.md`](solar-system-model.md),
   [`solar-system-scene.md`](solar-system-scene.md),
@@ -43,7 +43,7 @@ model.
   [`city-generation-plan.md`](city-generation-plan.md) — this spec does **not**
   redefine it.
 
-Toolchain: **npm**, **Node 22** (`fe/.nvmrc`), commands from `fe/`. There is no
+Toolchain: **npm**, **Node 22** (`apps/scene-editor/.nvmrc`), commands from `apps/scene-editor/`. There is no
 `pnpm`/`tsx`.
 
 ---
@@ -179,7 +179,7 @@ split and `/solar-systems` route.
 WebGPU-native, reusing the existing scene-tree renderer — **no new 3D
 dependency** (Three.js stays confined to legacy `/old`). The galaxy is itself a
 `PlanetScene`: each system becomes a `star` `BodyNode` at its galaxy position,
-rendered by the existing [`SceneViewport3D`](../../fe/src/lib/planet/components/SceneViewport3D.svelte)
+rendered by the existing [`SceneViewport3D`](../../apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte)
 (`scene3d/SpherePass` already draws stars as emissive spheres, distant ones as
 dots, with orbit camera + projected-disc picking).
 - `galaxyScene.ts` builds the star scene; `galaxyLayout.ts` (pure + tested)

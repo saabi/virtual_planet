@@ -1,6 +1,6 @@
 # Scene orbital spaceflight
 
-Orbital spaceflight in `/scene` uses a shared physics module (`fe/src/lib/planet/flight/`) and a Subdivide **Flight** panel — no HUD overlays on the 3D viewport.
+Orbital spaceflight in `/scene` uses a shared physics module (`apps/scene-editor/src/lib/planet/flight/`) and a Subdivide **Flight** panel — no HUD overlays on the 3D viewport.
 
 ## Layout
 

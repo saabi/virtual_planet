@@ -20,7 +20,7 @@ whether the architecture supports the pipeline — it demonstrably does.
 
 ## 1. How the planet renders today (grounded in code)
 
-Source: `fe/src/lib/planet/` — `render/buildRenderFrame.ts`, `patches/*`,
+Source: `apps/scene-editor/src/lib/planet/` — `render/buildRenderFrame.ts`, `patches/*`,
 `gpu/wgsl/terrain/cubeSphereVertex.wgsl`, `gpu/wgsl/planet/{kernel,material,normal,shadow,lighting}.wgsl`.
 
 **CPU, per frame (`buildRenderFrame` → `scheduleOrbitPatches`):**

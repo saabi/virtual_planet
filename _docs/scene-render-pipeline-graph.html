@@ -507,8 +507,8 @@
       <div class="detail-block">
         <h3>Source</h3>
         <ul id="detail-source">
-          <li><code>fe/src/lib/planet/components/SceneViewport3D.svelte</code></li>
-          <li><code>fe/src/lib/planet/scene3d/sceneEngine.ts</code></li>
+          <li><code>apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte</code></li>
+          <li><code>apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts</code></li>
         </ul>
       </div>
       <p class="footnote">
@@ -526,7 +526,7 @@
         summary: "The scene page owns the editable PlanetScene document, URL selection, viewport preferences, clock, and panel layout.",
         inputs: ["Serialized or default PlanetScene.", "Selected node id from the URL path.", "Viewport preferences from localStorage and editor controls."],
         outputs: ["Props for SceneViewport3D.", "Shared clock and selectedId binding.", "Render/debug settings used by frame assembly."],
-        source: ["fe/src/routes/scene/[...path]/+page.svelte", "_docs/scene-route-rendering-pipeline.md"]
+        source: ["apps/scene-editor/src/routes/scene/[...path]/+page.svelte", "_docs/scene-route-rendering-pipeline.md"]
       },
       evaluate: {
         title: "evaluateScene",
@@ -534,7 +534,7 @@
         summary: "Evaluates orbital/body animation for the current clock before any render decisions are made.",
         inputs: ["PlanetScene graph.", "Current route clock time."],
         outputs: ["Animated scene snapshot.", "Evaluated world transforms for bodies.", "Light positions and orbit states."],
-        source: ["fe/src/lib/planet/scene/driver.ts", "fe/src/lib/planet/scene/sceneTree.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene/driver.ts", "apps/scene-editor/src/lib/planet/scene/sceneTree.ts"]
       },
       camera: {
         title: "camera frame",
@@ -542,7 +542,7 @@
         summary: "Builds the camera-relative frame used by spheres, terrain, water, atmosphere, picking, and overlays.",
         inputs: ["Orbit, free-fly, or spaceflight camera state.", "Selected body target.", "Scene-wide near/far fit."],
         outputs: ["Eye-relative viewProjection matrix.", "Camera world position.", "Rebased light and body positions."],
-        source: ["fe/src/lib/planet/components/SceneViewport3D.svelte", "fe/src/lib/planet/scene3d/orbitCamera.ts", "fe/src/lib/planet/camera/freeFly.ts"]
+        source: ["apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte", "apps/scene-editor/src/lib/planet/scene3d/orbitCamera.ts", "apps/scene-editor/src/lib/planet/camera/freeFly.ts"]
       },
       manifest: {
         title: "frame manifest",
@@ -550,7 +550,7 @@
         summary: "Builds the per-frame render manifest: visible bodies, LOD tiers, procedural tessellation targets, water targets, and atmosphere targets.",
         inputs: ["Animated scene.", "View-projection and viewport size.", "LOD thresholds and debug settings."],
         outputs: ["DrawItem list with screenRadiusPx and procedural blends.", "ProceduralRenderTarget array capped by MAX_PROCEDURAL_BODIES.", "Water instances, atmosphere body uniforms, eclipse uniforms."],
-        source: ["fe/src/lib/planet/scene3d/drawList.ts", "fe/src/lib/planet/scene3d/proceduralBodies.ts", "fe/src/lib/planet/scene3d/waterLod.ts", "fe/src/lib/planet/scene/eclipseOccluders.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/drawList.ts", "apps/scene-editor/src/lib/planet/scene3d/proceduralBodies.ts", "apps/scene-editor/src/lib/planet/scene3d/waterLod.ts", "apps/scene-editor/src/lib/planet/scene/eclipseOccluders.ts"]
       },
       "tess-targets": {
         title: "tess targets",
@@ -558,7 +558,7 @@
         summary: "Selects which planet/moon bodies will receive tessellated procedural terrain this frame and how much of the global tessellation budget each body gets.",
         inputs: ["DrawItem list from buildDrawList.", "Scene nodes and evaluated transforms.", "Selected id, projected body radius, and MAX_PROCEDURAL_BODIES."],
         outputs: ["ProceduralRenderTarget entries with renderRadius, rotation, screenDepth, screenRadiusPx, displacementBlend, heightBlend, and atmosphereBlend.", "Primary body keeps the full tessellation budget; secondary procedural bodies receive a scaled share through tessellationBudgetScaleForBody()."],
-        source: ["fe/src/lib/planet/scene3d/proceduralBodies.ts", "fe/src/lib/planet/scene3d/proceduralRender.ts", "fe/src/lib/planet/patches/tessellationSettings.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/proceduralBodies.ts", "apps/scene-editor/src/lib/planet/scene3d/proceduralRender.ts", "apps/scene-editor/src/lib/planet/patches/tessellationSettings.ts"]
       },
       "patch-scheduler": {
         title: "patch scheduler",
@@ -566,7 +566,7 @@
         summary: "Turns tessellation settings plus camera/screen-space error into packed terrain patches before the GPU draw is recorded.",
         inputs: ["PlanetRenderInputs from buildProceduralRenderInput().", "Tessellation settings from viewportPrefs, optionally scaled for secondary bodies.", "Focused-body camera derived from the scene camera.", "Planet radius and displacement/height blend settings."],
         outputs: ["Packed orbit/surface patch buckets consumed by WebGPUBackend.recordTerrainInto().", "Patch count and vertex budget decisions.", "Per-patch cube-sphere coordinates, level, face, and ring/LOD data."],
-        source: ["fe/src/lib/planet/render/planetRenderer.ts", "fe/src/lib/planet/render/buildRenderFrame.ts", "fe/src/lib/planet/patches/cubeSphereScheduler.ts", "fe/src/lib/planet/patches/wasm/scheduler.ts", "fe/src/lib/planet/render/passes/terrainPass.ts"]
+        source: ["apps/scene-editor/src/lib/planet/render/planetRenderer.ts", "apps/scene-editor/src/lib/planet/render/buildRenderFrame.ts", "apps/scene-editor/src/lib/planet/patches/cubeSphereScheduler.ts", "apps/scene-editor/src/lib/planet/patches/wasm/scheduler.ts", "apps/scene-editor/src/lib/planet/render/passes/terrainPass.ts"]
       },
       sphere: {
         title: "SpherePass",
@@ -574,7 +574,7 @@
         summary: "Draws dot and sphere LOD bodies as instanced UV spheres into the shared geometry pass.",
         inputs: ["BodyInstance array.", "Eye-relative viewProjection.", "Scene light and global eclipse uniforms."],
         outputs: ["Scene color for dot/sphere bodies.", "Shared depth for occlusion.", "No surface-distance output."],
-        source: ["fe/src/lib/planet/scene3d/spherePass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/sphere.wgsl"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/spherePass.ts", "apps/scene-editor/src/lib/planet/gpu/wgsl/scene3d/sphere.wgsl"]
       },
       orbits: {
         title: "OrbitLinePass",
@@ -582,7 +582,7 @@
         summary: "Draws visible orbit paths after CPU orbit tessellation and LOD selection.",
         inputs: ["OrbitPath3D polylines.", "Eye-relative viewProjection.", "Camera-relative orbit centers."],
         outputs: ["Orbit line color in the shared scene target.", "Depth-tested or blended path fragments depending on shader state."],
-        source: ["fe/src/lib/planet/scene3d/orbitLinePass.ts", "fe/src/lib/planet/scene/orbitPaths.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/orbitLine.wgsl"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/orbitLinePass.ts", "apps/scene-editor/src/lib/planet/scene/orbitPaths.ts", "apps/scene-editor/src/lib/planet/gpu/wgsl/scene3d/orbitLine.wgsl"]
       },
       terrain: {
         title: "TerrainPass",
@@ -590,7 +590,7 @@
         summary: "Records the scheduled terrain patch mesh for each procedural planet/moon into the same render pass and shared depth target as spheres.",
         inputs: ["Packed terrain patch buckets from the scheduler.", "PlanetParameters resolved from body appearance.", "Focused-body camera built from the scene camera.", "Material overrides, displacementBlend, heightBlend, and eclipse uniforms."],
         outputs: ["Terrain color.", "Shared depth.", "R32Float surface distance used by atmosphere termination.", "Per-fragment material/debug output."],
-        source: ["fe/src/lib/planet/scene3d/proceduralRender.ts", "fe/src/lib/planet/render/planetRenderer.ts", "fe/src/lib/planet/render/WebGPUBackend.ts", "fe/src/lib/planet/render/passes/terrainPass.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/proceduralRender.ts", "apps/scene-editor/src/lib/planet/render/planetRenderer.ts", "apps/scene-editor/src/lib/planet/render/WebGPUBackend.ts", "apps/scene-editor/src/lib/planet/render/passes/terrainPass.ts"]
       },
       "terrain-vertex": {
         title: "terrain vertex",
@@ -598,7 +598,7 @@
         summary: "The GPU vertex path maps each scheduled patch vertex from cube-face coordinates to the ideal sphere, samples terrain height in body-local coordinates, and applies radial displacement.",
         inputs: ["Packed patch vertex data and per-patch face/LOD descriptors.", "Planet parameter uniforms.", "Planet rotation uniform for body-local terrain sampling.", "displacementBlend for scene LOD transitions."],
         outputs: ["Clip-space displaced terrain vertices.", "Interpolants used by fragment material, debug views, depth, and surface-distance output.", "Terrain shape that water and atmosphere later compare against via shared depth/surface_t."],
-        source: ["fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl", "fe/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl", "fe/src/lib/planet/gpu/wgsl/planet/kernel.wgsl", "fe/src/lib/planet/gpu/wgsl/planet/material.wgsl"]
+        source: ["apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl", "apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl", "apps/scene-editor/src/lib/planet/gpu/wgsl/planet/kernel.wgsl", "apps/scene-editor/src/lib/planet/gpu/wgsl/planet/material.wgsl"]
       },
       gbuffers: {
         title: "scene buffers",
@@ -606,7 +606,7 @@
         summary: "The shared frame products created by SceneEngine and consumed by later passes.",
         inputs: ["Geometry pass writes.", "Viewport dimensions.", "Overlay/water mode determines whether color is offscreen or the swapchain."],
         outputs: ["sceneColor: sampleable color when water or explicit atmosphere is active.", "depth24plus: sampled by water and atmosphere after geometry pass ends.", "surfaceDistance r32float: terrain-owned atmosphere endpoint metric."],
-        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts"]
       },
       "scene-engine": {
         title: "SceneEngine",
@@ -614,7 +614,7 @@
         summary: "Owns the command encoder, shared depth, offscreen scene color, water color, surface distance texture, and render-pass ordering.",
         inputs: ["recordScene callback.", "Optional recordWater callback.", "Optional recordOverlay callback.", "Clear color and overlay composite mode."],
         outputs: ["One submitted command buffer.", "Correct pass separation so depth/color can be sampled only after their attachment pass ends."],
-        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts"]
       },
       debug: {
         title: "debug mode switches",
@@ -622,7 +622,7 @@
         summary: "Material/debug modes reroute or simplify the pass graph so diagnostics expose one subsystem at a time.",
         inputs: ["materialDebug SceneDebugMode.", "waterDebugOnBlack, waterDebugDepthTest, atmosphereWhite helpers."],
         outputs: ["Water on black skips terrain/spheres but still draws water targets.", "Water depth test disables normal water and records a depth overlay.", "Atmosphere on white can render terrain surface-only under atmosphere diagnostics."],
-        source: ["fe/src/lib/planet/scene/sceneDebug.ts", "fe/src/lib/planet/components/SceneViewport3D.svelte"]
+        source: ["apps/scene-editor/src/lib/planet/scene/sceneDebug.ts", "apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte"]
       },
       water: {
         title: "WaterPass",
@@ -630,7 +630,7 @@
         summary: "Runs after geometry so it can sample scene color and depth, copy the pre-water scene, then draw transparent sea-level shells.",
         inputs: ["Water instances selected from procedural targets.", "Pre-water sceneColor.", "Shared scene depth.", "ViewProjection and inverse ViewProjection.", "Water material sliders and eclipse/shadow uniforms."],
         outputs: ["Post-water color.", "Manual depth-tested water over terrain.", "Transmission, absorption, scattering, glint, wave normals, foam, and water debug views."],
-        source: ["fe/src/lib/planet/scene3d/waterPass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/water.wgsl", "_docs/ocean-rendering-research.md"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/waterPass.ts", "apps/scene-editor/src/lib/planet/gpu/wgsl/scene3d/water.wgsl", "_docs/ocean-rendering-research.md"]
       },
       atmosphere: {
         title: "SceneAtmospherePass",
@@ -638,7 +638,7 @@
         summary: "Fullscreen composite over procedural atmosphere bodies, using scene depth and terrain surface distance to terminate/occlude the march.",
         inputs: ["Composite source color.", "Shared scene depth.", "Terrain surface-distance texture.", "Atmosphere params per procedural body.", "Lighting, material overrides, eclipse uniforms."],
         outputs: ["Explicit composite: sceneColor * transmittance + inscatter.", "Hardware-alpha mode: inscatter with fixed-function alpha blending.", "Atmosphere diagnostic views."],
-        source: ["fe/src/lib/planet/scene3d/sceneAtmospherePass.ts", "fe/src/lib/planet/gpu/wgsl/scene3d/sceneAtmosphere.wgsl"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/sceneAtmospherePass.ts", "apps/scene-editor/src/lib/planet/gpu/wgsl/scene3d/sceneAtmosphere.wgsl"]
       },
       "post-water": {
         title: "post-water color",
@@ -646,7 +646,7 @@
         summary: "Intermediate color target used when water and explicit atmosphere both need a sampleable source.",
         inputs: ["WaterPass output.", "SceneEngine overlay mode."],
         outputs: ["Read source for explicit atmosphere overlay.", "Or direct swapchain output when no explicit overlay follows."],
-        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts"]
       },
       present: {
         title: "present",
@@ -654,7 +654,7 @@
         summary: "The final color is written to the current canvas texture and submitted to the GPU queue.",
         inputs: ["Geometry-only color, post-water color, or atmosphere-composited color depending on active passes."],
         outputs: ["Presented WebGPU canvas frame."],
-        source: ["fe/src/lib/planet/scene3d/sceneEngine.ts"]
+        source: ["apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts"]
       }
     };
 
@@ -715,7 +715,7 @@
       document.querySelector("#detail-outputs").innerHTML =
         "<li>Click a node to inspect its source files and render-target contracts.</li>";
       document.querySelector("#detail-source").innerHTML =
-        "<li><code>fe/src/lib/planet/components/SceneViewport3D.svelte</code></li><li><code>fe/src/lib/planet/scene3d/sceneEngine.ts</code></li>";
+        "<li><code>apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte</code></li><li><code>apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts</code></li>";
     });
 
     renderDetail("scene-engine");

@@ -1,10 +1,8 @@
 # Svelte Component Script Organization
 
-Guidelines for structuring `.svelte` files in `fe/src/lib/planet/components/` (and route-level Svelte under `fe/src/routes/`). Pattern extracted from the escriba_finanzas component library (`app/src/lib/components/`, `docs/SVELTE_GUIDELINES.md`).
+Guidelines for structuring `.svelte` files in `apps/scene-editor/src/lib/planet/components/` (and route-level Svelte under `apps/scene-editor/src/routes/`). Pattern extracted from the escriba_finanzas component library (`app/src/lib/components/`, `docs/SVELTE_GUIDELINES.md`).
 
 **Scope:** TypeScript in the two `<script>` blocks. Svelte 5 runes and `onclick` / `onpointerdown` event attributes are required — see `AGENTS.md` (Svelte 5 events rule).
-
-**Out of scope:** `fe/src/lib/old/` — frozen reference; do not refactor unless fixing regressions.
 
 ---
 
@@ -145,12 +143,6 @@ Default: all imports in module script. Second `IMPORTS` section in the instance 
 
 Do not mix organization refactors with rendering or persistence changes in the same PR.
 
-### `fe/src/lib/old/`
-
-Do not apply this procedure to legacy `/old` components except to fix breakage.
-
----
-
 ## Procedure: reformat an existing component
 
 ### 1. Inventory
@@ -175,7 +167,7 @@ Reorder remaining code into the section table above. Type props with `Props` fro
 
 ```sh
 export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"
-cd fe
+cd apps/scene-editor
 npm run check
 ```
 
@@ -243,4 +235,4 @@ For viewports and editors, manually verify `/planet` or `/scene/...` after refac
 | Effects + refs | `ui/Select.svelte`, `app/AppHeader.svelte` |
 | Exported types | `ui/Table.svelte` |
 
-**virtual_planet** targets after migration: `controls/Range.svelte`, `EditorParamSection.svelte`, `SchemaForm.svelte`.
+**World Lab** targets after migration: `controls/Range.svelte`, `EditorParamSection.svelte`, `SchemaForm.svelte`.

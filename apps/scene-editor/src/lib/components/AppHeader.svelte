@@ -4,7 +4,7 @@
 		label: string;
 	}
 
-	export const APP_TITLE = 'Virtual Planet';
+	export const APP_TITLE = 'Scene Editor';
 
 	export const NAV_ITEMS: NavItem[] = [
 		{ href: '/scene', label: 'Scene' },

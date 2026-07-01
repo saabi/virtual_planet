@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/subdivide",
 	"version": "0.0.0",
 	"private": true,
+	"license": "SEE LICENSE IN LICENSE",
 	"description": "Blender-style resizable pane layouts for Svelte 5 — layout tree engine ported from saabi/svelte-subdivide.",
 	"repository": {
 		"type": "git",

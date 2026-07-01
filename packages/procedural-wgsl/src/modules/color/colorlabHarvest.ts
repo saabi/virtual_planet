@@ -1,4 +1,4 @@
-// Ported from colorlab/fe/src/lib/color/ (pipeline.ts, transfer.ts, interp.ts)
+// Ported from colorlab/apps/scene-editor/src/lib/color/ (pipeline.ts, transfer.ts, interp.ts)
 
 /** Shared colorlab helpers — resolver-only dependency module `color.colorlabCommon`. */
 export const COLOR_COLORLAB_COMMON_SOURCE = `// source: colorlab

@@ -43,8 +43,8 @@ rotation.
 
 Route entry:
 
-- `fe/src/routes/planet/+page.svelte` mounts `PlanetViewport`.
-- `fe/src/routes/planet/+page.ts` disables SSR.
+- `apps/scene-editor/src/routes/planet/+page.svelte` mounts `PlanetViewport`.
+- `apps/scene-editor/src/routes/planet/+page.ts` disables SSR.
 
 `PlanetViewport.svelte` owns the whole render environment:
 

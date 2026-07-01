@@ -8,7 +8,7 @@ The `/scene/[...path]` route is client-only (`+page.ts` exports `ssr = false`) b
 the viewport depends on browser WebGPU, canvas, `ResizeObserver`, `requestAnimationFrame`,
 and `localStorage`.
 
-`fe/src/routes/scene/[...path]/+page.svelte` owns the editable `PlanetScene` document:
+`apps/scene-editor/src/routes/scene/[...path]/+page.svelte` owns the editable `PlanetScene` document:
 
 - Loads/saves the scene from `localStorage` under `vp.systemScene`, falling back to
   `createToySolarSystemScene()`.
@@ -80,7 +80,7 @@ Each frame:
 
 ## SceneEngine
 
-`fe/src/lib/planet/scene3d/sceneEngine.ts` is the pass host. It owns:
+`apps/scene-editor/src/lib/planet/scene3d/sceneEngine.ts` is the pass host. It owns:
 
 - The WebGPU device and canvas format.
 - A `depth24plus` texture resized to the current viewport.
@@ -110,20 +110,20 @@ with the underlying scene.
 
 ## Sphere pass
 
-`fe/src/lib/planet/scene3d/spherePass.ts` renders every body as one instanced unit sphere:
+`apps/scene-editor/src/lib/planet/scene3d/spherePass.ts` renders every body as one instanced unit sphere:
 
 - Geometry comes from `makeUVSphere()`.
 - Per-frame uniforms contain `viewProj`, sun position/color/intensity, and ambient light.
 - Per-instance data contains a column-major `translate(position) * scale(radius)` matrix,
   RGB color, and an emissive flag.
-- The WGSL shader is `fe/src/lib/planet/gpu/wgsl/scene3d/sphere.wgsl`.
+- The WGSL shader is `apps/scene-editor/src/lib/planet/gpu/wgsl/scene3d/sphere.wgsl`.
 
 The shader uses Lambert lighting from the sun's world-space point position. Stars bypass
 lighting through the emissive flag.
 
 ## Camera and projection
 
-The scene camera is `fe/src/lib/planet/scene3d/orbitCamera.ts`.
+The scene camera is `apps/scene-editor/src/lib/planet/scene3d/orbitCamera.ts`.
 
 - `OrbitCamera` stores azimuth around +Y, elevation from the XZ plane, distance, and target.
 - `cameraEye()` derives the eye from spherical coordinates.
@@ -137,7 +137,7 @@ projected disc hit.
 
 ## Draw list and LOD
 
-`fe/src/lib/planet/scene3d/drawList.ts` is the per-frame render manifest for the scene
+`apps/scene-editor/src/lib/planet/scene3d/drawList.ts` is the per-frame render manifest for the scene
 engine. It is pure except for the caller-provided `lodState` map used for hysteresis.
 
 For each body it stores:
@@ -150,7 +150,7 @@ For each body it stores:
 - Selected LOD.
 - Procedural cross-fade blend.
 
-LOD rules come from `fe/src/lib/planet/scene/bodyParams.ts`, fed the thresholds from the
+LOD rules come from `apps/scene-editor/src/lib/planet/scene/bodyParams.ts`, fed the thresholds from the
 **global** render-quality setting `SceneViewportPrefs.lod` (edited in the Render panel's
 Quality section, not per-body):
 

@@ -25,27 +25,20 @@ The desired renderer should not depend on precomputed terrain tiles or large sta
 
 ## 2. Current Repository State
 
-The repo has already been migrated toward a new frontend layout:
+The renderer now lives in the World Lab monorepo:
 
 ```txt
-virtual_planet/
-  fe/       active SvelteKit 2 + Svelte 5 frontend
-  fe.old/   archived Sapper/Svelte 3 reference app
+world-lab/
+  apps/scene-editor/   active SvelteKit 2 + Svelte 5 frontend
+  apps/webgputoy/      procedural graph editor and WebGPU playground
+  packages/            shared graph/compiler/runtime/editor libraries
 ```
 
-The current migrated legacy planet editor is available in the active app under `/old`.
+The legacy Sapper/WebGL reference app was removed during open-source cleanup. `/old` and
+`/planet` are retired routes that redirect to `/scene`; consult git history for the legacy
+source.
 
-Relevant current files:
-
-```txt
-fe/src/lib/old/components/PlanetDisplay.svelte
-fe/src/lib/old/components/ThreeView.svelte
-fe/src/lib/old/shaders/planet.vert
-fe/src/lib/old/shaders/planet.frag
-fe/src/lib/old/planet-editor/sample-planets.js
-```
-
-Current renderer characteristics:
+Historical prototype characteristics:
 
 - Uses Three.js and `WebGLRenderer`.
 - Uses `OrbitControls` for debug/orbit navigation.
@@ -662,7 +655,7 @@ Limitation:
 ### 12.1 Proposed directory layout
 
 ```txt
-fe/src/lib/planet/
+apps/scene-editor/src/lib/planet/
   index.ts
 
   params/
@@ -918,7 +911,7 @@ Goal: ensure agents can run and compare the current renderer.
 
 Tasks:
 
-1. Run from `fe/`:
+1. Run from `apps/scene-editor/`:
 
    ```sh
    npm install
@@ -952,8 +945,8 @@ Tasks:
 1. Create:
 
    ```txt
-   fe/src/lib/planet/params/planetParams.ts
-   fe/src/lib/planet/params/presets.ts
+   apps/scene-editor/src/lib/planet/params/planetParams.ts
+   apps/scene-editor/src/lib/planet/params/presets.ts
    ```
 
 2. Port `sample-planets.js` into typed TypeScript.

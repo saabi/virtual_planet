@@ -103,7 +103,7 @@ mesh-gen graph consumer*, not bespoke builders.
 | **Resource GPU binds** (image/mesh/audio as shader inputs) | ⚠ partial — M8 delivered CPU views; GPU binding of resources is **not** implemented (no `ResourceDependency` binding in runtime-webgpu) |
 | Document/session model, multiuser | ◻ not started (M14) |
 | MCP server | ◻ scaffold only (M15) |
-| Standalone deployable app | ⚠ route in `fe/`, not `apps/` (tracked deviation) |
+| Standalone deployable app | ⚠ route in `apps/scene-editor/`, not `apps/` (tracked deviation) |
 
 ## Recommended remediation
 

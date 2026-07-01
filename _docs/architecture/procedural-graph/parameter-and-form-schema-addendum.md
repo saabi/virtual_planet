@@ -37,7 +37,7 @@ inputs use a **port panel** (connections + optional asset binding). Do not teach
 | CPU views + resolver | `@virtual-planet/runtime-cpu` | `ImageCpuView`, `MeshCpuView`, `AudioCpuView`, `createCpuResourceResolver` |
 | `NodePrimitive.params: TSchema` | `@virtual-planet/graph` | M3 ✅; TypeBox object schema is param SSOT |
 | `sectionsOf`, `x-section`, `x-scale-behavior`, `Unit` incl. `1/m` | `@virtual-planet/schema` | M3 ✅ |
-| `SchemaForm.svelte` | `fe/` | Scalar widgets only; no resource widgets yet |
+| `SchemaForm.svelte` | `apps/scene-editor/` | Scalar widgets only; no resource widgets yet |
 
 M8 explicitly excluded: decoding/loading, uploads, editor UI, GPU textures. Those
 are **not** gaps to paper over inside `@virtual-planet/schema`.
@@ -115,7 +115,7 @@ Do not resolve that by stuffing pointer into `params`.
 ## Inspector architecture (M9 contract guidance)
 
 `InspectorPanel` should compose **at least two regions** (chrome may reuse
-`EditorParamSection` / `EditorVerticalTabs` from `fe/`):
+`EditorParamSection` / `EditorVerticalTabs` from `apps/scene-editor/`):
 
 ```
 ┌─ Inspector ──────────────────────────────────────┐
@@ -205,7 +205,7 @@ Distinct from `x-ref` (scene tree paths) — different resolver, different picke
 3. **Mouse as slider** — editable pointer components in the param form.
 4. **Merging classes in `ParamValues`** — expanding to `unknown` or nested objects
    for assets; keep scalar JSON-serializable params.
-5. **Svelte in `graph` / `compiler`** — asset UI stays in `graph-editor` / `fe/`.
+5. **Svelte in `graph` / `compiler`** — asset UI stays in `graph-editor` / `apps/scene-editor/`.
 6. **WGSL AST for frontmatter** — unchanged from WGSL ADR; resource policy does not
    change signature reading.
 

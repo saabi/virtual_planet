@@ -16,7 +16,7 @@ target nodes).
 | Primitive registry + ~44 **field** primitives (noise/math/sdf/colour/surface/terrain/material/host/effect) | ✅ |
 | Compiler: `sliceGraph` → `generateWgsl` → `textLinker` → `compileGraph` (per-consumer bundle) → `assembleStageEntry` (@vertex/@fragment/@compute) | ✅ |
 | `runtime-cpu` (frustum, cull, pointer, vegetation), `runtime-webgpu` (buffers, scalar/mesh/vegetation/fullscreen consumers), **frame-graph pure core** (order/lifetimes/validate) | ✅ |
-| Editor (`graph-editor` + `apps/graph-editor`), `editor-ui`, samples, CodeView/clone, multi-level | ✅ |
+| Editor (`graph-editor` + `apps/webgputoy`), `editor-ui`, samples, CodeView/clone, multi-level | ✅ |
 
 **The gap:** there is **no resource-port system** and **no pipeline nodes** (geometry/
 buffer/stage/target). Today a "consumer" is metadata + a hand-written runtime consumer

@@ -19,7 +19,7 @@ in host apps. Part of the [Procedural Graph System](./README.md).
 The graph editor edits **field graphs** (`GraphDocument` IR) only. The scene tree
 editor edits **hierarchy** (`SceneNode` tree — bodies, orbits, lights, transforms)
 separately. A full planet or solar system is authored by **composing both** in the
-host app (`fe/`, `/scene`), linked by **document references**, not by merging IRs
+host app (`apps/scene-editor/`, `/scene`), linked by **document references**, not by merging IRs
 into one canvas or one package.
 
 | Action | Verdict |
@@ -29,7 +29,7 @@ into one canvas or one package.
 | Body → graph document linking in scene/body schema | **Yes** |
 | Embedded `<GraphEditor>` when a body is selected | **Yes** (host app) |
 | Shared layout + inspector chrome (`subdivide`, section components) | **Yes** |
-| Standalone `apps/graph-editor` without scene concepts | **Yes** (required) |
+| Standalone `apps/webgputoy` without scene concepts | **Yes** (required) |
 
 ---
 
@@ -37,7 +37,7 @@ into one canvas or one package.
 
 | | **Procedural graph editor** | **Scene tree editor** |
 |--|------------------------------|------------------------|
-| **Package** | `packages/graph-editor`, `apps/graph-editor` | `fe/` scene modules, `/scene/[...path]` |
+| **Package** | `packages/graph-editor`, `apps/webgputoy` | `apps/scene-editor/` scene modules, `/scene/[...path]` |
 | **IR** | `GraphDocument` — nodes, typed ports, edges, outputs, consumers | `SceneNode` tree — bodies, orbits, lights, transforms |
 | **Metaphor** | Dataflow graph | Hierarchy; URL mirrors tree path |
 | **Question** | *What is this body made of?* | *Where is it, what orbits what, who lights whom?* |
@@ -147,7 +147,7 @@ orthogonal to graph-editor scope.
 
 - Scene outliner, orbit editor, or body hierarchy inside `packages/graph-editor`
 - A unified canvas where scene nodes and field nodes share one edge type
-- Scene path routing or URL logic inside `apps/graph-editor`
+- Scene path routing or URL logic inside `apps/webgputoy`
 - Duplicating `SystemTreePanel` / `scenePath.ts` in the graph-editor package
 - Requiring scene context to open or test graphs in the standalone editor
 
@@ -155,7 +155,7 @@ orthogonal to graph-editor scope.
 
 ## Standalone app stays scene-free
 
-`apps/graph-editor` must remain usable **without** loading a scene, planet
+`apps/webgputoy` must remain usable **without** loading a scene, planet
 renderer, or solar-system preset — for:
 
 - Primitive development and CPU preview on a plane
@@ -163,13 +163,13 @@ renderer, or solar-system preset — for:
 - WebGPUToy / MCP headless graph editing
 - CI and agent workflows that only touch `GraphDocument` JSON
 
-Scene integration is a **host concern** (`fe/` embed mode, `/scene` route), not a
+Scene integration is a **host concern** (`apps/scene-editor/` embed mode, `/scene` route), not a
 dependency of the graph-editor package.
 
 ## Implementation status (interim — as of M9–M10)
 
 The standalone editor is currently hosted as a **scene-free route in the planet
-app** (`fe/src/routes/graph-editor`), **not yet** a separate `apps/graph-editor`
+app** (`apps/scene-editor/src/routes/graph-editor`), **not yet** a separate `apps/webgputoy`
 workspace. This satisfies the ADR's *functional* requirement — the route and
 `packages/graph-editor` import **only** `@virtual-planet/{graph, schema, compiler,
 runtime-cpu, runtime-webgpu}` (verified; **enforced** by
@@ -177,7 +177,7 @@ runtime-cpu, runtime-webgpu}` (verified; **enforced** by
 **standalone-deployable** goal (independent build, headless CI, WebGPUToy without
 the planet app).
 
-**Tracked extraction:** move `fe/src/routes/graph-editor` → `apps/graph-editor`
+**Tracked extraction:** move `apps/scene-editor/src/routes/graph-editor` → `apps/webgputoy`
 **before the embedded-editor / collaboration work (M14/M16)** and ahead of WebGPUToy
 (M17), when an independently deployable app actually pays off. Until then the
 `sceneFree` guard keeps the deferral safe. See [STATUS.md](./STATUS.md) → "Known

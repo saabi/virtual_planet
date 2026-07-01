@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/graph",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "Typed Graph IR: nodes, ports (data + coordinate-space), validation, serialization.",
 	"repository": {
 		"type": "git",

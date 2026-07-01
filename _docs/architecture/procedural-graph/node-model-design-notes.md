@@ -197,7 +197,7 @@ hand-written WGSL primitives, more composed, swappable, user-extensible groups. 
 
 ## D. Follow-on: harvest colour transforms from `colorlab`
 
-`/home/ushif/repos/colorlab/fe/src/lib/color/` (the user's own repo — no external license)
+`/home/ushif/repos/colorlab/apps/scene-editor/src/lib/color/` (the user's own repo — no external license)
 has a deep colour-science library: XYZ ↔ Lab/Luv/OKLab/LMS, sRGB transfer, gamut mapping,
 chromatic adaptation, CVD simulation. The **per-pixel** conversions are excellent `color.*`
 primitives (the gamut-boundary / diagram generators are not per-pixel — skip). Pinned as

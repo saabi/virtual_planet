@@ -6,16 +6,15 @@ Also read **`AGENTS.md`** — it holds the wave-integration workflow, stream-own
 
 ## Layout
 
-**World Lab** — WebGPU-first world-authoring monorepo. **Virtual Planet**, its procedural
-multi-scale planet renderer, is the first app. An **npm-workspaces monorepo** (root
+**World Lab** — WebGPU-first world-authoring monorepo. Its Scene Editor includes a
+procedural multi-scale planet renderer. An **npm-workspaces monorepo** (root
 `package.json`, single root `package-lock.json`):
 
-- **`apps/scene-editor/`** — the active app (SvelteKit 2 + Svelte 5 runes + TypeScript). Most
-  work happens here. (Public product name still open; functional name used until decided.)
+- **`apps/scene-editor/`** — the active Scene Editor app (SvelteKit 2 + Svelte 5 runes +
+  TypeScript), deployed at `https://planets.ferreyrapons.com`. Most work happens here.
 - **`apps/webgputoy/`** — the graph-editor / WebGPU playground app.
 - **`packages/*`** — reusable, eventually-publishable libraries (e.g. `@virtual-planet/schema`).
   Each is its own workspace with `check`/`test` scripts.
-- **`fe.old/`** — archived Sapper / Svelte 3 reference (not a workspace). Do not develop here.
 
 Within `apps/scene-editor/`, routes:
 - **`/scene/[...path]`** — the path-addressed scene/solar-system editor (URL = the scene-tree path); top-down map + body tree + schema-driven node editor. `/system` redirects here. See `_docs/specs/`.

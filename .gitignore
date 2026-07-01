@@ -11,10 +11,6 @@ apps/scene-editor/.env
 apps/scene-editor/.env.*
 !apps/scene-editor/.env.example
 
-# Legacy Sapper app
-fe.old/node_modules
-fe.old/__sapper__
-
 # Logs
 *.log
 npm-debug.log*

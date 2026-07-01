@@ -10,7 +10,7 @@ with terrain params; the solar-system renderer already stores appearance on
 [scene-routing.md](scene-routing.md),
 [scene-procedural-rendering.md](scene-procedural-rendering.md),
 [device-tessellation-defaults.md](device-tessellation-defaults.md),
-[../fe/src/lib/planet/documents/README.md](../../fe/src/lib/planet/documents/README.md).
+[../apps/scene-editor/src/lib/planet/documents/README.md](../../apps/scene-editor/src/lib/planet/documents/README.md).
 
 ## Problem
 
@@ -32,7 +32,7 @@ azimuth, altitude) as if those were properties of Ferro or Cerule. They are not 
 are **viewport state**. The same mistake would propagate if we copied `PlanetSnapshot`
 onto scene body nodes without splitting first.
 
-[`AppearanceEditor.svelte`](../../fe/src/lib/planet/components/AppearanceEditor.svelte)
+[`AppearanceEditor.svelte`](../../apps/scene-editor/src/lib/planet/components/AppearanceEditor.svelte)
 already states the intended boundary for `/scene`:
 
 > Appearance = the planet shape/materials params (not atmosphere/camera/tessellation).
@@ -111,9 +111,9 @@ interface CelestialBodyData {
 }
 ```
 
-**Atmosphere design vs march quality:** today’s [`AtmosphereParameters`](../../fe/src/lib/planet/params/atmosphereParams.ts)
+**Atmosphere design vs march quality:** today’s [`AtmosphereParameters`](../../apps/scene-editor/src/lib/planet/params/atmosphereParams.ts)
 also carries `integrateSteps` (UI label **Quality** — ray-march step count in
-[`integrate.wgsl`](../../fe/src/lib/planet/gpu/wgsl/atmosphere/integrate.wgsl)). That
+[`integrate.wgsl`](../../apps/scene-editor/src/lib/planet/gpu/wgsl/atmosphere/integrate.wgsl)). That
 field is **not** part of what the body *is*; it is a **performance / sampling quality**
 knob in the same category as tessellation vertex budget. More steps reduce banding in
 the volume integral; they do not change shell height, sky colour, or haze character.
@@ -140,8 +140,8 @@ them — see [celestial-body-params.md](celestial-body-params.md).
 
 ### Camera and viewport
 
-Currently in [`PlanetCameraState`](../../fe/src/lib/planet/documents/types.ts) and
-written by [`toSnapshot`](../../fe/src/lib/planet/documents/snapshot.ts):
+Currently in [`PlanetCameraState`](../../apps/scene-editor/src/lib/planet/documents/types.ts) and
+written by [`toSnapshot`](../../apps/scene-editor/src/lib/planet/documents/snapshot.ts):
 
 | Field | Why it is viewport state |
 |-------|--------------------------|
@@ -150,7 +150,7 @@ written by [`toSnapshot`](../../fe/src/lib/planet/documents/snapshot.ts):
 | `lookAtHorizon` | Camera look mode (`horizon` vs `planet-center`) — **not a body property** |
 | `orbitSpeedRadPerSec` | Camera auto-orbit animation |
 
-Same category — ephemeral in [`PlanetViewport.svelte`](../../fe/src/lib/planet/components/PlanetViewport.svelte), correctly **not** in snapshot today, but grouped under "Camera" in the editor:
+Same category — ephemeral in [`PlanetViewport.svelte`](../../apps/scene-editor/src/lib/planet/components/PlanetViewport.svelte), correctly **not** in snapshot today, but grouped under "Camera" in the editor:
 
 - `cameraRotation`, free-fly position/rotation
 - Spaceflight modes, HUD, orbit predictor settings
@@ -202,7 +202,7 @@ then drop the field from body atmosphere schema.
 
 ## Rotation: editor vs model mismatch
 
-[`PlanetEditorPanel`](../../fe/src/lib/planet/components/PlanetEditorPanel.svelte) groups
+[`PlanetEditorPanel`](../../apps/scene-editor/src/lib/planet/components/PlanetEditorPanel.svelte) groups
 **Orbit** and **Rotation** under "Camera":
 
 - **Orbit** controls → viewport (camera)
@@ -215,7 +215,7 @@ paths must converge: body carries spin/tilt; camera does not.
 
 ## Current renderer wiring gaps
 
-The solar-system path ([`SceneViewport3D`](../../fe/src/lib/planet/components/SceneViewport3D.svelte)
+The solar-system path ([`SceneViewport3D`](../../apps/scene-editor/src/lib/planet/components/SceneViewport3D.svelte)
 → `buildProceduralRenderInput` → `PlanetRenderer.recordInto`):
 
 - Reads **`resolveBodyParams(body)`** for terrain and overwrites **`params.radius =
@@ -241,7 +241,7 @@ Legacy `/planet` path still owns a monolithic snapshot and a local `createDefaul
 
 ## Migration from `PlanetSnapshot`
 
-Today’s [`PlanetSnapshot`](../../fe/src/lib/planet/documents/types.ts):
+Today’s [`PlanetSnapshot`](../../apps/scene-editor/src/lib/planet/documents/types.ts):
 
 ```ts
 interface PlanetSnapshot {
@@ -261,10 +261,10 @@ interface PlanetSnapshot {
    [solar-system-model.md](solar-system-model.md) persistence section.
 5. **`/planet`** becomes a **focused-body view** of a scene path; shared `lib/` gains
    body fields; snapshot format deprecates after migration + version bump in
-   [`migrate.ts`](../../fe/src/lib/planet/documents/migrate.ts).
+   [`migrate.ts`](../../apps/scene-editor/src/lib/planet/documents/migrate.ts).
 
 Load path stays strict: `raw JSON → migrate → coerce` — never merge unknown keys into
-live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
+live state ([documents README](../../apps/scene-editor/src/lib/planet/documents/README.md)).
 
 ## Implementation plan
 

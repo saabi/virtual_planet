@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/runtime-cpu",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "CPU runtime: camera frustum, pointer/picking, resource sampling, CPU primitive evaluation.",
 	"repository": {
 		"type": "git",

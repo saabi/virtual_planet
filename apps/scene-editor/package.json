@@ -1,8 +1,10 @@
 {
 	"name": "@virtual-planet/scene-editor-app",
 	"private": true,
-	"version": "0.0.1",
-	"description": "Virtual Planet scene/solar-system editor — the active World Lab scene-editor app (SvelteKit, Svelte 5, WebGPU).",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "World Lab scene and solar-system editor with planet-scale WebGPU rendering.",
+	"homepage": "https://planets.ferreyrapons.com",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/saabi/world-lab.git",

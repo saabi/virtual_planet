@@ -56,7 +56,7 @@ boundary.
 | **Round 2** | ✅ | | |
 | · R2-T0 stage entry points (Opus) | ✅ | compiler 36/36 | `52334eb` |
 | · R2-T1 Use.GPU primitive harvest (SDF/colour/noise, license-clean) | ✅ | graph 57/57, procedural-wgsl 22/22 | `0b69570` |
-| · R2-T2 extract → `apps/graph-editor` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
+| · R2-T2 extract → `apps/webgputoy` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
 | · M-node-model-foundation (resource ports · list<T> · groups · role/contract) | ✅ | graph 76/76, compiler 37/37, workspace 333/333 | `3641621` |
 | · M-node-model-decomposition-fix | ✅ | graph 77/77; compiler 42/42; procedural-wgsl 35/35; workspace green | `a29b4cc` |
 | · M-pipeline-nodes-s0 | ✅ | graph 92/92; procedural-WGSL 91/91; runtime-webgpu 44/44; graph-editor 57/57; app check/build; visual gate | `5af0b80` |
@@ -89,7 +89,7 @@ existing terrain renderer onto the shaping graph) stays **gated** behind
 
 | Item | Severity | State | Resolve by |
 |------|----------|-------|-----------|
-| ~~Standalone editor is a route in `fe/`, not `apps/graph-editor`~~ | — | ✅ **RESOLVED** (R2-T2 `2966e07`) — extracted to `apps/graph-editor` workspace; `fe/` route removed | done |
+| ~~Standalone editor is a route in `apps/scene-editor/`, not `apps/webgputoy`~~ | — | ✅ **RESOLVED** (R2-T2 `2966e07`) — extracted to `apps/webgputoy` workspace; `apps/scene-editor/` route removed | done |
 | M9d editor shell polish (code highlighting) | — | M9d.2 ✅; M9d.3 ✅ (`ac77b2d`) | done |
 
 Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green

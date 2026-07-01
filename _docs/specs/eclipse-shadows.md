@@ -28,7 +28,7 @@ Umbra and penumbra fall out naturally:
 | **Penumbra** | partial overlap on the sun disk | Scaled direct sun (soft edge) |
 | **Umbra** | 100% of sun disk blocked | Direct sun term → 0 (ambient/fill remain) |
 
-This matches the terrain self-shadow philosophy in [`shadow.wgsl`](../../fe/src/lib/planet/gpu/wgsl/planet/shadow.wgsl)
+This matches the terrain self-shadow philosophy in [`shadow.wgsl`](../../apps/scene-editor/src/lib/planet/gpu/wgsl/planet/shadow.wgsl)
 (analytic geometry in the shader, no depth buffer) and the ring shadow notes in
 [planetary-rings.md](planetary-rings.md) (ray–sphere / ray–plane tests, multiply into
 the sun term).
@@ -208,12 +208,12 @@ interface EclipseSun {
 
 WGSL: `body_eclipse_visibility(P, sun, occluders[], count) -> f32`.
 
-Hook in [`cubeSphereVertex.wgsl`](../../fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl)
+Hook in [`cubeSphereVertex.wgsl`](../../apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl)
 where `terrain_sun_shadow` already runs — multiply factors before `evaluate_pbr`.
 
 ### Lighting
 
-In [`lighting.wgsl`](../../fe/src/lib/planet/gpu/wgsl/planet/lighting.wgsl), the
+In [`lighting.wgsl`](../../apps/scene-editor/src/lib/planet/gpu/wgsl/planet/lighting.wgsl), the
 direct sun term already accepts `sun_shadow`. Extend semantics:
 
 - `sun_shadow` = `body_eclipse × terrain_self` (or pass separately and multiply
@@ -314,7 +314,7 @@ umbra; no penumbra yet.
 
 ## Suggested authoring values (toy system)
 
-Use existing radii from [`solarSystem.ts`](../../fe/src/lib/planet/scene/solarSystem.ts):
+Use existing radii from [`solarSystem.ts`](../../apps/scene-editor/src/lib/planet/scene/solarSystem.ts):
 
 | Body | Radius | Eclipse role |
 |------|--------|----------------|

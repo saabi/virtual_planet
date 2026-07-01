@@ -1,7 +1,7 @@
 # Graph editor
 
 **Status:** architecture · **Scope:** `packages/graph-editor` (reusable Svelte
-components), `apps/graph-editor` (standalone app). Part of the
+components), `apps/webgputoy` (standalone app). Part of the
 [Procedural Graph System](./README.md).
 
 > **Scope ADR:** Parameter inspectors use the shared form schema policy in
@@ -15,7 +15,7 @@ A first-class but **separate** package (`graph-editor`) that edits the Typed
 Graph IR — it is *not* a planet editor and does **not** own the graph model. Two
 delivery modes from one component set:
 
-- **Standalone app** (`apps/graph-editor`) for editor development, primitive
+- **Standalone app** (`apps/webgputoy`) for editor development, primitive
   testing, graph-compilation debugging, WGSL inspection, validation, profiling —
   no planet renderer required.
 - **Embeddable library** used inside the main app: `<GraphEditor bind:graph />`
@@ -162,9 +162,9 @@ working reference for shell + panel chrome and may be ported as needed:
 **Shared chrome + controls live in `@virtual-planet/editor-ui`.** The collapsible
 `Section` / `Subsection`, `VerticalTabs`, **and the input controls** (slider-with-numeric-
 readout, linear/log range, checkbox — the building blocks `SchemaForm` composes) are
-extracted from `fe/` into a shared, scene-free package
+extracted from `apps/scene-editor/` into a shared, scene-free package
 ([briefs/M-editor-ui-extraction.md](./briefs/M-editor-ui-extraction.md)) so the graph
-editor (and `fe/`) both consume them — they can't be imported from `fe/`. Used across the
+editor (and `apps/scene-editor/`) both consume them — they can't be imported from `apps/scene-editor/`. Used across the
 graph editor wherever grouping helps:
 
 - **NodePalette** — primitives grouped into collapsible **categories** (and two-level

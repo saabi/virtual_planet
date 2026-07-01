@@ -84,7 +84,7 @@ upstream `childProps`, zone is an opaque string into the host registry.
 
 Modifier detection: `metaKey` on Mac, `ctrlKey` elsewhere (`isModifierPressed`).
 
-Dev playground: `/dev/subdivide` (`fe/src/routes/dev/subdivide/+page.svelte`).
+Dev playground: `/dev/subdivide` (`apps/scene-editor/src/routes/dev/subdivide/+page.svelte`).
 
 ## File map
 
@@ -96,19 +96,19 @@ Dev playground: `/dev/subdivide` (`fe/src/routes/dev/subdivide/+page.svelte`).
 | `packages/subdivide/src/Divider.svelte` | Divider hit targets |
 | `packages/subdivide/src/PaneHeader.svelte` | Zone dropdown |
 | `packages/subdivide/LICENSE` | LIL-1.0 attribution (upstream saabi/svelte-subdivide) |
-| `fe/src/lib/planet/components/scene-editor/SceneEditorShell.svelte` | Scene editor host: zones, `bind:layout`, persist |
-| `fe/src/lib/planet/components/scene-editor/layoutStorage.ts` | `SCENE_LAYOUT_KEY`, load/save, debounce |
-| `fe/src/lib/planet/components/scene-editor/OutlinerPanel.svelte` | Outliner zone |
-| `fe/src/lib/planet/components/scene-editor/PropertiesPanel.svelte` | Properties zone |
-| `fe/src/lib/planet/components/scene-editor/RenderSettingsPanel.svelte` | Render settings zone |
-| `fe/src/lib/planet/components/scene-editor/ViewportZone.svelte` | Viewport zone (3D + map + focused body) |
-| `fe/src/lib/planet/components/controls/Range.svelte` | Slider row + numeric pill (planet/scene variants) |
-| `fe/src/lib/planet/components/scene-editor/EditorVerticalTabs.svelte` | Super-section vertical icon tab rail + content pane |
-| `fe/src/lib/planet/components/scene-editor/EditorTabIcon.svelte` | Inline SVG icon for tab buttons |
-| `fe/src/lib/planet/components/scene-editor/editorTabIcons.ts` | Icon path registry (section id → SVG) |
-| `fe/src/lib/planet/components/scene-editor/EditorSubsection.svelte` | `<details>` subsection wrapper |
-| `fe/src/lib/planet/components/scene-editor/propertiesSections.ts` | Properties super-section registry |
-| `fe/src/routes/scene/[...path]/+page.svelte` | Route page wrapping `SceneEditorShell` |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/SceneEditorShell.svelte` | Scene editor host: zones, `bind:layout`, persist |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/layoutStorage.ts` | `SCENE_LAYOUT_KEY`, load/save, debounce |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/OutlinerPanel.svelte` | Outliner zone |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/PropertiesPanel.svelte` | Properties zone |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/RenderSettingsPanel.svelte` | Render settings zone |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/ViewportZone.svelte` | Viewport zone (3D + map + focused body) |
+| `apps/scene-editor/src/lib/planet/components/controls/Range.svelte` | Slider row + numeric pill (planet/scene variants) |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/EditorVerticalTabs.svelte` | Super-section vertical icon tab rail + content pane |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/EditorTabIcon.svelte` | Inline SVG icon for tab buttons |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/editorTabIcons.ts` | Icon path registry (section id → SVG) |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/EditorSubsection.svelte` | `<details>` subsection wrapper |
+| `apps/scene-editor/src/lib/planet/components/scene-editor/propertiesSections.ts` | Properties super-section registry |
+| `apps/scene-editor/src/routes/scene/[...path]/+page.svelte` | Route page wrapping `SceneEditorShell` |
 
 ## Integration with routing
 
@@ -162,7 +162,7 @@ Each tab pane contains `<details>` subsections (multiple may stay open).
 | Shading | Shadows · exposure · roughness · water gloss · fog | `viewportPrefs.materialOverrides` |
 
 Slider rows in Appearance, Atmosphere, and Render (tessellation/shading) reuse
-shared `Range` / `LogRange` controls from `fe/src/lib/planet/components/controls/`
+shared `Range` / `LogRange` controls from `apps/scene-editor/src/lib/planet/components/controls/`
 with `variant="scene"` (purple numeric pill, parity with `/planet` sidebar).
 
 `SceneViewportPrefs` (`viewportPrefs.ts`) is owned by `+page.svelte` and passed

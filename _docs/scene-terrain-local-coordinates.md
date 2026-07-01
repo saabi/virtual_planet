@@ -21,14 +21,14 @@ body terrain while staying on a fixed render radial — relief swam under the me
 
 Terrain shaders now use **body-fixed tessellation, rotated placement**:
 
-`fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl`
+`apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl`
 
 - `body_dir = cube_face_uv_to_unit_dir(face, uv)` — constant per patch vertex in body space.
 - `sample_planet(body_dir, …)` for displacement.
 - `world_pos = rotate(planet_rot, body_dir) * world_radius`.
 - Normals: body-space finite differences, then `rotate(planet_rot, n_body)`.
 
-`fe/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl`
+`apps/scene-editor/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl`
 
 - `LocalFrame` east/north/up are pre-rotated into body space on the CPU
   (`localFrameInBodySpace` in `terrainPass`) so tangent patches share the same contract.
@@ -98,7 +98,7 @@ mesh with the terrain features locked to each vertex's `body_dir`.
 Commands run after the fix:
 
 ```sh
-cd fe
+cd apps/scene-editor
 npm test -- src/lib/planet/gpu/wgslCompile.test.ts src/lib/planet/gpu/wgsl/wgsl.test.ts src/lib/planet/scene3d/orbitCamera.test.ts
 npm run check
 npm test

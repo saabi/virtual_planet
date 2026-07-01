@@ -10,9 +10,8 @@ identity, app layout, release process, governance, and deployment documentation.
 - The current `fe/` app should move to `apps/scene-editor/`.
 - The standalone graph editor should move to `apps/webgputoy/` and become the
   deployable **WebGPUToy** app.
-- MIT is the intended license, but the root `LICENSE` should be added in the final
-  pre-public pass.
-- `fe.old/` should be removed in the final pre-public pass.
+- The repository and workspace packages use the MIT license.
+- The archived `fe.old/` app was removed in the final cleanup pass.
 - npm publishing should be prepared but deferred until explicitly enabled.
 - The public apps should have their own curated changelogs.
 - Package changelogs should be generated later from Changesets when packages are
@@ -24,7 +23,8 @@ identity, app layout, release process, governance, and deployment documentation.
 | --- | --- | --- |
 | [OS1-world-lab-identity-and-app-layout.md](./OS1-world-lab-identity-and-app-layout.md) | ✅ Landed (`274f7f2`) | Rename/reorganize the app layout and update references. |
 | [OS2-release-changelog-and-versioning.md](./OS2-release-changelog-and-versioning.md) | ✅ Landed | Add changelogs, Changesets, and root workspace scripts. |
-| [OS3-public-readiness-governance-and-final-cleanup.md](./OS3-public-readiness-governance-and-final-cleanup.md) | ✅ Landed (final cleanup section deferred — needs owner go-ahead) | Add roadmap/governance docs, CI, license, and final cleanup. |
+| [OS3-public-readiness-governance-and-final-cleanup.md](./OS3-public-readiness-governance-and-final-cleanup.md) | Implemented locally; push/CI pending | Add roadmap/governance docs, CI, license, and final cleanup. |
+| [OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md) | Draft; scope decision required | Choose a broad npm scope and make standalone packages consumable outside the monorepo. |
 
 ## Sequencing
 

@@ -1,8 +1,10 @@
 {
 	"name": "@virtual-planet/webgputoy-app",
 	"private": true,
-	"version": "0.0.0",
+	"version": "0.1.0",
+	"license": "MIT",
 	"description": "WebGPUToy — the standalone procedural-graph editor / WebGPU playground app.",
+	"homepage": "https://webgputoy.ferreyrapons.com",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/saabi/world-lab.git",

@@ -4,7 +4,7 @@
 `packages/graph`, `packages/compiler`, `packages/runtime-webgpu`,
 `packages/graph-editor`, `packages/procedural-wgsl`, `packages/mcp-server`;
 builds on the existing `@virtual-planet/schema` package and the cube-sphere
-`patches/` system in `fe/`.
+`patches/` system in `apps/scene-editor/`.
 
 > This is the canonical architecture for **the procedural language of Virtual
 > Planet** — a design discussion that started with procedural vegetation and grew
@@ -27,13 +27,13 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
 | [noise-functions.glsl](./noise-functions.glsl) | Source/reference GLSL noise functions for future `noise.*` primitive harvests | `procedural-wgsl`, `graph` |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
-| [editor-and-scene-integration.md](./editor-and-scene-integration.md) | **ADR:** graph editor vs scene tree; host composition, no package fusion | `graph-editor`, `fe/` scene |
-| [parameter-and-form-schema.md](./parameter-and-form-schema.md) | **ADR:** param SSOT, shared form generator, GPU packing vs authoring | `schema`, `graph`, `graph-editor`, `fe/` |
+| [editor-and-scene-integration.md](./editor-and-scene-integration.md) | **ADR:** graph editor vs scene tree; host composition, no package fusion | `graph-editor`, `apps/scene-editor/` scene |
+| [parameter-and-form-schema.md](./parameter-and-form-schema.md) | **ADR:** param SSOT, shared form generator, GPU packing vs authoring | `schema`, `graph`, `graph-editor`, `apps/scene-editor/` |
 | [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) | Resource/host inputs vs param form; inspector boundaries (M9+) | `graph-editor`, M10, M14 |
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
 | [design-vs-implementation-audit.md](./design-vs-implementation-audit.md) | **Audit (2026-06-27):** built vs designed; multi-output gap + remediation | `graph`, `compiler` |
-| [planet-pipeline-poc-feasibility.md](./planet-pipeline-poc-feasibility.md) | **Design review:** reproduce the single-planet pipeline (tess→vertex→fragment) as one graph; PoC plan | `graph`, `compiler`, `runtime-*`, `fe/` |
+| [planet-pipeline-poc-feasibility.md](./planet-pipeline-poc-feasibility.md) | **Design review:** reproduce the single-planet pipeline (tess→vertex→fragment) as one graph; PoC plan | `graph`, `compiler`, `runtime-*`, `apps/scene-editor/` |
 | [pipeline-as-graph.md](./pipeline-as-graph.md) | **ADR:** the graph IS the full WebGPU pipeline — geometry/buffer/stage/target **nodes** + resource ports; ShaderToy-equivalent in capability | `graph`, `compiler`, `runtime-webgpu`, `graph-editor` |
 | [pipeline-realignment-report.md](./pipeline-realignment-report.md) | **Report:** what the repo (as built) needs to reach pipeline-as-graph — R1–R5, additive not a rewrite | all |
 | [work-plan.md](./work-plan.md) | **Prioritized backlog (2026-06-29):** Tier 1 = fully functional editor pipeline, then engine / library / PoC | all |
@@ -171,11 +171,11 @@ rather than duplicate or contradict them:
   `/scene/[...path]` node editor — existing **schema-driven** node forms
   (kind-schema → inspector). Concrete prior art for "the schema drives the editor";
   the graph editor extends this model rather than inventing a new one.
-- **`fe/vite-wgsl.ts`** — the existing WGSL composition layer (`#include`
+- **`apps/scene-editor/vite-wgsl.ts`** — the existing WGSL composition layer (`#include`
   expansion). This textual precursor is what the typed Shader Linker upgrades; the
-  GLSL mirror is `fe/vite-glslify.ts`.
+  GLSL mirror is `apps/scene-editor/vite-glslify.ts`.
 
-Existing terrain-shaping source map (under `fe/src/lib/planet/`):
+Existing terrain-shaping source map (under `apps/scene-editor/src/lib/planet/`):
 `params/planetParams.ts`, `params/presets.ts`, `planet/layers.ts`,
 `gpu/wgsl/planet/{kernel,material,normal,shadow,lighting}.wgsl`, and
 `gpu/wgsl/terrain/{cubeSphereVertex,surfacePatchVertex}.wgsl`.
@@ -238,7 +238,7 @@ engine.
    → [graph-and-compiler.md](./graph-and-compiler.md)
 4. **WGSL linker** — minimal `ShaderLinker` behind an internal interface;
    optionally back it with `@use-gpu/shader` initially; WGSL-level tree shaking.
-5. **Standalone editor + CPU runtime essentials** — `apps/graph-editor` +
+5. **Standalone editor + CPU runtime essentials** — `apps/webgputoy` +
    `packages/graph-editor` components; schema-driven palette/inspector; plane
    tessellation (as primitives) for isolated testing; generic `runtime-cpu`
    services (camera frustum, pointer→world ray) and resource inputs

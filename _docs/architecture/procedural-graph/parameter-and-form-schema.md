@@ -41,11 +41,11 @@ struct editing in the graph editor.
 Three surfaces already exist in the repo:
 
 1. **`@virtual-planet/schema`** — TypeBox + `x-*` annotations (`quantity`, `ref`,
-   `fields()`, `annotationsOf()`). Drives **`SchemaForm.svelte`** in `fe/` for
+   `fields()`, `annotationsOf()`). Drives **`SchemaForm.svelte`** in `apps/scene-editor/` for
    `/scene` node kinds (`nodeSchemas.ts` → `editorForKind()`).
 2. **`@virtual-planet/graph` `ParamSpec`** (M2) — minimal `{ name, type, default,
    min?, max? }` on `NodePrimitive`; **no UI yet**.
-3. **`fe/params/paramEditorSchema.ts`** — hand-written slider sections keyed to
+3. **`apps/scene-editor/params/paramEditorSchema.ts`** — hand-written slider sections keyed to
    `PlanetParameters`; **duplicate metadata** the procedural-graph architecture
    intends to retire.
 
@@ -80,7 +80,7 @@ Distinguish these in design, APIs, and docs. Do not merge into one bag.
 - **Schema source:** Standard graph **input ports** + input catalog in
   [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md).
 - **Storage:** Not in the graph document; bound by `runtime-cpu` / `runtime-webgpu`
-  / host (`fe/`).
+  / host (`apps/scene-editor/`).
 - **UI:** Optional read-only debug panels; not the graph inspector's main job.
 - **Runtime:** Wired into generated shader bindings each frame.
 
@@ -126,8 +126,8 @@ introspection (`fields()`, `fieldKind()`, `annotationsOf()`), shared across:
 
 | Phase | Location | Notes |
 |-------|----------|-------|
-| **Now** | `fe/src/lib/planet/components/SchemaForm.svelte` | Scene editor prior art |
-| **M9** | Shared chrome (collapsible `Section`/`VerticalTabs`) → **`@virtual-planet/editor-ui`** (decided — both `fe/` and graph-editor import it; see [M-editor-ui-extraction](./briefs/M-editor-ui-extraction.md)). `SchemaForm`/`ParamForm` live there or in a thin `schema-ui` on top | Graph editor owns inspector; `fe/` imports the shared chrome |
+| **Now** | `apps/scene-editor/src/lib/planet/components/SchemaForm.svelte` | Scene editor prior art |
+| **M9** | Shared chrome (collapsible `Section`/`VerticalTabs`) → **`@virtual-planet/editor-ui`** (decided — both `apps/scene-editor/` and graph-editor import it; see [M-editor-ui-extraction](./briefs/M-editor-ui-extraction.md)). `SchemaForm`/`ParamForm` live there or in a thin `schema-ui` on top | Graph editor owns inspector; `apps/scene-editor/` imports the shared chrome |
 | **Never** | `packages/graph`, `packages/compiler` | No Svelte in IR/compiler packages |
 
 Enhance the generator incrementally (log slider, sections, labels from
@@ -229,8 +229,8 @@ new parameters on the shaping path go through graph primitive schemas.
 | `@virtual-planet/schema` | TypeBox factories, `fields()`, validation, annotations |
 | `@virtual-planet/graph` | `NodePrimitive` param schema (converge to TypeBox) |
 | `packages/graph-editor` (or `schema-ui`) | `SchemaForm` / `ParamForm`, inspector shell |
-| `fe/` | Scene forms today; imports shared form; body/planet hosts |
-| `fe/params/` | Transitional GPU packing (`planetParams.ts`, `toGpuPlanetParams`) |
+| `apps/scene-editor/` | Scene forms today; imports shared form; body/planet hosts |
+| `apps/scene-editor/params/` | Transitional GPU packing (`planetParams.ts`, `toGpuPlanetParams`) |
 | `packages/compiler` | No UI; may read param defaults for codegen constants |
 
 ---
@@ -272,8 +272,8 @@ Briefs for M9/M3/M13 must reference this ADR when defining public surfaces.
 | [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) | Resource ports, host inputs, inspector vs `SchemaForm` (M9+) |
 | [planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md) | Scale tags, uniform contract |
 | [driven-fields-editor.md](../../specs/driven-fields-editor.md) | Scene field bindings (separate from scalar params) |
-| `fe/.../SchemaForm.svelte`, `nodeSchemas.ts` | Current scene prior art |
-| `fe/params/paramEditorSchema.ts` | Legacy — do not extend for new features |
+| `apps/scene-editor/.../SchemaForm.svelte`, `nodeSchemas.ts` | Current scene prior art |
+| `apps/scene-editor/params/paramEditorSchema.ts` | Legacy — do not extend for new features |
 
 ---
 

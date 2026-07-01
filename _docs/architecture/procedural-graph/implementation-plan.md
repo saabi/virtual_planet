@@ -16,9 +16,9 @@ gates. Part of the [Procedural Graph System](./README.md).
   and string-level WGSL assertions before any GPU pipeline exists, so most of the
   engine is testable headlessly.
 - **Reuse what's here.** Build the IR on TypeBox (`@virtual-planet/schema`);
-  generalize `fe/vite-wgsl.ts`'s include resolver into the linker; use
+  generalize `apps/scene-editor/vite-wgsl.ts`'s include resolver into the linker; use
   `packages/subdivide` for the editor's split-pane layout; gate WGSL with the
-  existing `fe/src/lib/planet/gpu/wgslCompile.test.ts` device harness.
+  existing `apps/scene-editor/src/lib/planet/gpu/wgslCompile.test.ts` device harness.
 
 ## Package targets
 
@@ -63,7 +63,7 @@ apps/
 |---|------|------------------|-----------|
 | **M7** ✅ | CPU runtime services | `runtime-cpu`: camera frustum (planes from view-proj), pointer→world ray | vitest: frustum planes & ray from known matrices — **4/4 green, `a579686`** |
 | **M8** ✅ | Resource inputs | image/mesh/audio typed ports with CPU views (pixel array, attributes, FFT bands) | graph 13/13 + runtime-cpu 11/11 green; `790a898` |
-| **M9** ✅ | Standalone editor | `packages/graph-editor` + `fe/src/routes/graph-editor` (see [briefs/M9-standalone-editor.md](./briefs/M9-standalone-editor.md)); schema-driven palette/inspector per [parameter-and-form-schema.md](./parameter-and-form-schema.md) + [addendum](./parameter-and-form-schema-addendum.md); `@xyflow/svelte` adapter; `procedural.uv` + CPU `evaluateGraphOutput` + plane heatmap preview | vitest: irAdapter + evalGraph gates; manual `/graph-editor`: connect ports, edit param, preview updates |
+| **M9** ✅ | Standalone editor | `packages/graph-editor` + `apps/scene-editor/src/routes/graph-editor` (see [briefs/M9-standalone-editor.md](./briefs/M9-standalone-editor.md)); schema-driven palette/inspector per [parameter-and-form-schema.md](./parameter-and-form-schema.md) + [addendum](./parameter-and-form-schema-addendum.md); `@xyflow/svelte` adapter; `procedural.uv` + CPU `evaluateGraphOutput` + plane heatmap preview | vitest: irAdapter + evalGraph gates; manual `/graph-editor`: connect ports, edit param, preview updates |
 | **M9c** | Editor UX polish (optional) | Delete selection (keyboard + edge delete); duplicate single node (Ctrl+D / internal clipboard); **no undo**, **no subgraph paste** — see [briefs/M9c-editor-ux-polish.md](./briefs/M9c-editor-ux-polish.md) | manual: Delete removes node/edge; Ctrl+D duplicates params; tests for duplicate-node |
 | **M9b** | Multi-level editing | `MarkupView` + `CodeView`; **canonical save = Graph IR JSON**; IR→Svelte **printer** (export, no compiler) + constrained-subset parser (editable import); primitive-code edits re-register & ripple; stable deterministic printers. *Optional/deferred:* sandboxed compile-and-run "live document" (the only mode needing `svelte/compiler` at runtime) | vitest: IR→markup→IR round-trip is identity on the declarative subset; `Player` renders exported markup (parse→IR→render) to the same output as the source IR; editing a primitive's WGSL updates its ports & flags broken edges |
 

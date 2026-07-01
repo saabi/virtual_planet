@@ -323,10 +323,10 @@ direction = normalize(farPt - origin)</pre>
 				<text x="534" y="260" fill="#9caec7" font-size="12">far  ← max(1.05 · (d_max + r_max), 4·near)</text>
 				<text x="534" y="278" fill="#9caec7" font-size="12">if far/near &gt; MAX_DEPTH_RATIO (10⁶) → cap far; distant dots pinned</text>
 			</svg>
-			<pre>// Single focused body — fe/lib/planet/camera/orbitCamera.ts
+			<pre>// Single focused body — apps/scene-editor/lib/planet/camera/orbitCamera.ts
 focusedBodyNearFar(d) => [ max(1, d * 0.002), d * 20 ]
 
-// Multi-body scene — fe/lib/planet/scene3d/orbitCamera.ts
+// Multi-body scene — apps/scene-editor/lib/planet/scene3d/orbitCamera.ts
 sceneNearFar(eye, bodies, extraPoints, farExtents)
   nearD = min over bodies of (|eye − center| − radius)
   farD  = max over bodies of (|eye − center| + radius)

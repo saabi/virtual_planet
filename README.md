@@ -10,7 +10,7 @@ in-repo design docs as the source of truth over any external description.
 
 | App | Directory | What it is |
 |-----|-----------|------------|
-| **Scene Editor** | [`apps/scene-editor/`](apps/scene-editor/) | The current scene / solar-system / planet-renderer app ("Virtual Planet" is its renderer subsystem's name; a public product name is still open). WebGPU cube-sphere planet rendering, orbital flight, a SunDog-driven galaxy map. |
+| **Scene Editor** | [`apps/scene-editor/`](apps/scene-editor/) | The scene / solar-system editor at [planets.ferreyrapons.com](https://planets.ferreyrapons.com). WebGPU cube-sphere planet rendering, orbital flight, and a SunDog-driven galaxy map. |
 | **WebGPUToy** | [`apps/webgputoy/`](apps/webgputoy/) | A standalone procedural-graph editor and WebGPU playground: build shader/field graphs from typed nodes, watch the compiled WGSL, preview multiple render targets live. |
 
 Each app has its own README (linked above) with local dev, build, and deployment details,
@@ -33,8 +33,6 @@ Reusable libraries under `packages/*`, currently private (not yet published to n
 | `@virtual-planet/editor-ui` | Shared Svelte editor chrome and parameter controls |
 | `@virtual-planet/subdivide` | Resizable pane-layout engine for Svelte 5 |
 | `@virtual-planet/mcp-server` | MCP server exposing the Graph IR to AI assistants |
-
-`fe.old/` is an archived pre-migration reference (not a workspace) — do not develop there.
 
 ## Local setup
 
@@ -77,6 +75,12 @@ step — `npm run check` is the type/correctness gate. See
   architecture diagrams for the planet renderer.
 - [ROADMAP.md](ROADMAP.md) — current capabilities vs. near/mid/long-term direction.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute.
+
+## License
+
+World Lab is licensed under the [MIT License](LICENSE). `packages/subdivide` retains the
+license and attribution in its own [LICENSE](packages/subdivide/LICENSE) because it was
+ported from `saabi/svelte-subdivide`.
 
 ## History
 

@@ -1,16 +1,18 @@
-# Current renderer baseline (`/old`)
+# Historical renderer baseline
 
-Phase 0 notes for the legacy planet editor preserved at **`/old`** in the SvelteKit app. This route is frozen as a visual reference while the WebGPU renderer is built at **`/planet`**.
+Phase 0 notes for the retired Sapper/WebGL planet editor. Its source was removed during the
+World Lab open-source cleanup; use git history when the old implementation is needed for
+archaeology. `/old` and `/planet` now redirect to `/scene`.
 
 ## Stack
 
-| Piece | Location |
+| Piece | Historical location |
 |-------|----------|
-| UI + parameter controls | `fe/src/lib/old/components/PlanetDisplay.svelte` |
-| Three.js canvas + render loop | `fe/src/lib/old/components/ThreeView.svelte` |
-| Vertex shader (terrain displacement) | `fe/src/lib/old/shaders/planet.vert` |
-| Fragment shader (material / water) | `fe/src/lib/old/shaders/planet.frag` |
-| Presets (JS, snake_case) | `fe/src/lib/old/planet-editor/sample-planets.js` |
+| UI + parameter controls | Removed legacy Sapper app |
+| Three.js canvas + render loop | Removed legacy Sapper app |
+| Vertex shader (terrain displacement) | Removed legacy Sapper app |
+| Fragment shader (material / water) | Removed legacy Sapper app |
+| Presets (JS, snake_case) | Removed legacy Sapper app |
 
 ## Rendering model
 
@@ -22,7 +24,7 @@ Phase 0 notes for the legacy planet editor preserved at **`/old`** in the Svelte
 
 ## Presets
 
-Seven named presets: `starter`, `twirly`, `desert`, `archipelago`, `frozen`, `craters`, `normie`. Typed equivalents live in `fe/src/lib/planet/params/presets.ts` (camelCase `PlanetParameters`).
+Seven named presets: `starter`, `twirly`, `desert`, `archipelago`, `frozen`, `craters`, `normie`. Typed equivalents live in `apps/scene-editor/src/lib/planet/params/presets.ts` (camelCase `PlanetParameters`).
 
 ## Debug toggles (UI)
 
@@ -37,9 +39,10 @@ Per [_docs/specs/virtual_planet_architecture_plan.md](specs/virtual_planet_archi
 - Three.js as architecture center → `RenderBackend` with WebGPU primary path.
 - `OrbitControls` on `/planet` → custom camera modes.
 
-## Regression rule
+## Historical status
 
-Architecture work must not change `/old` visuals. Wave 1 GLSL modularization may touch `fe/src/lib/old/shaders/*` only if output is pixel-identical.
+The old visual-regression rule no longer applies because the implementation and route were
+retired. Current renderer gates are documented in `AGENTS.md`.
 
 ## Screenshots
 

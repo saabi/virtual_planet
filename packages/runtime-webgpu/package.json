@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/runtime-webgpu",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "WebGPU runtime: buffers, pipelines, bind groups, consumers, tessellation scheduling.",
 	"repository": {
 		"type": "git",

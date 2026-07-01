@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Virtual Planet Architecture Diagram Set</title>
+	<title>World Lab Architecture Diagram Set</title>
 	<style>
 		:root {
 			color-scheme: light;
@@ -221,7 +221,7 @@
 </head>
 <body>
 	<header>
-		<h1>Virtual Planet Architecture Diagram Set</h1>
+		<h1>World Lab Architecture Diagram Set</h1>
 		<p>
 			A proposed documentation pack for explaining the repository through HTML and SVG.
 			The diagrams are built here as self-contained SVGs and are organized from broad
@@ -266,10 +266,9 @@
 		<section id="repo">
 			<h2>1. Repository Map</h2>
 			<p>
-				The active application is <code>fe/</code>. The workspace also contains a reusable
-				procedural graph stack under <code>packages/</code> and a standalone graph editor
-				app under <code>apps/graph-editor</code>. The archived <code>fe.old/</code> reference
-				is intentionally outside the active workspace.
+				The active scene application is <code>apps/scene-editor/</code>. The workspace also
+				contains a reusable procedural graph stack under <code>packages/</code> and the
+				standalone WebGPUToy app under <code>apps/webgputoy/</code>.
 			</p>
 			<div class="diagram">
 				<svg viewBox="0 0 1100 540" role="img" aria-labelledby="repo-title repo-desc">
@@ -284,17 +283,17 @@
 						</marker>
 					</defs>
 					<rect class="box white" x="30" y="30" width="1040" height="480" rx="10" />
-					<text class="label" x="55" y="62">virtual_planet workspace</text>
+					<text class="label" x="55" y="62">world-lab workspace</text>
 
 					<rect class="box blue" x="70" y="100" width="300" height="155" />
-					<text class="label" x="90" y="132">fe/ active SvelteKit app</text>
+					<text class="label" x="90" y="132">apps/scene-editor/ active SvelteKit app</text>
 					<text class="small" x="90" y="160">Routes: /scene, /solar-systems</text>
 					<text class="small" x="90" y="182">Renderer: WebGPU-first planet + scene</text>
 					<text class="small" x="90" y="204">Docs: README, vite-wgsl, vite-glslify</text>
-					<text class="small" x="90" y="226">Commands run from fe/</text>
+					<text class="small" x="90" y="226">Commands run from apps/scene-editor/</text>
 
 					<rect class="box green" x="430" y="92" width="285" height="190" />
-					<text class="label" x="450" y="124">fe/src/lib/planet</text>
+					<text class="label" x="450" y="124">apps/scene-editor/src/lib/planet</text>
 					<text class="small" x="450" y="152">scene + scene3d + components</text>
 					<text class="small" x="450" y="174">render + passes + gpu/wgsl</text>
 					<text class="small" x="450" y="196">params + patches + camera + flight</text>
@@ -315,13 +314,9 @@
 					<text class="small" x="190" y="416">Renderer snapshots and plans</text>
 
 					<rect class="box amber" x="500" y="335" width="250" height="112" />
-					<text class="label" x="520" y="367">apps/graph-editor</text>
+					<text class="label" x="520" y="367">apps/webgputoy</text>
 					<text class="small" x="520" y="394">Standalone graph editor app</text>
 					<text class="small" x="520" y="416">Consumes graph-editor package</text>
-
-					<rect class="box red dashed" x="820" y="350" width="210" height="82" />
-					<text class="label" x="840" y="382">fe.old/</text>
-					<text class="small" x="840" y="408">Archived Sapper reference</text>
 
 					<path class="edge" d="M370 177 C390 177 400 177 430 177" />
 					<path class="edge-soft" d="M715 185 C745 185 750 185 775 185" />
@@ -332,7 +327,7 @@
 			<details>
 				<summary>Reading notes</summary>
 				<ul>
-					<li><code>fe/</code> remains the active production app and owns the live renderer.</li>
+					<li><code>apps/scene-editor/</code> remains the active production app and owns the live renderer.</li>
 					<li><code>packages/</code> contains framework-neutral graph/compiler/runtime work that is not yet the primary planet renderer.</li>
 					<li><code>_docs/architecture/procedural-graph/README.md</code> is the canonical ADR for the graph stack.</li>
 				</ul>
@@ -691,7 +686,7 @@
 					<rect class="box blue" x="55" y="55" width="250" height="140" />
 					<text class="label" x="77" y="88">Authoring surfaces</text>
 					<text class="small" x="77" y="116">packages/graph-editor</text>
-					<text class="small" x="77" y="138">apps/graph-editor</text>
+					<text class="small" x="77" y="138">apps/webgputoy</text>
 					<text class="small" x="77" y="160">JSON, markup, programmatic API</text>
 					<text class="small" x="77" y="182">Future MCP/AI sessions</text>
 
@@ -729,7 +724,7 @@
 
 					<rect class="box green" x="385" y="525" width="350" height="70" />
 					<text class="label" x="407" y="558">Consumers</text>
-					<text class="small" x="407" y="584">Virtual Planet terrain, materials, vegetation, future gameplay</text>
+					<text class="small" x="407" y="584">World Lab terrain, materials, vegetation, future gameplay</text>
 
 					<path class="edge" d="M305 125 C340 125 370 125 405 125" />
 					<path class="edge" d="M655 125 C690 125 730 125 765 125" />
@@ -744,7 +739,7 @@
 			<details>
 				<summary>Current relationship to the renderer</summary>
 				<ul>
-					<li>The live renderer still uses hand-authored WGSL modules under <code>fe/src/lib/planet/gpu/wgsl</code>.</li>
+					<li>The live renderer still uses hand-authored WGSL modules under <code>apps/scene-editor/src/lib/planet/gpu/wgsl</code>.</li>
 					<li>The graph stack is additive: it should first prove typed IR, compiler, and runtime slices before replacing the planet kernel.</li>
 					<li>The eventual migration target is one graph feeding multiple consumers: terrain, material, collision, water, vegetation, and previews.</li>
 				</ul>

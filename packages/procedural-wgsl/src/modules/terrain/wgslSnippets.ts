@@ -1,4 +1,4 @@
-/** Verbatim planet WGSL fragments (copied from fe/src/lib/planet/gpu/wgsl — do not rewrite math). */
+/** Verbatim planet WGSL fragments (copied from apps/scene-editor/src/lib/planet/gpu/wgsl — do not rewrite math). */
 
 export const HASH_WGSL = `fn hash3(x: vec3f) -> vec3f {
   let p = vec3f(

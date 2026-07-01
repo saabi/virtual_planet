@@ -2,6 +2,7 @@
 	"name": "@virtual-planet/procedural-wgsl",
 	"version": "0.0.0",
 	"private": true,
+	"license": "MIT",
 	"description": "Standard library of reusable WGSL function modules (noise, terrain, vegetation, math).",
 	"repository": {
 		"type": "git",

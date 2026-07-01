@@ -4,6 +4,10 @@
 workspace scripts, Changesets. **Depends on:** OS1 app layout migration.
 **Status:** ✅ Landed.
 
+This brief landed version-management scaffolding, not externally consumable package
+artifacts. Package scope/build/tarball readiness is tracked in
+[OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md).
+
 > **Note on `repository` metadata:** at initial landing, the GitHub repo had not yet been
 > renamed, so `repository.url` pointed at the then-current `saabi/virtual_planet`. The external
 > rename to `saabi/world-lab` has since happened; the follow-up is done — every

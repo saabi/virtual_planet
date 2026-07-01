@@ -1,13 +1,12 @@
 # Scene Editor
 
 Part of [World Lab](../../README.md). SvelteKit 2 + Svelte 5 (runes) + TypeScript + WebGPU.
-The current scene / solar-system / planet-renderer app — its renderer subsystem is named
-**Virtual Planet**; a public product name for the app itself is still open.
+The current scene / solar-system editor and planet-scale renderer.
 
 Primary routes: **`/scene`** (editor + renderer), **`/solar-systems`** (SunDog galaxy map).
 `/planet` and `/old` redirect to `/scene` (retired).
 
-**Public deployment domain:** not yet finalized (see [ROADMAP](../../ROADMAP.md)).
+**Public deployment domain:** <https://planets.ferreyrapons.com>.
 
 ## Local development
 
@@ -32,7 +31,7 @@ Optional: copy `.env.example` to `.env` for local configuration (see below).
 Set `PUBLIC_SITE_URL` to the production origin so social preview URLs are absolute and canonical. Set **both** Umami variables to enable cookieless analytics; leave them unset for zero tracking. See [`.env.example`](.env.example).
 
 ```sh
-PUBLIC_SITE_URL=https://example.com \
+PUBLIC_SITE_URL=https://planets.ferreyrapons.com \
 PUBLIC_UMAMI_SRC=https://umami.example.com/script.js \
 PUBLIC_UMAMI_WEBSITE_ID=<uuid> \
 npm run build
@@ -68,7 +67,6 @@ See [CHANGELOG.md](CHANGELOG.md).
   `_docs/pending_issues.md`).
 - The planet can disappear when close to the surface and looking up (near/far or fog
   interaction; tracked in `_docs/pending_issues.md`).
-- The public product name and deployment domain are still open.
 
 ## Roadmap
 

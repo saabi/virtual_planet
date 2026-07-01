@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-	<title>Graph Editor</title>
+	<title>WebGPUToy</title>
 </svelte:head>
 
 <div class="page">

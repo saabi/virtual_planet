@@ -1,4 +1,4 @@
-# City Generation Plan for `virtual_planet`
+# City Generation Plan for World Lab Scene Editor
 
 Status: companion implementation spec  
 Scope: procedural, terrain-aware, editor-assisted city generation for a shader-sampled planet  
@@ -8,7 +8,7 @@ Primary target: a 2D canvas/editor prototype that is architecturally compatible 
 
 ## 1. Design premise
 
-`virtual_planet` should not start with a generic city generator. It should start with a small, deterministic city system that composes cleanly with the existing planet model:
+World Lab should not start with a generic city generator. It should start with a small, deterministic city system that composes cleanly with the existing planet model:
 
 - planet terrain is sampled procedurally, not read from a persistent heightfield;
 - terrain evaluation happens in body-local coordinates, eventually in WGSL through `sample_planet` or equivalent sampling functions;

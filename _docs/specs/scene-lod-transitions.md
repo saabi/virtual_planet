@@ -32,8 +32,8 @@ Non-toggled channels are at full strength once the smooth-mesh tier begins.
 
 ## Implementation
 
-- CPU: `resolveLodTransitionBlends()` in `fe/src/lib/planet/scene/bodyParams.ts`
-- Draw list: `dot | mesh` + per-channel blends in `fe/src/lib/planet/scene3d/drawList.ts`
+- CPU: `resolveLodTransitionBlends()` in `apps/scene-editor/src/lib/planet/scene/bodyParams.ts`
+- Draw list: `dot | mesh` + per-channel blends in `apps/scene-editor/src/lib/planet/scene3d/drawList.ts`
 - GPU: `height_blend` / `displacement_blend` in `MaterialOverrides` (WGSL terrain shaders)
 - Atmosphere: per-body `opacity` in `SceneAtmospherePass`, decoupled from terrain alpha
 
