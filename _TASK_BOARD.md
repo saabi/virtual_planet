@@ -30,7 +30,11 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `NodeSwapMenu.svelte`.
   Brief: `_docs/architecture/procedural-graph/briefs/M-swap-menu-click-outside.md`  ·  Claimed by: UNCLAIMED
 
-## Later — do NOT start now
+- **Vector combine/append primitives** — nodes to build larger vectors from smaller ones +
+  scalars (`vec3f,f32 → vec4f`, `vec2f,f32 → vec3f`, `vec2f,vec2f → vec4f`, `vec2f,f32,f32 →
+  vec4f`); appended-scalar port defaults (z=0, w=1) double as promote-with-default. Owns the
+  vector modules in `procedural-wgsl` + `graph` — disjoint, parallel-safe.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-vector-combine-primitives.md`  ·  Claimed by: UNCLAIMED
 
 - **Image preview presents opaque RGB** — a valid pipeline renders blank because the fragment
   alpha (`constant.f32 → vec4f.w`, default 0) makes `putImageData` paint fully transparent.
