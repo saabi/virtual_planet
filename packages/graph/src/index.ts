@@ -38,9 +38,12 @@ export {
 } from './primitives/noise/parityFixtures.js';
 export { COLORLAB_CPU_PARITY } from './primitives/color/parityFixtures.js';
 export {
+	DEFAULT_PLANE_GRID_TRANSFORM,
+	planeGridEulerRotate,
 	planeGridMeshPositions,
 	planeGridPosition,
-	planeGridVertexCount
+	planeGridVertexCount,
+	type PlaneGridTransform
 } from './primitives/pipeline/planeGrid.js';
 
 import './primitives/index.js';

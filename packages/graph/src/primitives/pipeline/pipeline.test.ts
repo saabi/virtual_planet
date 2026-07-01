@@ -12,10 +12,30 @@ describe('pipeline geometry primitives', () => {
 		expect(plane.wgsl).toEqual({ moduleId: 'geometry.plane', entry: 'planeGrid' });
 
 		const empty = Value.Create(planeParams);
-		expect(empty).toEqual({ resU: 16, resV: 16 });
+		expect(empty).toEqual({
+			resU: 16,
+			resV: 16,
+			width: 2,
+			height: 2,
+			rotationX: 0,
+			rotationY: 0,
+			rotationZ: 0
+		});
 
-		const coerced = Value.Convert(planeParams, { resU: '32', resV: 8 });
-		expect(coerced).toEqual({ resU: 32, resV: 8 });
+		const coerced = Value.Convert(planeParams, {
+			resU: '32',
+			resV: 8,
+			width: '4',
+			height: 1,
+			rotationX: '0.5'
+		});
+		expect(coerced).toMatchObject({
+			resU: 32,
+			resV: 8,
+			width: 4,
+			height: 1,
+			rotationX: 0.5
+		});
 	});
 
 	it('geometry.fullscreenPlane is a 2x2 compatibility alias for geometry.plane', () => {
@@ -24,8 +44,24 @@ describe('pipeline geometry primitives', () => {
 		expect(fullscreen.id).not.toBe(plane.id);
 		expect(fullscreen.outputs).toEqual(plane.outputs);
 		expect(fullscreen.wgsl).toEqual(plane.wgsl);
-		expect(Value.Create(fullscreenPlaneParams)).toEqual({ resU: 2, resV: 2 });
-		expect(Value.Create(fullscreen.params)).toEqual({ resU: 2, resV: 2 });
+		expect(Value.Create(fullscreenPlaneParams)).toEqual({
+			resU: 2,
+			resV: 2,
+			width: 2,
+			height: 2,
+			rotationX: 0,
+			rotationY: 0,
+			rotationZ: 0
+		});
+		expect(Value.Create(fullscreen.params)).toEqual({
+			resU: 2,
+			resV: 2,
+			width: 2,
+			height: 2,
+			rotationX: 0,
+			rotationY: 0,
+			rotationZ: 0
+		});
 		expect(fullscreen.metadata?.help).toContain('geometry.plane');
 	});
 

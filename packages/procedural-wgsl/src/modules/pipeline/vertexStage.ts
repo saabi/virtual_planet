@@ -7,7 +7,7 @@ category: Pipeline
 // @use geometry.plane
 
 fn vertexStage(vid: u32, resU: u32, resV: u32) -> vec4<f32> {
-	let p = plane_grid_position(vid, resU, resV);
+	let p = plane_grid_position(vid, resU, resV, 2.0, 2.0, 0.0, 0.0, 0.0);
 	return vec4<f32>(p, 1.0);
 }`;
 

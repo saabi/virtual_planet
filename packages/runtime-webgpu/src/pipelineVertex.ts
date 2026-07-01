@@ -5,24 +5,71 @@ import type { PipelineGraphPlan } from './pipelineGraph.js';
 
 export { planeGridVertexCount };
 
-/** Resolve resU/resV from the wired geometry source node. */
+export interface PipelineGeometryParams {
+	resU: number;
+	resV: number;
+	width: number;
+	height: number;
+	rotationX: number;
+	rotationY: number;
+	rotationZ: number;
+}
+
+export const DEFAULT_PIPELINE_GEOMETRY_PARAMS: PipelineGeometryParams = {
+	resU: 2,
+	resV: 2,
+	width: 2,
+	height: 2,
+	rotationX: 0,
+	rotationY: 0,
+	rotationZ: 0
+};
+
+function numParam(params: Record<string, unknown>, key: keyof PipelineGeometryParams, fallback: number): number {
+	return typeof params[key] === 'number' ? (params[key] as number) : fallback;
+}
+
+/** Resolve geometry grid params from the wired geometry source node. */
+export function resolvePipelineGeometryParams(
+	doc: GraphDocument,
+	plan: PipelineGraphPlan
+): PipelineGeometryParams {
+	const geometryNode = doc.nodes.find((node) => node.id === plan.geometryNode);
+	const params = geometryNode?.params ?? {};
+	return {
+		resU: numParam(params, 'resU', DEFAULT_PIPELINE_GEOMETRY_PARAMS.resU),
+		resV: numParam(params, 'resV', DEFAULT_PIPELINE_GEOMETRY_PARAMS.resV),
+		width: numParam(params, 'width', DEFAULT_PIPELINE_GEOMETRY_PARAMS.width),
+		height: numParam(params, 'height', DEFAULT_PIPELINE_GEOMETRY_PARAMS.height),
+		rotationX: numParam(params, 'rotationX', DEFAULT_PIPELINE_GEOMETRY_PARAMS.rotationX),
+		rotationY: numParam(params, 'rotationY', DEFAULT_PIPELINE_GEOMETRY_PARAMS.rotationY),
+		rotationZ: numParam(params, 'rotationZ', DEFAULT_PIPELINE_GEOMETRY_PARAMS.rotationZ)
+	};
+}
+
+/** @deprecated Use {@link resolvePipelineGeometryParams}. */
 export function resolvePipelineGeometryResolution(
 	doc: GraphDocument,
 	plan: PipelineGraphPlan
 ): { resU: number; resV: number } {
-	const geometryNode = doc.nodes.find((node) => node.id === plan.geometryNode);
-	const params = geometryNode?.params ?? {};
-	const resU = typeof params.resU === 'number' ? params.resU : 2;
-	const resV = typeof params.resV === 'number' ? params.resV : 2;
-	return { resU, resV };
+	const geo = resolvePipelineGeometryParams(doc, plan);
+	return { resU: geo.resU, resV: geo.resV };
+}
+
+function formatWgslFloat(value: number): string {
+	return Number.isInteger(value) ? `${value}.0` : String(value);
 }
 
 /** Node-driven @vertex entry calling `plane_grid_position` for the wired geometry grid. */
 export function assemblePipelineVertexWgsl(
-	resU: number,
-	resV: number,
+	geo: PipelineGeometryParams,
 	planeModuleSource: string
 ): string {
+	const width = formatWgslFloat(geo.width);
+	const height = formatWgslFloat(geo.height);
+	const rotationX = formatWgslFloat(geo.rotationX);
+	const rotationY = formatWgslFloat(geo.rotationY);
+	const rotationZ = formatWgslFloat(geo.rotationZ);
 	return `${planeModuleSource.trim()}
 
 struct VSOut {
@@ -32,7 +79,7 @@ struct VSOut {
 @vertex
 fn vs_main(@builtin(vertex_index) vid: u32, @builtin(instance_index) iid: u32) -> VSOut {
 	var out: VSOut;
-	let p = plane_grid_position(vid, ${resU}u, ${resV}u);
+	let p = plane_grid_position(vid, ${geo.resU}u, ${geo.resV}u, ${width}, ${height}, ${rotationX}, ${rotationY}, ${rotationZ});
 	out.position = vec4f(p, 1.0);
 	return out;
 }`;

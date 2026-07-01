@@ -169,7 +169,7 @@ describe('@virtual-planet/runtime-webgpu fullscreenFragment assembly', () => {
 		expect(code).toContain('fn plane_grid_position(');
 		expect(code).toContain('@vertex');
 		expect(code).toContain('fn vs_main');
-		expect(code).toContain('plane_grid_position(vid, 2u, 2u)');
+		expect(code).toContain('plane_grid_position(vid, 2u, 2u, 2.0, 2.0, 0.0, 0.0, 0.0)');
 		expect(code).toContain('@fragment');
 		expect(code).toContain('fn fs_main');
 		expect(code).toContain('fn cosine_palette(');

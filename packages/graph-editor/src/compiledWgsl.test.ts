@@ -39,7 +39,7 @@ describe('@virtual-planet/graph-editor compiledGraphWgsl', () => {
 		const compiled = results[0]!;
 		expect(compiled.diagnostic).toBeUndefined();
 		expect(compiled.code).toContain('fn plane_grid_position(');
-		expect(compiled.code).toContain('plane_grid_position(vid, 2u, 2u)');
+		expect(compiled.code).toContain('plane_grid_position(vid, 2u, 2u, 2.0, 2.0, 0.0, 0.0, 0.0)');
 		expect(compiled.code).toContain('@vertex');
 		expect(compiled.code).toContain('fn vs_main');
 		expect(compiled.code).toContain('@fragment');

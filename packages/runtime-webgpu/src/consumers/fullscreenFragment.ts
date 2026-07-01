@@ -11,8 +11,9 @@ import { createStandardLibraryResolver } from '../moduleResolver.js';
 import { planPipelineGraph } from '../pipelineGraph.js';
 import {
 	assemblePipelineVertexWgsl,
+	DEFAULT_PIPELINE_GEOMETRY_PARAMS,
 	planeGridVertexCount,
-	resolvePipelineGeometryResolution
+	resolvePipelineGeometryParams
 } from '../pipelineVertex.js';
 import {
 	packShaderToyUniforms,
@@ -77,17 +78,16 @@ async function resolveVertexAssembly(
 	resolver: WgslModuleResolver
 ): Promise<{ vertexWgsl: string; vertexCount: number }> {
 	const planeModule = await resolver.resolve('geometry.plane');
-	let resU = 2;
-	let resV = 2;
+	let geo = DEFAULT_PIPELINE_GEOMETRY_PARAMS;
 	try {
 		const plan = planPipelineGraph(graph);
-		({ resU, resV } = resolvePipelineGeometryResolution(graph, plan));
+		geo = resolvePipelineGeometryParams(graph, plan);
 	} catch {
 		// Minimal fragment-only graphs still draw via the default 2×2 plane grid.
 	}
 	return {
-		vertexWgsl: assemblePipelineVertexWgsl(resU, resV, planeModule.source),
-		vertexCount: planeGridVertexCount(resU, resV)
+		vertexWgsl: assemblePipelineVertexWgsl(geo, planeModule.source),
+		vertexCount: planeGridVertexCount(geo.resU, geo.resV)
 	};
 }
 
