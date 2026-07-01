@@ -25,6 +25,13 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
+- **Shared preview clock (synced uniforms)** — each preview pane runs its own `startTime`/
+  `frame`, so panes animate out of phase. Add a shared `previewClock` (one `iTime`/`iFrame`
+  source) read by all Effect panels; `iMouse` stays per-pane. Synced by default; leave a seam
+  for a per-pane unsync toggle (UI later). Owns `graph-editor` new `previewClock.ts` +
+  `EffectPreviewPanel.svelte`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`  ·  Claimed by: UNCLAIMED
+
 - **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
   deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
   (graph-editor) + sdf primitives (graph).
