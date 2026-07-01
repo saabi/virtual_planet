@@ -25,36 +25,18 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Preview lists every render target** — a graph with two `target.display` sinks lists only
-  one preview buffer: `enumeratePreviewBuffers` keys by field-output, so two targets sharing a
-  field collapse. Key pipeline buffers by the sink node id (one buffer per sink). Owns
-  `previewBuffers.ts`.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-multi-target.md`  ·  Claimed by: UNCLAIMED
+- **🔴 Multi-target consumer/output derivation** — `f858fe4` fixed the preview *list* but
+  `effectiveConsumers`/`effectiveOutputs` still collapse two `target.display` sinks into one
+  (shared `pipeline_image` name → identical `consumerKey`). Name the derived output/consumer
+  uniquely per sink. Owns `graph/pipeline.ts` (+ restore the softened Worley test assertion).
+  Surfaced by the Animated Worley two-target sample (`053fd41`).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-multi-target-consumer-derivation.md`  ·  Claimed by: UNCLAIMED
 
-- **Port quick-connect (right-click a port → add compatible connected node)** — right-click an
-  output port → menu of type-compatible consumers; input port → compatible producers; select →
-  node added and wired. New `compatibleConsumers`/`compatibleProducers` (graph) +
-  `add-connected-node` intent (irAdapter) + `PortConnectMenu.svelte`. Owns graph helper,
-  `irAdapter.ts`, `GraphNodeView.svelte`, new menu — parallel-safe (coordinate `GraphNodeView`
-  only if another editor task touches it).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-port-quick-connect.md`  ·  Claimed by: UNCLAIMED
-
-- **Save pane layout with each graph + load toggle** — persist the `LayoutDocument` in the
-  saved/downloaded graph artifact (wrapper, not in the pure `GraphDocument`); a toggle next to
-  Load (default ON) applies the graph's saved layout, else the default. Owns
-  `documentStorage.ts` + `GraphEditor.svelte` (+ chrome flag). Coordinate on `GraphEditor.svelte`.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-per-graph-layout.md`  ·  Claimed by: UNCLAIMED
-
-- **Image preview presents opaque RGB** — a valid pipeline renders blank because the fragment
-  alpha (`constant.f32 → vec4f.w`, default 0) makes `putImageData` paint fully transparent.
-  ShaderToy ignores `fragColor.a` for display; force alpha to 255 on present (in the readback
-  or the panel). Owns `EffectPreviewPanel.svelte` (± the fullscreen readback).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-image-preview-opaque-alpha.md`  ·  Claimed by: UNCLAIMED
-
-- **Device-compile test hardening** (infra) — make `npm test` actually compile WGSL against a
-  software WebGPU adapter (currently all device tests `skipIf(!hasWebGPU)` and silently skip);
-  add a consumer-coverage device test that catches the "string-valid but GPU-rejected" class
-  (bit us 3×). Brief: `_docs/architecture/procedural-graph/briefs/M-device-compile-test-hardening.md`.
+- **Unified graph document system** (supersedes per-graph-layout) — one `GraphArtifact` wrapper
+  (graph + layout + name) for named save/load, uploads, and samples; document-list UI; layout
+  rides the artifact with a load toggle. Phased. Owns `documentStorage.ts`, `samples.ts`,
+  `GraphEditor.svelte`, new `DocumentList`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-document-system.md`  ·  Claimed by: UNCLAIMED
 
 - **Node color-coding by category/contract** (quick win) — tint nodes by `category` or
   `swapFamily`, toggle in chrome. Owns `GraphNodeView.svelte` + a color-map module.
@@ -73,6 +55,20 @@ _(none claimed — add tasks below as briefs are pinned.)_
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU
 binds, mesh-gen consumer, node-swap/groups/tooltips UX) · Tier 3 (transforms, colorlab
 remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-plan.md`.
+
+---
+
+## Deferred — needs orchestrator review
+
+- **Save pane layout with each graph + load toggle** — **DEFERRED** (2026-06-27). Do not route
+  until the managing agent reviews and expands scope. Current brief (`M-per-graph-layout.md`)
+  only wraps `LayoutDocument` in the save artifact + adds a load toggle; user wants this folded
+  into a **proper named document save/load system** integrated with **samples** (not ad-hoc
+  localStorage keys + one-off upload). Orchestrator should: (1) audit `documentStorage.ts`,
+  sample loading in `GraphEditor.svelte` / `samples.ts`, and session vs named-doc patterns;
+  (2) expand or supersede the brief so layout persistence, named saves, and sample graphs share
+  one coherent artifact format and UX; (3) re-pin on the ready queue when the contract is clear.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-per-graph-layout.md`  ·  Claimed by: DEFERRED
 
 ---
 
@@ -98,3 +94,7 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Swap menu closes on click-outside** — capture-phase pointerdown dismisses NodeSwapMenu — `f92b052`
 - **Vector combine/append primitives** — vec2f+scalar→vec3f/vec4f, vec3f+w→vec4f (w default 1) — `3e5961b`
 - **Single fan-in on non-list inputs** — add-edge replaces occupied input; validateGraph `multiple-inputs` — `9e46041`
+- **Preview multi-target buffer list** — one buffer per display sink; fixes duplicate `pipeline_image` keys — `f858fe4`
+- **Port quick-connect** — right-click port → searchable compatible-node menu; add-connected-node intent — `f82bf92`
+- **Device-compile test hardening** — Node `webgpu` binding + consumer device-compile coverage; fixes GPU-rejected WGSL — `94d0629`
+- **Image preview opaque RGB** — previously fixed (2026-06-27): blank preview resolved; unconnected vec4f `w` defaults to 1 (`1f1bee4`) — dedicated `putImageData` alpha-forcing brief was superseded

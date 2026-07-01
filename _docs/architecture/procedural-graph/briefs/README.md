@@ -85,7 +85,7 @@ runs what.
 | [M-palette-collapsed-default.md](./M-palette-collapsed-default.md) | Palette touch-up: all sections collapsed by default | ✅ landed (`f1de8b1`) | Cursor (done) |
 | [M-preview-effective-doc-fix.md](./M-preview-effective-doc-fix.md) | Preview panels assemble against `effectiveGraphDocument` (closed buffer-list render gate) | ✅ landed (`e1cd183`) | Cursor (done) |
 | [M-fullscreen-fragment-params-binding.md](./M-fullscreen-fragment-params-binding.md) | **🔴 fix:** image consumer declares/packs/binds the `GraphParams` uniform | ✅ landed | Cursor (done) |
-| [M-image-preview-opaque-alpha.md](./M-image-preview-opaque-alpha.md) | **fix:** image preview presents opaque RGB (ShaderToy ignores `fragColor.a`) — blank preview was fragment alpha=0 erasing it at `putImageData` | 📌 contract ready | Cursor |
+| [M-image-preview-opaque-alpha.md](./M-image-preview-opaque-alpha.md) | Image preview opaque RGB — **previously fixed** (2026-06-27; see `1f1bee4` vec4f w default) | ✅ superseded | — |
 | [M-node-swap-by-contract.md](./M-node-swap-by-contract.md) | Node-swap UX: click node title → searchable menu filtered by `listSwapFamily` → `replaceNodePrimitive` in place (preserve edges/params) | ✅ landed (`cf23086`) | Cursor (done) |
 | [M-swap-menu-click-outside.md](./M-swap-menu-click-outside.md) | Swap menu closes on outside click | ✅ landed (`f92b052`) | Cursor (done) |
 | [M-datatype-canonical-and-port-defaults.md](./M-datatype-canonical-and-port-defaults.md) | **fix+feature:** one `canonicalDataType` (vec2f ≡ vec2<f32>) enforced at every boundary; optional input-port `default` (unconnected → literal) applied to vector components | 📌 contract ready · next | Cursor |
@@ -93,7 +93,9 @@ runs what.
 | [M-graph-sample-worley-pipeline.md](./M-graph-sample-worley-pipeline.md) | Hard-coded Worley+iTime pipeline sample; replaces Noise field (scalar) | ✅ landed | Cursor (done) |
 | [M-vector-combine-primitives.md](./M-vector-combine-primitives.md) | Vector combine/append primitives (vec2f+scalar→vec3f/vec4f) | ✅ landed | Cursor (done) |
 | [M-single-input-fan-in.md](./M-single-input-fan-in.md) | Single fan-in on non-list inputs (replace on connect + validation) | ✅ landed | Cursor (done) |
-| [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Infra: make `npm test` compile WGSL on a software adapter + consumer-coverage device test (catches the "string-valid but GPU-rejected" class) | 📌 contract ready · Later (infra) | Cursor |
+| [M-preview-multi-target.md](./M-preview-multi-target.md) | One preview buffer per pipeline display sink | ✅ landed | Cursor (done) |
+| [M-port-quick-connect.md](./M-port-quick-connect.md) | Right-click port → add compatible wired node | ✅ landed | Cursor (done) |
+| [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Device-compile test hardening — Node WebGPU + consumer coverage | ✅ landed | Cursor (done) |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
