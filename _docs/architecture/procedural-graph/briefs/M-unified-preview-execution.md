@@ -13,15 +13,23 @@ Today each preview pane runs its **own** shader + render loop + clock (independe
 `EffectPreviewPanel` instances). That was fine for one output, but it's the wrong end state.
 The target architecture:
 
-- **One execution per frame.** A single loop runs the **whole graph** each frame, evaluating
-  **all live outputs / render targets** together, with **shared uniforms** (`iTime`/`iFrame`,
-  and the host inputs) — by default.
+- **One execution per frame, in dependency order.** A single loop runs the **whole graph**
+  each frame, evaluating **all live outputs / render targets** together, with **shared
+  uniforms** (`iTime`/`iFrame`, host inputs) — by default. **Compute order is a topological
+  sort of the connectivity** (the requirement edges).
+- **Two ways an output feeds another output:**
+  - **Same-cycle (acyclic).** An output used as another output's **input this frame** — valid
+    as long as it's computed **before** its consumer. Topological order guarantees that; the
+    consumer reads the **current-frame** value. No persistence — it's an intermediate. This is
+    the common case, not feedback.
+  - **Cross-frame (cyclic) feedback.** A genuine **cycle** (A↔B, or A reads itself) can't
+    resolve in one frame, so the read takes the **previous-frame** value (ping-pong /
+    multibuffer, ShaderToy Buffer A–D). Persistence needed; only cyclic edges use it.
 - **Preview panes are views**, not executions. A pane selects **which output texture** to
   display; it does not compile or drive its own shader. N panes = N views of the *same* frame.
-- **Feedback is the reason.** An output at frame *K* can feed back as an **input at frame
-  *K+1*** (ping-pong / multibuffer, à la ShaderToy Buffer A–D). That is only correct if every
-  output renders in the **same** frame under **one** clock and **one** loop — independent
-  per-pane loops would read stale/mismatched frames.
+- **Why one loop:** both cases require every output to render in the **same** frame under
+  **one** clock and **one** loop, ordered by the dependency DAG. Independent per-pane loops
+  would read stale/mismatched frames and can't honor same-frame producer→consumer ordering.
 - **Single loop + shared uniforms are the default;** per-pane unsync / independent loops are an
   explicit **opt-out**, not the norm.
 
@@ -52,11 +60,14 @@ assume a single execution with panes as views. Shared uniforms/clock = default.
 
 ## Gate (per phase, when routed)
 
-Phase 1/2 land under `M-pass-graph-executor` + a preview-integration slice; the **acceptance
-signal** for the direction is: a two-output graph where **output B reads output A's previous
-frame** animates correctly across two panes (both showing the same synced frame), driven by one
-loop. Device-gated visual + headless pass-order/feedback tests (frame-graph core already has
-them).
+Phase 1/2 land under `M-pass-graph-executor` + a preview-integration slice. **Acceptance
+signals** for the direction:
+- **Same-cycle:** a graph where **output B reads output A's *current-frame* result** renders
+  correctly in one frame (A computed before B by topological order) — shown in two synced panes.
+- **Cross-frame:** a graph where **B reads A's *previous* frame** (a cycle) animates correctly
+  (ping-pong), driven by one loop.
+Device-gated visual + headless **pass-order** (topological) and **feedback** tests (the
+frame-graph core already has ordering/feedback tests).
 
 ## Handoff
 
