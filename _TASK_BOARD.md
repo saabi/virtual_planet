@@ -25,6 +25,12 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
+- **🔴 Effect preview renders the selected output** — per-pane selection works but every pane
+  renders the first `target.display` (the `PipelineGraphExecutor` ignores the `output` prop and
+  `findNode`s the first display). Thread `output` into `execute`/`buildPipelinePlan`; panel
+  forwards it. Owns `runtime-webgpu/pipelineGraph.ts`, `graph-editor/EffectPreviewPanel.svelte`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-renders-selected-output.md`  ·  Claimed by: UNCLAIMED
+
 - **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
   deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
   (graph-editor) + sdf primitives (graph).
@@ -79,4 +85,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Multi-target consumer/output derivation** — unique per-sink pipeline output/consumer names; fixes preview collapse on the effective doc — `b49d897`
 - **Node color-coding by category/contract** — tint nodes by category or contract; toolbar toggle persisted in chrome — `61b6359`
 - **Unified graph document system** — `GraphArtifact` wrapper, named save/load/list, samples in document list, layout in artifact + load toggle — `7cf7d0a`
-- **Independent output buffer per preview pane** — Subdivide passes pane id to zone snippets; `PreviewZone.svelte` + per-pane chrome (`previewBuffersByPane`) — `<hash>`
+- **Independent output buffer per preview pane** — Subdivide passes pane id to zone snippets; `PreviewZone.svelte` + per-pane chrome (`previewBuffersByPane`) — `b73e6b3`
