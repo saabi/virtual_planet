@@ -1,7 +1,7 @@
 <script module lang="ts">
-	import type { Snippet } from 'svelte';
 	import type { PaneData } from './layout/runtime.js';
 	import type { SplitEdge } from './layout/types.js';
+	import type { ZoneMap } from './zones.js';
 
 	const THRESHOLD = 100;
 
@@ -20,7 +20,7 @@
 		pane: PaneData;
 		layoutTick: number;
 		modifierPressed: boolean;
-		zones: Record<string, Snippet>;
+		zones: ZoneMap;
 		zoneLabels: Record<string, string>;
 		availableZones: string[];
 		onsplit?: (event: SplitEvent) => void;
@@ -158,7 +158,7 @@
 		{#key frame.zone}
 			<div class="zone-content">
 				{#if zones[frame.zone]}
-					{@render zones[frame.zone]!()}
+					{@render zones[frame.zone]!(pane.id)}
 				{/if}
 			</div>
 		{/key}

@@ -162,7 +162,7 @@
 	}
 </script>
 
-{#snippet outliner()}
+{#snippet outliner(_paneId)}
 	<OutlinerPanel
 		bind:scene
 		bind:selectedId
@@ -175,7 +175,7 @@
 	/>
 {/snippet}
 
-{#snippet properties()}
+{#snippet properties(_paneId)}
 	<PropertiesPanel
 		{scene}
 		bind:selectedId
@@ -199,11 +199,11 @@
 	/>
 {/snippet}
 
-{#snippet renderSettings()}
+{#snippet renderSettings(_paneId)}
 	<RenderSettingsPanel bind:materialDebug bind:lookMode bind:viewportPrefs />
 {/snippet}
 
-{#snippet viewport()}
+{#snippet viewport(_paneId)}
 	<ViewportZone
 		{scene}
 		bind:selectedId
@@ -226,7 +226,7 @@
 	/>
 {/snippet}
 
-{#snippet flight()}
+{#snippet flight(_paneId)}
 	<FlightPanel
 		{scene}
 		{clock}

@@ -25,13 +25,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Independent output buffer per preview pane** — two preview panes share one
-  `selectedPreviewBufferId`, so changing the output on one changes both. Subdivide passes the
-  pane id to zone snippets (`Pane.svelte`); extract `PreviewZone.svelte` with per-pane selection
-  persisted by pane id. Owns `subdivide/Pane.svelte` + zones type, `graph-editor` new
-  `PreviewZone.svelte` + `GraphEditor.svelte`. **Coordinate `GraphEditor.svelte`.**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-per-pane-preview-buffer.md`  ·  Claimed by: UNCLAIMED
-
 - **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
   deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
   (graph-editor) + sdf primitives (graph).
@@ -86,3 +79,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Multi-target consumer/output derivation** — unique per-sink pipeline output/consumer names; fixes preview collapse on the effective doc — `b49d897`
 - **Node color-coding by category/contract** — tint nodes by category or contract; toolbar toggle persisted in chrome — `61b6359`
 - **Unified graph document system** — `GraphArtifact` wrapper, named save/load/list, samples in document list, layout in artifact + load toggle — `7cf7d0a`
+- **Independent output buffer per preview pane** — Subdivide passes pane id to zone snippets; `PreviewZone.svelte` + per-pane chrome (`previewBuffersByPane`) — `<hash>`

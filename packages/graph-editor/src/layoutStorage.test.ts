@@ -26,7 +26,7 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		vi.stubGlobal('localStorage', createStorageMock());
 	});
 
-	it('round-trips layout and preview selection through localStorage', () => {
+	it('round-trips layout and per-pane preview selection through localStorage', () => {
 		const layout = defaultGraphEditorLayout();
 		const paletteCol = layout.root.children[0];
 		if (paletteCol?.type === 'group') {
@@ -35,15 +35,40 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		saveEditorChrome({
 			version: 1,
 			layout,
-			selectedPreviewBufferId: 'field',
-			previewFamilyOverride: 'image'
+			previewBuffersByPane: {
+				'pane-left': { bufferId: 'field', familyOverride: 'image' },
+				'pane-right': { bufferId: 'mesh', rendererOverride: 'mesh' }
+			}
 		});
 		const loaded = loadEditorChrome();
 		expect(loaded).not.toBeNull();
-		expect(loaded!.selectedPreviewBufferId).toBe('field');
-		expect(loaded!.previewFamilyOverride).toBe('image');
+		expect(loaded!.previewBuffersByPane).toEqual({
+			'pane-left': { bufferId: 'field', familyOverride: 'image' },
+			'pane-right': { bufferId: 'mesh', rendererOverride: 'mesh' }
+		});
 		const loadedPaletteCol = loaded!.layout.root.children[0];
 		expect(loadedPaletteCol?.type === 'group' && loadedPaletteCol.size).toBe(0.22);
+	});
+
+	it('migrates legacy selectedPreviewBufferId into previewBuffersByPane', () => {
+		localStorage.setItem(
+			GRAPH_EDITOR_LAYOUT_KEY,
+			JSON.stringify({
+				version: 1,
+				layout: defaultGraphEditorLayout(),
+				selectedPreviewBufferId: 'field',
+				previewFamilyOverride: 'image',
+				previewMode: 'gpu'
+			})
+		);
+		const loaded = loadEditorChrome();
+		expect(loaded?.previewBuffersByPane).toEqual({
+			__legacy__: {
+				bufferId: 'field',
+				familyOverride: 'image',
+				rendererOverride: 'gpu'
+			}
+		});
 	});
 
 	it('round-trips nodeColorMode chrome', () => {
@@ -64,8 +89,11 @@ describe('@virtual-planet/graph-editor layoutStorage', () => {
 		expect(loadEditorChrome()?.loadDocumentLayout).toBe(false);
 	});
 
-	it('still loads legacy previewMode chrome', () => {
-		saveEditorChrome({ version: 1, layout: defaultGraphEditorLayout(), previewMode: 'gpu' });
+	it('still loads legacy previewMode chrome from raw storage', () => {
+		localStorage.setItem(
+			GRAPH_EDITOR_LAYOUT_KEY,
+			JSON.stringify({ version: 1, layout: defaultGraphEditorLayout(), previewMode: 'gpu' })
+		);
 		expect(loadEditorChrome()?.previewMode).toBe('gpu');
 	});
 

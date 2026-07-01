@@ -1,11 +1,11 @@
 <script module lang="ts">
-	import type { Snippet } from 'svelte';
 	import type { LayoutDocument } from './layout/types.js';
 	import type { SplitEdge } from './layout/types.js';
 	import type { PaneContextAction, PaneContextEvent } from './layout/types.js';
 	import type { PaneData } from './layout/runtime.js';
 	import type { DividerData } from './layout/runtime.js';
 	import type { GroupData } from './layout/runtime.js';
+	import type { ZoneMap } from './zones.js';
 
 	interface SplitEvent {
 		edge: SplitEdge;
@@ -24,7 +24,7 @@
 
 	interface Props {
 		layout?: LayoutDocument;
-		zones: Record<string, Snippet>;
+		zones: ZoneMap;
 		zoneLabels?: Record<string, string>;
 		thickness?: string;
 		padding?: string;

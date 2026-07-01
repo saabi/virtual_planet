@@ -4,12 +4,7 @@
 	import type { LayoutDocument } from '@virtual-planet/subdivide';
 	import { effectiveGraphDocument, type GraphDocument } from '@virtual-planet/graph';
 
-	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
-	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
-	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
-	import VegetationPreviewPanel from './VegetationPreviewPanel.svelte';
-	import EffectPreviewPanel from './EffectPreviewPanel.svelte';
-	import AudioPreviewPanel from './AudioPreviewPanel.svelte';
+	import PreviewZone from './PreviewZone.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
 	import InspectorPanel from './InspectorPanel.svelte';
 	import NodePalette from './NodePalette.svelte';
@@ -36,17 +31,19 @@
 	import { defaultGraphEditorLayout } from './defaultLayout.js';
 	import { loadEditorChrome, saveEditorChrome } from './layoutStorage.js';
 	import type { NodeColorMode } from './nodeAccentColor.js';
-	import {
-		resolvePreviewRenderer,
-		type PreviewRenderer
-	} from './previewBackend.js';
+	import type { PreviewRenderer } from './previewBackend.js';
 	import {
 		enumeratePreviewBuffers,
-		findPreviewBufferById,
-		inferDefaultPreviewBuffer,
-		resolvePreviewBufferPort,
-		type PreviewFamily
+		inferDefaultPreviewBuffer
 	} from './previewBuffers.js';
+	import {
+		ensurePaneSelection,
+		prunePaneSelection,
+		syncSelectionsForGraphChange,
+		syncPreviewPanesWithLayout,
+		type PreviewBuffersByPane,
+		type PreviewPaneSelection
+	} from './previewPaneSelection.js';
 	import { listSampleArtifacts } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import { computeGraphCompileSignature } from './graphCompileSignature.js';
@@ -75,9 +72,7 @@
 	let markupParseError = $state<string | null>(null);
 	let codeSaveError = $state<string | null>(null);
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
-	let selectedPreviewBufferId = $state<string | null>(null);
-	let previewFamilyOverride = $state<PreviewFamily | null>(null);
-	let previewRendererOverride = $state<PreviewRenderer | null>(null);
+	let previewBuffersByPane = $state<PreviewBuffersByPane>({});
 	let nodeColorMode = $state<NodeColorMode>('category');
 	let loadDocumentLayout = $state(true);
 	let activeDocumentName = $state<string | null>(null);
@@ -126,19 +121,10 @@
 
 	const previewDoc = $derived(effectiveGraphDocument(graph));
 	const previewBuffers = $derived(enumeratePreviewBuffers(previewDoc));
-	const selectedPreviewBuffer = $derived(
-		findPreviewBufferById(previewDoc, selectedPreviewBufferId) ??
-			inferDefaultPreviewBuffer(previewDoc)
-	);
-	const previewOutput = $derived(
-		selectedPreviewBuffer ? resolvePreviewBufferPort(previewDoc, selectedPreviewBuffer) : null
-	);
-	const previewRenderer = $derived(
-		resolvePreviewRenderer(selectedPreviewBuffer, {
-			familyOverride: previewFamilyOverride,
-			rendererOverride: previewRendererOverride
-		})
-	);
+	const previewBufferIds = $derived(new Set(previewBuffers.map((buffer) => buffer.id)));
+	const defaultPreviewBufferId = $derived(
+		inferDefaultPreviewBuffer(previewDoc)?.id ?? previewBuffers[0]?.id ?? null
+		);
 	const compileSignature = $derived(computeGraphCompileSignature(graph));
 	const savedDocuments = $derived.by(() => {
 		void documentRevision;
@@ -154,38 +140,42 @@
 		return () => clearTimeout(timer);
 	});
 
-	function syncPreviewSelectionForGraph(doc: GraphDocument, force = false) {
+	function syncPreviewSelectionsForGraph(doc: GraphDocument) {
 		const buffers = enumeratePreviewBuffers(doc);
-		if (buffers.length === 0) {
-			selectedPreviewBufferId = null;
-			return;
-		}
-		const stillValid = buffers.some((buffer) => buffer.id === selectedPreviewBufferId);
-		if (force || !stillValid || !selectedPreviewBufferId) {
-			const defaultBuffer = inferDefaultPreviewBuffer(doc);
-			selectedPreviewBufferId = defaultBuffer?.id ?? buffers[0]!.id;
-			previewFamilyOverride = null;
-			previewRendererOverride = null;
-		}
+		const defaultId = inferDefaultPreviewBuffer(doc)?.id ?? buffers[0]?.id ?? null;
+		previewBuffersByPane = syncSelectionsForGraphChange(
+			previewBuffersByPane,
+			new Set(buffers.map((buffer) => buffer.id)),
+			defaultId
+		);
 	}
 
-	function selectPreviewBuffer(bufferId: string) {
-		selectedPreviewBufferId = bufferId;
-		previewFamilyOverride = null;
-		previewRendererOverride = null;
+	function updatePreviewPaneSelection(paneId: string, selection: PreviewPaneSelection) {
+		previewBuffersByPane = { ...previewBuffersByPane, [paneId]: selection };
 		scheduleChromeSave();
 	}
 
-	function setPreviewFamilyOverride(family: PreviewFamily) {
-		const buffer = selectedPreviewBuffer;
-		if (!buffer) return;
-		previewFamilyOverride = family === buffer.family ? null : family;
-		previewRendererOverride = null;
+	function openPreviewPane(paneId: string) {
+		previewBuffersByPane = ensurePaneSelection(
+			previewBuffersByPane,
+			paneId,
+			previewBufferIds,
+			defaultPreviewBufferId
+		);
 		scheduleChromeSave();
 	}
 
-	function setPreviewRenderer(renderer: PreviewRenderer) {
-		previewRendererOverride = renderer;
+	function closePreviewPane(paneId: string) {
+		previewBuffersByPane = prunePaneSelection(previewBuffersByPane, paneId);
+		scheduleChromeSave();
+	}
+
+	function setPreviewMode(mode: PreviewRenderer) {
+		const next: PreviewBuffersByPane = { ...previewBuffersByPane };
+		for (const [paneId, selection] of Object.entries(next)) {
+			next[paneId] = { ...selection, rendererOverride: mode };
+		}
+		previewBuffersByPane = next;
 		scheduleChromeSave();
 	}
 
@@ -204,8 +194,7 @@
 		(chrome: {
 			version: 1;
 			layout: LayoutDocument;
-			selectedPreviewBufferId?: string | null;
-			previewFamilyOverride?: PreviewFamily | null;
+			previewBuffersByPane?: PreviewBuffersByPane;
 			nodeColorMode?: NodeColorMode;
 			loadDocumentLayout?: boolean;
 		}) => {
@@ -218,8 +207,7 @@
 		debouncedSaveChrome({
 			version: 1,
 			layout: layoutDoc,
-			selectedPreviewBufferId,
-			previewFamilyOverride,
+			previewBuffersByPane,
 			nodeColorMode,
 			loadDocumentLayout
 		});
@@ -255,7 +243,7 @@
 		selectedNodeId = null;
 		selectedEdgeId = null;
 		updateGraph(artifact.graph, false);
-		syncPreviewSelectionForGraph(artifact.graph, true);
+		syncPreviewSelectionsForGraph(artifact.graph);
 		scheduleChromeSave();
 		storageMessage = artifact.meta?.sample ? `Example: ${artifact.name}` : `Loaded ${artifact.name}`;
 	}
@@ -266,11 +254,13 @@
 	}
 
 	function onLayoutChange(event: { layout: LayoutDocument }) {
+		previewBuffersByPane = syncPreviewPanesWithLayout(
+			previewBuffersByPane,
+			event.layout,
+			previewBufferIds,
+			defaultPreviewBufferId
+		);
 		scheduleChromeSave(event.layout);
-	}
-
-	function setPreviewMode(mode: PreviewRenderer) {
-		setPreviewRenderer(mode);
 	}
 
 	let lastCodeViewSyncNodeId = $state<string | null>(null);
@@ -294,7 +284,7 @@
 		graph = next;
 		markupParseError = null;
 		codeSaveError = null;
-		syncPreviewSelectionForGraph(next);
+		syncPreviewSelectionsForGraph(next);
 		onchange?.(next);
 		if (persist && activeDocumentName && !documentReadOnly) {
 			saveDocument(buildCurrentArtifact(activeDocumentName, false));
@@ -306,11 +296,8 @@
 		const chrome = loadEditorChrome();
 		if (chrome) {
 			layout = chrome.layout;
-			if (chrome.selectedPreviewBufferId) {
-				selectedPreviewBufferId = chrome.selectedPreviewBufferId;
-			}
-			if (chrome.previewFamilyOverride !== undefined) {
-				previewFamilyOverride = chrome.previewFamilyOverride;
+			if (chrome.previewBuffersByPane) {
+				previewBuffersByPane = chrome.previewBuffersByPane;
 			}
 			if (chrome.nodeColorMode) {
 				nodeColorMode = chrome.nodeColorMode;
@@ -318,21 +305,20 @@
 			if (chrome.loadDocumentLayout === false) {
 				loadDocumentLayout = false;
 			}
-			if (chrome.previewMode === 'vegetation') {
-				previewRendererOverride = 'vegetation';
-			} else if (chrome.previewMode === 'mesh') {
-				previewRendererOverride = 'mesh';
-			} else if (chrome.previewMode === 'gpu') {
-				previewRendererOverride = 'gpu';
-			}
 		}
 
 		const stored = loadActiveDocument();
 		if (stored) {
 			applyArtifact(stored);
 		} else {
-			syncPreviewSelectionForGraph(graph, true);
+			syncPreviewSelectionsForGraph(graph);
 		}
+		previewBuffersByPane = syncPreviewPanesWithLayout(
+			previewBuffersByPane,
+			layout,
+			previewBufferIds,
+			defaultPreviewBufferId
+		);
 	});
 
 	function newGraph() {
@@ -543,11 +529,11 @@
 	}
 </script>
 
-{#snippet palette()}
+{#snippet palette(_paneId)}
 	<NodePalette onadd={addPrimitive} />
 {/snippet}
 
-{#snippet canvas()}
+{#snippet canvas(_paneId)}
 	<GraphCanvas
 		{graph}
 		{selectedNodeId}
@@ -568,83 +554,24 @@
 	/>
 {/snippet}
 
-{#snippet preview()}
-	<div class="preview-zone">
-		<div class="preview-buffer-bar" role="tablist" aria-label="Graph output buffers">
-			{#if previewBuffers.length === 0}
-				<p class="preview-empty">No preview buffers — wire an output or pipeline display target.</p>
-			{:else}
-				{#each previewBuffers as buffer (buffer.id)}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={selectedPreviewBuffer?.id === buffer.id}
-						class:active={selectedPreviewBuffer?.id === buffer.id}
-						class="buffer-tab"
-						onclick={() => selectPreviewBuffer(buffer.id)}
-					>
-						<span class="family-badge" data-family={buffer.family}>{buffer.family.slice(0, 1)}</span>
-						<span class="buffer-label">{buffer.label}</span>
-					</button>
-				{/each}
-			{/if}
-		</div>
-		{#if selectedPreviewBuffer && !selectedPreviewBuffer.inferred}
-			<label class="family-override">
-				<span>View as</span>
-				<select
-					value={previewFamilyOverride ?? selectedPreviewBuffer.family}
-					onchange={(event) =>
-						setPreviewFamilyOverride((event.currentTarget as HTMLSelectElement).value as PreviewFamily)}
-				>
-					<option value="data">data</option>
-					<option value="image">image</option>
-					<option value="geometry">geometry</option>
-					<option value="audio">audio</option>
-				</select>
-			</label>
-		{/if}
-		{#if previewRenderer === 'cpu'}
-			<CpuPreviewPanel
-				graph={previewDoc}
-				output={previewOutput}
-				refreshEpoch={previewRefreshEpoch}
-				{compileSignature}
-			/>
-		{:else if previewRenderer === 'gpu'}
-			<GpuPreviewPanel
-				graph={previewDoc}
-				output={previewOutput}
-				refreshEpoch={previewRefreshEpoch}
-				{compileSignature}
-			/>
-		{:else if previewRenderer === 'mesh'}
-			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} {compileSignature} />
-		{:else if previewRenderer === 'effect'}
-			<EffectPreviewPanel
-				graph={previewDoc}
-				output={previewOutput}
-				refreshEpoch={previewRefreshEpoch}
-				{compileSignature}
-			/>
-		{:else if previewRenderer === 'audio'}
-			<AudioPreviewPanel
-				graph={previewDoc}
-				output={previewOutput}
-				refreshEpoch={previewRefreshEpoch}
-				{compileSignature}
-			/>
-		{:else}
-			<VegetationPreviewPanel graph={previewDoc} refreshEpoch={previewRefreshEpoch} {compileSignature} />
-		{/if}
-	</div>
+{#snippet preview(paneId)}
+	<PreviewZone
+		{paneId}
+		graph={previewDoc}
+		buffers={previewBuffers}
+		selection={previewBuffersByPane[paneId]}
+		defaultBufferId={defaultPreviewBufferId}
+		refreshEpoch={previewRefreshEpoch}
+		{compileSignature}
+		onSelectionChange={(selection) => updatePreviewPaneSelection(paneId, selection)}
+	/>
 {/snippet}
 
-{#snippet inspector()}
+{#snippet inspector(_paneId)}
 	<InspectorPanel {graph} nodeId={selectedNodeId} onchange={updateGraph} />
 {/snippet}
 
-{#snippet validation()}
+{#snippet validation(_paneId)}
 	<ValidationPanel
 		{graph}
 		markupError={markupParseError ?? codeSaveError}
@@ -659,7 +586,7 @@
 	/>
 {/snippet}
 
-{#snippet markup()}
+{#snippet markup(_paneId)}
 	<MarkupView
 		{graph}
 		onchange={updateGraph}
@@ -672,7 +599,7 @@
 	/>
 {/snippet}
 
-{#snippet code()}
+{#snippet code(_paneId)}
 	<CodeView
 		{graph}
 		bind:moduleId={selectedPrimitiveModuleId}
@@ -687,7 +614,7 @@
 	/>
 {/snippet}
 
-{#snippet compiled()}
+{#snippet compiled(_paneId)}
 	<CompiledWgslPanel {graph} {compileSignature} />
 {/snippet}
 
@@ -748,6 +675,16 @@
 		<Subdivide
 			bind:layout
 			onlayoutchange={onLayoutChange}
+			onopen={(event) => {
+				if (event.pane.zone === 'preview') {
+					openPreviewPane(event.pane.id);
+				}
+			}}
+			onclose={(event) => {
+				if (event.pane.zone === 'preview') {
+					closePreviewPane(event.pane.id);
+				}
+			}}
 			{zoneContextMenus}
 			zones={{ palette, canvas, preview, code, compiled, inspector, validation, markup }}
 			zoneLabels={{
@@ -860,105 +797,5 @@
 		min-height: 0;
 		position: relative;
 		overflow: hidden;
-	}
-
-	.preview-zone {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 0;
-	}
-
-	.preview-buffer-bar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		padding: 6px 8px 0;
-		flex: 0 0 auto;
-	}
-
-	.preview-empty {
-		margin: 0;
-		font-size: 10px;
-		opacity: 0.65;
-		padding: 2px 0 4px;
-	}
-
-	.buffer-tab {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		font-size: 10px;
-		padding: 3px 8px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
-		background: #1a1f30;
-		color: inherit;
-		cursor: pointer;
-		opacity: 0.75;
-	}
-
-	.buffer-tab.active {
-		opacity: 1;
-		border-color: rgba(255, 255, 255, 0.35);
-		background: #24304a;
-	}
-
-	.buffer-tab:hover {
-		border-color: rgba(255, 255, 255, 0.3);
-	}
-
-	.family-badge {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 14px;
-		height: 14px;
-		border-radius: 3px;
-		font-size: 9px;
-		font-weight: 700;
-		text-transform: uppercase;
-		background: rgba(255, 255, 255, 0.12);
-	}
-
-	.family-badge[data-family='image'] {
-		background: rgba(120, 180, 255, 0.25);
-	}
-
-	.family-badge[data-family='geometry'] {
-		background: rgba(140, 220, 160, 0.25);
-	}
-
-	.family-badge[data-family='data'] {
-		background: rgba(255, 200, 120, 0.25);
-	}
-
-	.family-badge[data-family='audio'] {
-		background: rgba(220, 140, 255, 0.25);
-	}
-
-	.buffer-label {
-		max-width: 120px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.family-override {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 4px 8px 0;
-		font-size: 10px;
-		flex: 0 0 auto;
-	}
-
-	.family-override select {
-		font-size: 10px;
-		padding: 2px 6px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
-		background: #1a1f30;
-		color: inherit;
 	}
 </style>
