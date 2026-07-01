@@ -92,6 +92,7 @@ runs what.
 | [M-graph-editor-default-layout-v2.md](./M-graph-editor-default-layout-v2.md) | Graph editor default layout v2 — palette \| canvas+code \| inspector/validation/preview | ✅ landed | Cursor (done) |
 | [M-graph-sample-worley-pipeline.md](./M-graph-sample-worley-pipeline.md) | Hard-coded Worley+iTime pipeline sample; replaces Noise field (scalar) | ✅ landed | Cursor (done) |
 | [M-vector-combine-primitives.md](./M-vector-combine-primitives.md) | Vector combine/append primitives (vec2f+scalar→vec3f/vec4f) | ✅ landed | Cursor (done) |
+| [M-single-input-fan-in.md](./M-single-input-fan-in.md) | Single fan-in on non-list inputs (replace on connect + validation) | ✅ landed | Cursor (done) |
 | [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Infra: make `npm test` compile WGSL on a software adapter + consumer-coverage device test (catches the "string-valid but GPU-rejected" class) | 📌 contract ready · Later (infra) | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in

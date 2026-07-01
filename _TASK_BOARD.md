@@ -25,13 +25,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **🔴 Single fan-in on non-list input ports** — a `target.display.color` (any non-list input)
-  can take multiple incoming edges → ambiguous. `add-edge` should replace an occupied non-list
-  input; `validateGraph` flags >1 incoming edge as `multiple-inputs` error (list inputs still
-  multi). Owns `graph/validate.ts`, `irAdapter.ts` (add-edge), issue formatters in
-  `graph-editor`/`mcp-server`. **Coordinate `irAdapter.ts` with port-quick-connect.**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-single-input-fan-in.md`  ·  Claimed by: UNCLAIMED
-
 - **Preview lists every render target** — a graph with two `target.display` sinks lists only
   one preview buffer: `enumeratePreviewBuffers` keys by field-output, so two targets sharing a
   field collapse. Key pipeline buffers by the sink node id (one buffer per sink). Owns
@@ -90,3 +83,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Animated Worley pipeline sample** — replaces Noise field (scalar); default/New graph uses it — `b23b9a1`
 - **Swap menu closes on click-outside** — capture-phase pointerdown dismisses NodeSwapMenu — `f92b052`
 - **Vector combine/append primitives** — vec2f+scalar→vec3f/vec4f, vec3f+w→vec4f (w default 1) — `3e5961b`
+- **Single fan-in on non-list inputs** — add-edge replaces occupied input; validateGraph `multiple-inputs` — `9e46041`
