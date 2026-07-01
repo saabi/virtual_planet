@@ -87,7 +87,7 @@ runs what.
 | [M-fullscreen-fragment-params-binding.md](./M-fullscreen-fragment-params-binding.md) | **🔴 fix:** image consumer declares/packs/binds the `GraphParams` uniform | ✅ landed | Cursor (done) |
 | [M-image-preview-opaque-alpha.md](./M-image-preview-opaque-alpha.md) | **fix:** image preview presents opaque RGB (ShaderToy ignores `fragColor.a`) — blank preview was fragment alpha=0 erasing it at `putImageData` | 📌 contract ready | Cursor |
 | [M-node-swap-by-contract.md](./M-node-swap-by-contract.md) | Node-swap UX: click node title → searchable menu filtered by `listSwapFamily` → `replaceNodePrimitive` in place (preserve edges/params) | ✅ landed (`cf23086`) | Cursor (done) |
-| [M-swap-menu-click-outside.md](./M-swap-menu-click-outside.md) | Touch-up: swap menu closes on outside click (capture-phase window pointerdown) | 📌 contract ready | Cursor |
+| [M-swap-menu-click-outside.md](./M-swap-menu-click-outside.md) | Swap menu closes on outside click | ✅ landed (`f92b052`) | Cursor (done) |
 | [M-datatype-canonical-and-port-defaults.md](./M-datatype-canonical-and-port-defaults.md) | **fix+feature:** one `canonicalDataType` (vec2f ≡ vec2<f32>) enforced at every boundary; optional input-port `default` (unconnected → literal) applied to vector components | 📌 contract ready · next | Cursor |
 | [M-graph-editor-default-layout-v2.md](./M-graph-editor-default-layout-v2.md) | Graph editor default layout v2 — palette \| canvas+code \| inspector/validation/preview | ✅ landed | Cursor (done) |
 | [M-graph-sample-worley-pipeline.md](./M-graph-sample-worley-pipeline.md) | Hard-coded Worley+iTime pipeline sample; replaces Noise field (scalar) | ✅ landed | Cursor (done) |
